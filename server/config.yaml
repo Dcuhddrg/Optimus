@@ -1,0 +1,34 @@
+system:
+  env: develop
+  addr: 8888
+  db-type: mysql
+  use-redis: false
+  use-casbin: false
+  router-prefix: /api/v1
+zap:
+  level: info
+  format: console
+  prefix: optimus
+mysql:
+  path: 127.0.0.1
+  port: 3306
+  db-name: optimus
+  username: root
+  password: ""
+  config: charset=utf8mb4&parseTime=True&loc=Local
+  max-idle-conns: 10
+  max-open-conns: 100
+  log-mode: info
+redis:
+  addr: 127.0.0.1:6379
+  password: ""
+  db: 0
+jwt:
+  signing-key: optimus
+  expires-time: 86400
+  buffer-time: 3600
+  issuer: optimus
+casbin:
+  enable: false
+  model-path: config/casbin_model.conf
+  policy-source: mysql
