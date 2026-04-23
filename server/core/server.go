@@ -12,11 +12,11 @@ import (
 	"go.uber.org/zap"
 )
 
-func RunServer() {
+func RunServer(handler http.Handler) {
 	addr := fmt.Sprintf(":%d", global.OPTIMUS_CONFIG.System.Addr)
 	server := &http.Server{
 		Addr:              addr,
-		Handler:           http.NewServeMux(),
+		Handler:           handler,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 

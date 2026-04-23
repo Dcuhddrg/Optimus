@@ -7,7 +7,7 @@ import (
 
 func main() {
 	initializeSystem()
-	core.RunServer()
+	core.RunServer(initialize.Routers())
 }
 
 func initializeSystem() {

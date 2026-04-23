@@ -1,0 +1,42 @@
+{
+  "folders": [
+    {
+      "path": "server",
+      "name": "backend"
+    },
+    {
+      "path": "web",
+      "name": "frontend"
+    },
+    {
+      "path": ".",
+      "name": "root"
+    }
+  ],
+  "settings": {
+    "go.toolsEnvVars": {
+      "GOPROXY": "https://goproxy.cn,direct",
+      "GONOPROXY": "none;"
+    },
+    "remote.autoForwardPortsFallback": 0
+  },
+  "launch": {
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "type": "go",
+        "request": "launch",
+        "name": "Backend",
+        "cwd": "${workspaceFolder:backend}",
+        "program": "${workspaceFolder:backend}/"
+      }
+    ],
+    "compounds": [
+      {
+        "name": "Both (Backend & Frontend)",
+        "configurations": ["Backend", "Frontend"],
+        "stopAll": true
+      }
+    ]
+  }
+}

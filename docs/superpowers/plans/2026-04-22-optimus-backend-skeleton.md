@@ -2,6 +2,19 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+## Status Snapshot
+
+As of 2026-04-23, the implementation is ahead of the unchecked boxes below:
+
+- Task 1 completed
+- Task 2 completed
+- Task 3 completed
+- Task 4 completed
+- Task 5 completed
+- Task 6 completed for the current lightweight router shape
+- Task 7 completed with lightweight response helpers; `/api/v1/health`, `/api/v1/ping`, and `/api/v1/base/ping` are wired through `router -> api -> service`
+- Task 8 completed: `go test ./...` and `go build ./...` pass; README startup notes are present; live smoke checks passed for `/api/v1/health`, `/api/v1/ping`, and `/api/v1/base/ping` on a temporary port override because port `8888` was already occupied in the environment
+
 **Goal:** Build the first runnable Go backend skeleton under `server/` using a gin-vue-admin-inspired structure with MySQL-first configuration, pluggable Redis/JWT/Casbin wiring, and minimal system health endpoints.
 
 **Architecture:** The implementation keeps `server/main.go` as the only entrypoint, `server/core` as the runtime core, `server/initialize` as the wiring layer, and `server/router` as the route registration layer. The first iteration stays intentionally small: only startup plumbing, config loading, global state, middleware placeholders, and two public system endpoints are implemented, while auth and permission flows remain as extension points.
