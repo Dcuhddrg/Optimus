@@ -1,0 +1,50 @@
+.shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 272px minmax(0, 1fr);
+  background:
+    radial-gradient(circle at top left, rgba(203, 155, 111, 0.18), transparent 30%),
+    linear-gradient(180deg, #f7f1e8 0%, #f4ede3 100%);
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 32px 40px 16px;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  font-size: 0.75rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #8c6c4b;
+}
+
+.title {
+  margin: 0;
+  font-size: 2rem;
+  line-height: 1.1;
+  color: #2f2419;
+}
+
+.badge {
+  padding: 10px 14px;
+  border: 1px solid rgba(111, 81, 49, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 250, 244, 0.78);
+  color: #6f5131;
+  font-size: 0.85rem;
+}
+
+.main {
+  flex: 1;
+  padding: 8px 40px 40px;
+}

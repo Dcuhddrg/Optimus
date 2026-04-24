@@ -1,0 +1,110 @@
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  padding: 28px 20px;
+  border-right: 1px solid rgba(111, 81, 49, 0.1);
+  background:
+    linear-gradient(180deg, rgba(255, 252, 247, 0.9), rgba(246, 238, 226, 0.92)),
+    #f7efe4;
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.45);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 12px;
+}
+
+.brandMark {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #c38954, #7e5635);
+  color: #fffaf3;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.brandEyebrow {
+  margin: 0 0 4px;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #8e7457;
+}
+
+.brandTitle {
+  margin: 0;
+  font-size: 1.15rem;
+  color: #2c2118;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.navItem,
+.navItemActive,
+.groupLabel,
+.groupLabelActive,
+.childItem,
+.childItemActive {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  border-radius: 14px;
+  text-decoration: none;
+}
+
+.navItem,
+.groupLabel {
+  padding: 0 14px;
+  color: #5c4734;
+}
+
+.navItemActive,
+.groupLabelActive {
+  padding: 0 14px;
+  background: rgba(255, 251, 246, 0.92);
+  box-shadow:
+    0 12px 24px rgba(126, 86, 53, 0.08),
+    inset 0 0 0 1px rgba(111, 81, 49, 0.08);
+  color: #2c2118;
+  font-weight: 600;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.groupChildren {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-left: 14px;
+}
+
+.childItem,
+.childItemActive {
+  min-height: 40px;
+  padding: 0 14px;
+  font-size: 0.95rem;
+}
+
+.childItem {
+  color: #73563c;
+}
+
+.childItemActive {
+  background: rgba(243, 229, 214, 0.88);
+  color: #2c2118;
+  font-weight: 600;
+}
