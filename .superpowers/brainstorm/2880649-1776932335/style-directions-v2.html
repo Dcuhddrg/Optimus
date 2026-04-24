@@ -1,0 +1,286 @@
+<style>
+  :root {
+    --text: #f6f8fb;
+    --muted: #93a2b8;
+    --line: rgba(255,255,255,0.08);
+  }
+
+  .compare {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+  }
+
+  .option-card {
+    border-radius: 28px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.03);
+  }
+
+  .option-body {
+    padding: 18px 20px 22px;
+  }
+
+  .preview {
+    aspect-ratio: 4 / 4.8;
+    padding: 16px;
+  }
+
+  .frame {
+    height: 100%;
+    border-radius: 24px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .shell {
+    display: grid;
+    grid-template-columns: 78px 1fr;
+    height: 100%;
+  }
+
+  .sidebar {
+    padding: 12px 10px;
+    display: grid;
+    align-content: start;
+    gap: 10px;
+  }
+
+  .nav-pill {
+    height: 12px;
+    border-radius: 999px;
+  }
+
+  .main {
+    padding: 14px;
+    display: grid;
+    grid-template-rows: auto auto 1fr;
+    gap: 12px;
+  }
+
+  .topbar {
+    height: 54px;
+    border-radius: 18px;
+  }
+
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+
+  .metric {
+    min-height: 84px;
+    border-radius: 18px;
+  }
+
+  .lower {
+    display: grid;
+    grid-template-columns: 1.15fr .85fr;
+    gap: 10px;
+  }
+
+  .panel {
+    border-radius: 18px;
+    padding: 10px;
+    display: grid;
+    gap: 8px;
+  }
+
+  .item {
+    min-height: 46px;
+    border-radius: 14px;
+  }
+
+  .tone-a .frame {
+    background:
+      radial-gradient(circle at top left, rgba(73, 213, 255, 0.18), transparent 30%),
+      linear-gradient(180deg, #09111b, #0c1623);
+  }
+
+  .tone-a .sidebar {
+    background: rgba(255,255,255,0.025);
+    border-right: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .tone-a .nav-pill,
+  .tone-a .topbar,
+  .tone-a .panel,
+  .tone-a .item {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+
+  .tone-a .metric:nth-child(1) { background: linear-gradient(180deg, rgba(73,213,255,0.20), rgba(73,213,255,0.06)); }
+  .tone-a .metric:nth-child(2) { background: linear-gradient(180deg, rgba(115,241,186,0.18), rgba(115,241,186,0.05)); }
+  .tone-a .metric:nth-child(3) { background: linear-gradient(180deg, rgba(255,198,92,0.18), rgba(255,198,92,0.05)); }
+
+  .tone-b .frame {
+    background:
+      radial-gradient(circle at top right, rgba(79, 137, 255, 0.08), transparent 28%),
+      linear-gradient(180deg, #fbfdff, #eef3f9);
+  }
+
+  .tone-b .sidebar {
+    background: rgba(12, 24, 44, 0.03);
+    border-right: 1px solid rgba(17, 31, 53, 0.08);
+  }
+
+  .tone-b .nav-pill {
+    background: rgba(18, 34, 57, 0.16);
+  }
+
+  .tone-b .topbar,
+  .tone-b .metric,
+  .tone-b .panel,
+  .tone-b .item {
+    background: rgba(255,255,255,0.78);
+    border: 1px solid rgba(15, 28, 48, 0.06);
+    box-shadow: 0 12px 30px rgba(19, 34, 58, 0.06);
+  }
+
+  .tone-c .frame {
+    background:
+      linear-gradient(130deg, rgba(255,180,95,0.10), transparent 20%),
+      radial-gradient(circle at bottom left, rgba(94, 202, 255, 0.18), transparent 22%),
+      linear-gradient(180deg, #0a0f16, #111824);
+  }
+
+  .tone-c .sidebar {
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+    border-right: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .tone-c .nav-pill {
+    background: linear-gradient(90deg, rgba(255,255,255,0.22), rgba(255,255,255,0.06));
+  }
+
+  .tone-c .topbar,
+  .tone-c .metric,
+  .tone-c .panel,
+  .tone-c .item {
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .tone-c .frame::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      repeating-linear-gradient(90deg, rgba(255,255,255,0.02) 0 1px, transparent 1px 64px),
+      repeating-linear-gradient(180deg, rgba(255,255,255,0.015) 0 1px, transparent 1px 64px);
+    pointer-events: none;
+    mix-blend-mode: screen;
+  }
+
+  .choice-tags {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+  }
+
+  .choice-tag {
+    padding: 5px 9px;
+    border-radius: 999px;
+    font-size: 11px;
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--muted);
+  }
+</style>
+
+<h2>更明显的气质对比</h2>
+<p class="subtitle">这次不只是“换色”，而是直接把亮暗、密度、质感和装饰感拉开。你只需要判断哪一种更像你心里的运维平台首页。</p>
+
+<div class="compare options">
+  <div class="option-card option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="preview tone-a">
+      <div class="frame">
+        <div class="shell">
+          <div class="sidebar">
+            <div class="nav-pill"></div><div class="nav-pill"></div><div class="nav-pill"></div><div class="nav-pill"></div>
+          </div>
+          <div class="main">
+            <div class="topbar"></div>
+            <div class="metrics"><div class="metric"></div><div class="metric"></div><div class="metric"></div></div>
+            <div class="lower">
+              <div class="panel"><div class="item"></div><div class="item"></div><div class="item"></div></div>
+              <div class="panel"><div class="item"></div><div class="item"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="option-body">
+      <h3>A. 冷静专业型</h3>
+      <p>深色、克制、专业，像成熟的现代运维 SaaS 首页。</p>
+      <div class="choice-tags">
+        <span class="choice-tag">最稳</span>
+        <span class="choice-tag">最企业</span>
+        <span class="choice-tag">最像产品后台</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="option-card option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="preview tone-b">
+      <div class="frame">
+        <div class="shell">
+          <div class="sidebar">
+            <div class="nav-pill"></div><div class="nav-pill"></div><div class="nav-pill"></div><div class="nav-pill"></div>
+          </div>
+          <div class="main">
+            <div class="topbar"></div>
+            <div class="metrics"><div class="metric"></div><div class="metric"></div><div class="metric"></div></div>
+            <div class="lower">
+              <div class="panel"><div class="item"></div><div class="item"></div><div class="item"></div></div>
+              <div class="panel"><div class="item"></div><div class="item"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="option-body">
+      <h3>B. 浅色高级型</h3>
+      <p>更轻、更亮、更像高端产品工作台，运维味道相对弱一点。</p>
+      <div class="choice-tags">
+        <span class="choice-tag">最精致</span>
+        <span class="choice-tag">最轻盈</span>
+        <span class="choice-tag">最不像传统后台</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="option-card option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="preview tone-c">
+      <div class="frame">
+        <div class="shell">
+          <div class="sidebar">
+            <div class="nav-pill"></div><div class="nav-pill"></div><div class="nav-pill"></div><div class="nav-pill"></div>
+          </div>
+          <div class="main">
+            <div class="topbar"></div>
+            <div class="metrics"><div class="metric"></div><div class="metric"></div><div class="metric"></div></div>
+            <div class="lower">
+              <div class="panel"><div class="item"></div><div class="item"></div><div class="item"></div></div>
+              <div class="panel"><div class="item"></div><div class="item"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="option-body">
+      <h3>C. 品牌控制台型</h3>
+      <p>也是深色，但装饰感更强、品牌感更重、辨识度更高。</p>
+      <div class="choice-tags">
+        <span class="choice-tag">最有记忆点</span>
+        <span class="choice-tag">更特别</span>
+        <span class="choice-tag">更有设计感</span>
+      </div>
+    </div>
+  </div>
+</div>

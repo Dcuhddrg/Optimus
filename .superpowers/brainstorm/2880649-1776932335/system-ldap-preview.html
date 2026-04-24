@@ -1,0 +1,389 @@
+<style>
+  :root {
+    --bg: #f7f1e7;
+    --bg-2: #f2e8db;
+    --panel: rgba(255, 252, 246, 0.88);
+    --panel-2: rgba(255, 249, 242, 0.96);
+    --line: rgba(122, 97, 73, 0.14);
+    --line-soft: rgba(122, 97, 73, 0.08);
+    --text: #2d251e;
+    --muted: #8c7b6a;
+    --blue: #7ca4d0;
+    --green: #88b89f;
+    --amber: #d89d5d;
+    --rose: #d88979;
+    --peach: #ead0b8;
+  }
+
+  .mockup {
+    margin-top: 16px;
+    border-radius: 30px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    background:
+      radial-gradient(circle at top left, rgba(234,208,184,0.50), transparent 26%),
+      radial-gradient(circle at right center, rgba(124,164,208,0.14), transparent 20%),
+      linear-gradient(180deg, var(--bg), var(--bg-2));
+    box-shadow: 0 28px 80px rgba(98, 72, 49, 0.12);
+  }
+
+  .frame {
+    min-height: 82vh;
+    padding: 18px;
+    display: grid;
+    grid-template-columns: 250px 1fr;
+    gap: 18px;
+  }
+
+  .sidebar,
+  .topbar,
+  .section,
+  .subnav {
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.70), rgba(255,255,255,0.40)),
+      var(--panel);
+    border: 1px solid var(--line);
+    backdrop-filter: blur(16px);
+  }
+
+  .sidebar {
+    border-radius: 28px;
+    padding: 22px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .brand-mark {
+    width: 20px;
+    height: 20px;
+    border-radius: 7px;
+    background: linear-gradient(135deg, var(--peach), var(--blue));
+    box-shadow: 0 0 16px rgba(124,164,208,0.18);
+  }
+
+  .brand h3 {
+    margin: 0;
+    font-size: 18px;
+    color: var(--text);
+  }
+
+  .brand p {
+    margin: 2px 0 0;
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  .nav-label {
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  .nav-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 15px;
+    margin-bottom: 10px;
+    border-radius: 18px;
+    color: var(--text);
+    background: rgba(255,255,255,0.44);
+    border: 1px solid transparent;
+  }
+
+  .nav-item.active {
+    background: linear-gradient(180deg, rgba(255,255,255,0.78), rgba(242,232,221,0.86));
+    border-color: rgba(124,164,208,0.18);
+  }
+
+  .nav-item span:last-child {
+    font-size: 11px;
+    color: var(--blue);
+  }
+
+  .subnav {
+    border-radius: 18px;
+    padding: 12px;
+  }
+
+  .subnav-title {
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  .subnav-item {
+    padding: 12px 13px;
+    border-radius: 14px;
+    color: var(--text);
+    background: rgba(255,255,255,0.40);
+    border: 1px solid transparent;
+    margin-bottom: 8px;
+  }
+
+  .subnav-item.active {
+    background: linear-gradient(180deg, rgba(255,255,255,0.78), rgba(243,234,223,0.9));
+    border-color: rgba(124,164,208,0.16);
+  }
+
+  .main {
+    display: grid;
+    gap: 18px;
+    align-content: start;
+  }
+
+  .topbar {
+    border-radius: 28px;
+    padding: 24px;
+    display: grid;
+    grid-template-columns: 1.15fr .85fr;
+    gap: 20px;
+  }
+
+  .eyebrow {
+    display: inline-block;
+    margin-bottom: 10px;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .headline h2 {
+    margin: 0;
+    font-size: 34px;
+    line-height: 1.05;
+    letter-spacing: -0.04em;
+    color: var(--text);
+  }
+
+  .headline p {
+    margin: 10px 0 0;
+    max-width: 560px;
+    color: var(--muted);
+  }
+
+  .chips {
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .chip, .button {
+    padding: 11px 15px;
+    border-radius: 999px;
+    font-size: 13px;
+    border: 1px solid var(--line);
+  }
+
+  .chip {
+    background: rgba(255,255,255,0.58);
+    color: var(--text);
+  }
+
+  .button {
+    background: linear-gradient(135deg, #ecd8c5, #dfe9f4);
+    color: var(--text);
+    border-color: rgba(124,164,208,0.16);
+  }
+
+  .content-grid {
+    display: grid;
+    grid-template-columns: 1.05fr .95fr;
+    gap: 18px;
+  }
+
+  .section {
+    border-radius: 28px;
+    padding: 22px;
+  }
+
+  .section h3 {
+    margin: 0 0 6px;
+    font-size: 18px;
+    color: var(--text);
+  }
+
+  .section p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  .form-grid {
+    margin-top: 18px;
+    display: grid;
+    gap: 12px;
+  }
+
+  .field {
+    padding: 14px 15px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.48);
+    border: 1px solid var(--line-soft);
+  }
+
+  .field-label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .field-value {
+    color: var(--text);
+    font-size: 14px;
+  }
+
+  .stack {
+    margin-top: 18px;
+    display: grid;
+    gap: 12px;
+  }
+
+  .status-card,
+  .note-card {
+    padding: 16px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.48);
+    border: 1px solid var(--line-soft);
+  }
+
+  .status-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px dashed rgba(122,97,73,0.12);
+  }
+
+  .status-pill {
+    padding: 5px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+  }
+
+  .footer-note {
+    margin-top: 18px;
+    padding: 14px 16px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.38);
+    border: 1px dashed rgba(122,97,73,0.12);
+    color: var(--muted);
+    font-size: 12px;
+  }
+</style>
+
+<h2>System / LDAP 展示稿</h2>
+<p class="subtitle">LDAP 放在 `System` 的拓展栏下。当前稿只做前端展示，用来确认信息架构、导航归属和页面气质。</p>
+
+<div class="mockup">
+  <div class="frame">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark"></div>
+        <div>
+          <h3>Optimus Ops</h3>
+          <p>Operations Workbench</p>
+        </div>
+      </div>
+
+      <div>
+        <div class="nav-label">Navigation</div>
+        <div class="nav-item"><span>Dashboard</span><span>Empty</span></div>
+        <div class="nav-item active"><span>System</span><span>Open</span></div>
+      </div>
+
+      <div class="subnav">
+        <div class="subnav-title">System</div>
+        <div class="subnav-item active">LDAP</div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <section class="topbar">
+        <div class="headline">
+          <span class="eyebrow">System / LDAP</span>
+          <h2>Configure directory access before enabling sign-in.</h2>
+          <p>这里先承接平台级认证源配置，而不是直接放到 Dashboard。第一版只看前端壳子，确认 LDAP 是否应该归在 `System` 展开项下。</p>
+        </div>
+        <div class="chips">
+          <div class="chip">Authentication Source</div>
+          <div class="chip">Draft Setup</div>
+          <div class="button">Test Connection</div>
+        </div>
+      </section>
+
+      <section class="content-grid">
+        <div class="section">
+          <h3>Connection Settings</h3>
+          <p>第一页重点是连接配置与同步边界，不急着展开完整权限体系。</p>
+          <div class="form-grid">
+            <div class="field">
+              <span class="field-label">Server URL</span>
+              <div class="field-value">ldap://directory.company.internal:389</div>
+            </div>
+            <div class="field">
+              <span class="field-label">Base DN</span>
+              <div class="field-value">dc=company,dc=internal</div>
+            </div>
+            <div class="field">
+              <span class="field-label">Bind DN</span>
+              <div class="field-value">cn=readonly,ou=system,dc=company,dc=internal</div>
+            </div>
+            <div class="field">
+              <span class="field-label">User Filter</span>
+              <div class="field-value">(objectClass=person)</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <h3>Sync & Status</h3>
+          <p>右侧放连接状态、同步摘要和操作提示，让 LDAP 页面不像纯表单页。</p>
+          <div class="stack">
+            <div class="status-card">
+              <strong style="color:var(--text)">Connection Status</strong>
+              <div class="status-row">
+                <span class="field-label" style="margin:0">Last Check</span>
+                <span class="status-pill" style="background:rgba(136,184,159,0.18); color:#5e8d72;">Reachable</span>
+              </div>
+              <div class="status-row">
+                <span class="field-label" style="margin:0">User Sync Mode</span>
+                <span class="status-pill" style="background:rgba(124,164,208,0.18); color:#6b8eb4;">Profile Sync</span>
+              </div>
+            </div>
+
+            <div class="note-card">
+              <strong style="color:var(--text)">First Phase</strong>
+              <p style="margin-top:8px">当前先聚焦 LDAP 登录认证和用户信息同步，不做角色/组织映射。页面结构应该把这个范围表达得足够清楚。</p>
+            </div>
+
+            <div class="note-card">
+              <strong style="color:var(--text)">Why under System</strong>
+              <p style="margin-top:8px">LDAP 是平台级认证源能力，更适合放在 `System` 下，而不是 `Dashboard`、`Services` 或 `Operations`。</p>
+            </div>
+          </div>
+
+          <div class="footer-note">
+            这一版只审核导航归属和页面外观，不代表 LDAP 真实功能已经开始实现。
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>

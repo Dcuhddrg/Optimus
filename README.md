@@ -14,3 +14,8 @@ Backend quick start:
 - Health endpoint: `GET /api/v1/health`
 - Ping endpoint: `GET /api/v1/ping`
 - Plan-aligned ping endpoint: `GET /api/v1/base/ping`
+
+Frontend quick start:
+- Frontend directory: `web/`
+- Install command: `cd web && npm install`
+- Dev command: `cd web && npm run dev`
