@@ -1,0 +1,36 @@
+services:
+  optimus-web:
+    build:
+      context: ../..
+      dockerfile: deploy/docker-compose/Dockerfile.frontend
+    depends_on:
+      - optimus-server
+    ports:
+      - "18080:8080"
+
+  optimus-server:
+    build:
+      context: ../..
+      dockerfile: deploy/docker-compose/Dockerfile.backend
+    depends_on:
+      - optimus-mysql
+    environment:
+      OPTIMUS_SYSTEM_ADDR: "8888"
+      OPTIMUS_MYSQL_PATH: optimus-mysql
+      OPTIMUS_MYSQL_PORT: "3306"
+      OPTIMUS_MYSQL_DB_NAME: optimus
+      OPTIMUS_MYSQL_USERNAME: root
+      OPTIMUS_MYSQL_PASSWORD: optimus
+    ports:
+      - "18888:8888"
+
+  optimus-mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: optimus
+      MYSQL_ROOT_PASSWORD: optimus
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+volumes:
+  mysql-data:
