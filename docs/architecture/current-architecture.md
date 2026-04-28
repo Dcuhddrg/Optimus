@@ -2,9 +2,10 @@
 
 ## Scope
 
-- 当前主开发面是 `server/` 下的 Go 后端骨架
-- `web/` 目录仍是占位目录，不是主要交付面
-- 当前阶段目标是可运行、可验证、可扩展的后端骨架，不是完整业务系统
+- `server/` 下的 Go 后端骨架
+- `web/` 下的 React + TypeScript + Vite 前端壳子
+- `deploy/docker-compose/` 下的容器化部署编排
+- 当前阶段目标是可运行、可验证、可扩展的基础骨架，不是完整业务系统
 
 ## Repository Layout
 
@@ -20,7 +21,23 @@
 - `server/model/common`：公共响应模型
 - `server/utils`：轻量响应工具与 claims
 - `docs/superpowers`：设计与实施计划文档
-- `.codex`：Codex 本地规则文件
+- `.codex`：Codex 本地规则文件（引用 `.claude/project_rules.md`）
+- `.claude`：Claude Code 项目规则与设置
+
+## Frontend Architecture
+
+- `web/` 下 React + TypeScript + Vite 项目
+- AppShell 布局含侧边栏与内容区
+- 一级导航：Dashboard、System
+- Dashboard 为空态页
+- System > LDAP 为静态展示页
+- 目录结构：view/ layout/ router/ components/ style/
+
+## Deployment
+
+- `deploy/docker-compose/` 下三服务编排（frontend + backend + mysql）
+- 前端通过 nginx 反向代理 `/api` 到后端
+- Caddy HTTPS 代理方案已设计（optimus.intellivis.cn）
 
 ## Backend Architecture
 
@@ -94,4 +111,4 @@
 - Swagger
 - 代码生成器
 - 完整后台联动能力
-- 成熟前端应用结构
+- 成熟前端应用结构（当前仅为最小壳子）

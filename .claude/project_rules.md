@@ -42,7 +42,11 @@
 - 优先贴合现有模式，不自行发明新层次
 - 只在当前任务直接需要时新增依赖、测试或文档
 - 不把"更完整"当成"更正确"
-- 当前前端默认边界是最小壳子，不主动把 `Dashboard + System > LDAP` 扩成完整平台
+- 不主动扩展已确认的前端页面范围
+
+---
+
+## WORKFLOW
 
 ### Superpowers 工作流
 
@@ -129,21 +133,8 @@
 
 ## ARCHITECTURE REFERENCE
 
-当前仓库事实请看：
+当前仓库架构事实统一维护在：
 
 - `docs/architecture/current-architecture.md`
 
-当前前端已落地内容：
-
-- `web/` 下 React + TypeScript + Vite 项目已搭建
-- AppShell 布局含侧边栏与内容区
-- 一级导航：Dashboard、System
-- Dashboard 为空态页
-- System > LDAP 为静态展示页
-- 目录结构：view/ layout/ router/ components/ style/
-
-当前部署已落地内容：
-
-- `deploy/docker-compose/` 下三服务编排（frontend + backend + mysql）
-- 前端通过 nginx 反向代理 `/api` 到后端
-- Caddy HTTPS 代理方案已设计（optimus.intellivis.cn）
+规则文件不重复罗列架构快照，以上述文档为准。
