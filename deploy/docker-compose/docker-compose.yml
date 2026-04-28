@@ -4,33 +4,47 @@ services:
       context: ../..
       dockerfile: deploy/docker-compose/Dockerfile.frontend
     depends_on:
-      - optimus-server
+      optimus-server:
+        condition: service_started
+    restart: unless-stopped
     ports:
-      - "18080:8080"
+      - "${WEB_PORT:-18080}:8080"
 
   optimus-server:
     build:
       context: ../..
       dockerfile: deploy/docker-compose/Dockerfile.backend
     depends_on:
-      - optimus-mysql
+      optimus-mysql:
+        condition: service_healthy
+    restart: unless-stopped
     environment:
       OPTIMUS_SYSTEM_ADDR: "8888"
       OPTIMUS_MYSQL_PATH: optimus-mysql
       OPTIMUS_MYSQL_PORT: "3306"
-      OPTIMUS_MYSQL_DB_NAME: optimus
+      OPTIMUS_MYSQL_DB_NAME: ${MYSQL_DATABASE:-optimus}
       OPTIMUS_MYSQL_USERNAME: root
-      OPTIMUS_MYSQL_PASSWORD: optimus
+      OPTIMUS_MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-optimus}
+    volumes:
+      - ../../server/config.yaml:/app/config.yaml
+      - ../../server/config/casbin_model.conf:/app/config/casbin_model.conf
     ports:
-      - "18888:8888"
+      - "${SERVER_PORT:-18888}:8888"
 
   optimus-mysql:
     image: mysql:8.4
+    restart: unless-stopped
     environment:
-      MYSQL_DATABASE: optimus
-      MYSQL_ROOT_PASSWORD: optimus
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-optimus}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-optimus}
     volumes:
       - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 30s
 
 volumes:
   mysql-data:

@@ -9,15 +9,18 @@ COPY server/ ./
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /out/optimus-backend .
 
 FROM alpine:3.20
+LABEL maintainer="duchddrg67"
 
 WORKDIR /app
 
 ENV TZ=Asia/Shanghai
-RUN apk update && apk add --no-cache tzdata openntpd \
+RUN apk add --no-cache tzdata \
     && ln -sf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
-    
+
 COPY --from=build /out/optimus-backend ./optimus-backend
 COPY server/config.yaml ./config.yaml
 COPY server/config/casbin_model.conf ./config/casbin_model.conf
+
+EXPOSE 8888
 
 CMD ["./optimus-backend"]
