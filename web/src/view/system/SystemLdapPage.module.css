@@ -3,15 +3,9 @@
   gap: 1.5rem;
 }
 
-.grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1.5rem;
-}
-
 .panel {
   display: grid;
-  gap: 1rem;
+  gap: 1.25rem;
   padding: 1.5rem;
   border: 1px solid rgba(143, 110, 84, 0.18);
   border-radius: 1.5rem;
@@ -22,128 +16,72 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.74);
 }
 
-.panelHeader {
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  font-weight: 800;
+  color: #2c2118;
+}
+
+.toggle input {
+  width: 18px;
+  height: 18px;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.field {
   display: grid;
   gap: 0.45rem;
-}
-
-.sectionEyebrow {
-  margin: 0;
-  font-size: 0.72rem;
+  color: #4e3d2f;
+  font-size: 0.9rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: rgba(131, 93, 62, 0.72);
 }
 
-.sectionTitle {
+.field input {
+  min-height: 44px;
+  width: 100%;
+  padding: 0 0.9rem;
+  border: 1px solid rgba(84, 68, 52, 0.16);
+  border-radius: 0.75rem;
+  background: rgba(255, 253, 249, 0.92);
+  color: #2c2118;
+}
+
+.message {
   margin: 0;
-  font-size: 1.3rem;
-  line-height: 1.15;
-  letter-spacing: -0.03em;
-}
-
-.sectionDescription {
-  margin: 0;
-  color: rgba(92, 70, 53, 0.82);
-}
-
-.definitionList {
-  display: grid;
-  gap: 0.75rem;
-  margin: 0;
-}
-
-.definitionItem {
-  display: grid;
-  gap: 0.3rem;
-  padding: 0.9rem 1rem;
-  border: 1px solid rgba(154, 120, 93, 0.14);
-  border-radius: 1rem;
-  background: rgba(255, 250, 245, 0.72);
-}
-
-.definitionLabel {
-  margin: 0;
-  font-size: 0.8rem;
-  color: rgba(118, 93, 73, 0.78);
-}
-
-.definitionValue {
-  margin: 0;
-  color: rgba(48, 36, 28, 0.92);
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-
-.notice,
-.callout {
-  display: grid;
-  gap: 0.55rem;
-  padding: 1rem 1.1rem;
-  border-radius: 1.1rem;
-}
-
-.notice {
-  border: 1px solid rgba(188, 142, 101, 0.2);
-  background: rgba(252, 243, 232, 0.88);
-}
-
-.callout {
-  border: 1px dashed rgba(176, 141, 109, 0.34);
-  background: rgba(250, 246, 240, 0.88);
-}
-
-.noticeTitle,
-.calloutLabel {
-  margin: 0;
-  font-size: 0.82rem;
+  color: #2f5f59;
   font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: rgba(150, 96, 56, 0.86);
 }
 
-.noticeCopy {
-  margin: 0;
-  color: rgba(92, 70, 53, 0.84);
-}
-
-.calloutList {
-  display: grid;
-  gap: 0.5rem;
-  margin: 0;
-  padding-left: 1rem;
-  color: rgba(87, 60, 42, 0.9);
-}
-
-.calloutList li::marker {
-  color: rgba(196, 135, 84, 0.92);
+.actions {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .primaryAction {
   border: 0;
   border-radius: 999px;
   padding: 0.78rem 1.2rem;
-  background: linear-gradient(135deg, #bb8458, #9d6840);
+  background: linear-gradient(135deg, #2f5f59, #244c47);
   color: #fffaf5;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  box-shadow: 0 14px 28px rgba(157, 104, 64, 0.24);
+  font-weight: 800;
+  box-shadow: 0 14px 28px rgba(47, 95, 89, 0.18);
   cursor: pointer;
 }
 
-.primaryAction:hover {
-  filter: brightness(1.02);
-}
-
-.primaryAction:focus-visible {
-  outline: 2px solid rgba(157, 104, 64, 0.35);
-  outline-offset: 2px;
+.primaryAction:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
 }
 
 @media (max-width: 900px) {
-  .grid {
+  .formGrid {
     grid-template-columns: 1fr;
   }
 }
