@@ -5,7 +5,15 @@ RUN corepack enable && corepack prepare pnpm@10.33.2 --activate
 WORKDIR /app/web
 
 COPY web/package.json web/pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+RUN attempts=0; \
+    until pnpm install --frozen-lockfile; do \
+      attempts=$((attempts + 1)); \
+      if [ "$attempts" -ge 3 ]; then \
+        exit 1; \
+      fi; \
+      echo "pnpm install failed, retrying ($attempts/3)..." >&2; \
+      sleep 2; \
+    done
 
 COPY web/ ./
 RUN pnpm run build
