@@ -78,3 +78,31 @@ func TestAuthMeRouteRequiresJWT(t *testing.T) {
 
 	require.Equal(t, http.StatusUnauthorized, w.Code)
 }
+
+func TestSystemAdminRoutesRequireJWT(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	engine := initialize.Routers()
+
+	routes := []struct {
+		method string
+		path   string
+	}{
+		{http.MethodGet, "/api/v1/system/users"},
+		{http.MethodGet, "/api/v1/system/roles"},
+		{http.MethodGet, "/api/v1/system/permissions/tree"},
+		{http.MethodGet, "/api/v1/system/ldap/config"},
+		{http.MethodGet, "/api/v1/system/audit-logs"},
+	}
+
+	for _, route := range routes {
+		t.Run(route.method+" "+route.path, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			req := httptest.NewRequest(route.method, route.path, nil)
+
+			engine.ServeHTTP(w, req)
+
+			require.Equal(t, http.StatusUnauthorized, w.Code)
+		})
+	}
+}
