@@ -5,6 +5,7 @@ system:
   use-redis: false
   use-casbin: false
   router-prefix: /api/v1
+  admin-initial-password: admin
 zap:
   level: info
   format: console

@@ -20,4 +20,6 @@ func initializeSystem() {
 	if err := core.Zap(); err != nil {
 		panic(err)
 	}
+
+	initialize.Startup()
 }
