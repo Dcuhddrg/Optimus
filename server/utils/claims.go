@@ -2,10 +2,14 @@ package utils
 
 import "github.com/golang-jwt/jwt/v5"
 
+const ClaimsContextKey = "claims"
+
 type BaseClaims struct {
-	UUID   string
-	ID     uint
-	RoleID uint
+	UUID      string   `json:"uuid"`
+	ID        uint     `json:"id"`
+	Username  string   `json:"username"`
+	RoleIDs   []uint   `json:"roleIds"`
+	RoleCodes []string `json:"roleCodes"`
 }
 
 type CustomClaims struct {
