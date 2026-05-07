@@ -115,12 +115,45 @@ func TestAuthServiceLogoutWritesAudit(t *testing.T) {
 	require.Equal(t, []string{"auth.logout"}, store.auditActions())
 }
 
+func TestAuthServiceLDAPLoginSyncsUser(t *testing.T) {
+	store := newFakeAuthStore(systemModel.SystemUser{})
+	store.ldapConfig = systemModel.SystemLDAPConfig{
+		Enabled:         true,
+		URL:             "ldap://example.test:389",
+		BaseDN:          "dc=example,dc=test",
+		BindDN:          "cn=admin,dc=example,dc=test",
+		BindPassword:    "secret",
+		UserFilter:      "(uid={username})",
+		UsernameAttr:    "uid",
+		DisplayNameAttr: "cn",
+		EmailAttr:       "mail",
+	}
+	ldapClient := &fakeLDAPAuthenticator{
+		user: LDAPUser{Username: "ldap.user", DisplayName: "LDAP User", Email: "ldap@example.com"},
+	}
+	service := NewAuthServiceWithLDAP(store, testAuthJWTConfig(), ldapClient)
+
+	result, err := service.Login(context.Background(), LoginRequest{
+		Username: "ldap.user",
+		Password: "ldap-secret",
+	}, AuditMeta{})
+
+	require.NoError(t, err)
+	require.Equal(t, "ldap.user", result.User.Username)
+	require.Equal(t, "ldap", result.User.Source)
+	require.Equal(t, []string{"user"}, result.Roles)
+	require.True(t, store.syncedLDAPUser)
+	require.Equal(t, []string{"auth.login.success"}, store.auditActions())
+}
+
 type fakeAuthStore struct {
 	user             systemModel.SystemUser
 	roles            []SystemRoleSummary
 	menuPermissions  []string
 	audits           []AuditEvent
 	lastLoginUpdated bool
+	ldapConfig       systemModel.SystemLDAPConfig
+	syncedLDAPUser   bool
 }
 
 func newFakeAuthStore(user systemModel.SystemUser) *fakeAuthStore {
@@ -165,12 +198,43 @@ func (s *fakeAuthStore) WriteAudit(_ context.Context, event AuditEvent) error {
 	return nil
 }
 
+func (s *fakeAuthStore) GetLDAPConfig(ctx context.Context) (systemModel.SystemLDAPConfig, error) {
+	return s.ldapConfig, nil
+}
+
+func (s *fakeAuthStore) SyncLDAPUser(ctx context.Context, user LDAPUser) (systemModel.SystemUser, error) {
+	s.syncedLDAPUser = true
+	s.user = systemModel.SystemUser{
+		ID:          2,
+		UUID:        "ldap-user-uuid",
+		Username:    user.Username,
+		DisplayName: user.DisplayName,
+		Email:       user.Email,
+		Source:      "ldap",
+		Status:      "enabled",
+	}
+	s.roles = []SystemRoleSummary{{ID: 2, Code: "user", Name: "User"}}
+	return s.user, nil
+}
+
 func (s *fakeAuthStore) auditActions() []string {
 	actions := make([]string, 0, len(s.audits))
 	for _, audit := range s.audits {
 		actions = append(actions, audit.Action)
 	}
 	return actions
+}
+
+type fakeLDAPAuthenticator struct {
+	user LDAPUser
+	err  error
+}
+
+func (f *fakeLDAPAuthenticator) Authenticate(ctx context.Context, cfg LDAPConnectionConfig, username string, password string) (LDAPUser, error) {
+	if f.err != nil {
+		return LDAPUser{}, f.err
+	}
+	return f.user, nil
 }
 
 func testAuthJWTConfig() config.JWT {

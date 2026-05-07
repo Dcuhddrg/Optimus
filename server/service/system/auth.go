@@ -17,6 +17,8 @@ var (
 type AuthStore interface {
 	FindUserByUsername(ctx context.Context, username string) (systemModel.SystemUser, error)
 	FindUserByID(ctx context.Context, id uint) (systemModel.SystemUser, error)
+	GetLDAPConfig(ctx context.Context) (systemModel.SystemLDAPConfig, error)
+	SyncLDAPUser(ctx context.Context, user LDAPUser) (systemModel.SystemUser, error)
 	RolesForUser(ctx context.Context, userID uint) ([]SystemRoleSummary, error)
 	MenuPermissionCodesForRoles(ctx context.Context, roleIDs []uint) ([]string, error)
 	UpdateLastLogin(ctx context.Context, userID uint, at time.Time) error
@@ -26,6 +28,7 @@ type AuthStore interface {
 type AuthService struct {
 	store AuthStore
 	jwt   config.JWT
+	ldap  LDAPAuthenticator
 	now   func() time.Time
 }
 
@@ -71,9 +74,18 @@ func NewAuthService(store AuthStore, jwtConfig config.JWT) *AuthService {
 	}
 }
 
+func NewAuthServiceWithLDAP(store AuthStore, jwtConfig config.JWT, ldap LDAPAuthenticator) *AuthService {
+	service := NewAuthService(store, jwtConfig)
+	service.ldap = ldap
+	return service
+}
+
 func (s *AuthService) Login(ctx context.Context, req LoginRequest, meta AuditMeta) (LoginResult, error) {
 	user, err := s.store.FindUserByUsername(ctx, req.Username)
 	if err != nil {
+		if req.Username != defaultAdminUsername {
+			return s.loginLDAP(ctx, req, meta)
+		}
 		s.writeAudit(ctx, AuditEvent{Action: "auth.login.failure", Result: "failure", IP: meta.IP, UserAgent: meta.UserAgent, Detail: "user lookup failed"})
 		return LoginResult{}, ErrInvalidCredentials
 	}
@@ -84,10 +96,43 @@ func (s *AuthService) Login(ctx context.Context, req LoginRequest, meta AuditMet
 	}
 
 	if user.Source != "local" || user.Username != defaultAdminUsername || !ComparePassword(user.PasswordHash, req.Password) {
+		if user.Username != defaultAdminUsername {
+			return s.loginLDAP(ctx, req, meta)
+		}
 		s.writeAudit(ctx, AuditEvent{ActorUserID: user.ID, Action: "auth.login.failure", Result: "failure", IP: meta.IP, UserAgent: meta.UserAgent, Detail: "invalid credentials"})
 		return LoginResult{}, ErrInvalidCredentials
 	}
 
+	return s.issueLoginResult(ctx, user, meta)
+}
+
+func (s *AuthService) loginLDAP(ctx context.Context, req LoginRequest, meta AuditMeta) (LoginResult, error) {
+	if s.ldap == nil {
+		s.writeAudit(ctx, AuditEvent{Action: "auth.login.failure", Result: "failure", IP: meta.IP, UserAgent: meta.UserAgent, Detail: "ldap client unavailable"})
+		return LoginResult{}, ErrInvalidCredentials
+	}
+	cfg, err := s.store.GetLDAPConfig(ctx)
+	if err != nil || !cfg.Enabled {
+		s.writeAudit(ctx, AuditEvent{Action: "auth.login.failure", Result: "failure", IP: meta.IP, UserAgent: meta.UserAgent, Detail: "ldap disabled"})
+		return LoginResult{}, ErrInvalidCredentials
+	}
+	ldapUser, err := s.ldap.Authenticate(ctx, ldapConnectionConfig(cfg), req.Username, req.Password)
+	if err != nil {
+		s.writeAudit(ctx, AuditEvent{Action: "auth.login.failure", Result: "failure", IP: meta.IP, UserAgent: meta.UserAgent, Detail: "ldap authentication failed"})
+		return LoginResult{}, ErrInvalidCredentials
+	}
+	user, err := s.store.SyncLDAPUser(ctx, ldapUser)
+	if err != nil {
+		return LoginResult{}, err
+	}
+	if user.Status != defaultUserStatus {
+		s.writeAudit(ctx, AuditEvent{ActorUserID: user.ID, Action: "auth.login.failure", Result: "failure", IP: meta.IP, UserAgent: meta.UserAgent, Detail: "user disabled"})
+		return LoginResult{}, ErrUserDisabled
+	}
+	return s.issueLoginResult(ctx, user, meta)
+}
+
+func (s *AuthService) issueLoginResult(ctx context.Context, user systemModel.SystemUser, meta AuditMeta) (LoginResult, error) {
 	roles, err := s.store.RolesForUser(ctx, user.ID)
 	if err != nil {
 		return LoginResult{}, err

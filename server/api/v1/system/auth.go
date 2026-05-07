@@ -22,7 +22,11 @@ func (a *Api) Login(c *gin.Context) {
 		return
 	}
 
-	auth := systemService.NewAuthService(systemService.NewGormAuthStore(global.OPTIMUS_DB), global.OPTIMUS_CONFIG.JWT)
+	auth := systemService.NewAuthServiceWithLDAP(
+		systemService.NewGormAuthStore(global.OPTIMUS_DB),
+		global.OPTIMUS_CONFIG.JWT,
+		systemService.NewGoLDAPClient(),
+	)
 	result, err := auth.Login(c.Request.Context(), req, systemService.AuditMeta{
 		IP:        c.ClientIP(),
 		UserAgent: c.Request.UserAgent(),

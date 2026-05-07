@@ -30,6 +30,47 @@ func (s *GormAuthStore) FindUserByID(ctx context.Context, id uint) (systemModel.
 	return user, err
 }
 
+func (s *GormAuthStore) GetLDAPConfig(ctx context.Context) (systemModel.SystemLDAPConfig, error) {
+	return NewGormLDAPStore(s.db).GetLDAPConfig(ctx)
+}
+
+func (s *GormAuthStore) SyncLDAPUser(ctx context.Context, ldapUser LDAPUser) (systemModel.SystemUser, error) {
+	var user systemModel.SystemUser
+	err := s.db.WithContext(ctx).Where("username = ?", ldapUser.Username).First(&user).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return systemModel.SystemUser{}, err
+	}
+	if err == gorm.ErrRecordNotFound {
+		user = systemModel.SystemUser{
+			UUID:     "ldap:" + ldapUser.Username,
+			Username: ldapUser.Username,
+			Source:   "ldap",
+			Status:   defaultUserStatus,
+		}
+	}
+	user.DisplayName = ldapUser.DisplayName
+	user.Email = ldapUser.Email
+	if err == gorm.ErrRecordNotFound {
+		if err := s.db.WithContext(ctx).Create(&user).Error; err != nil {
+			return systemModel.SystemUser{}, err
+		}
+		if err := s.bindDefaultUserRole(ctx, user.ID); err != nil {
+			return systemModel.SystemUser{}, err
+		}
+		return user, nil
+	}
+	return user, s.db.WithContext(ctx).Save(&user).Error
+}
+
+func (s *GormAuthStore) bindDefaultUserRole(ctx context.Context, userID uint) error {
+	var role systemModel.SystemRole
+	if err := s.db.WithContext(ctx).Where("code = ?", "user").First(&role).Error; err != nil {
+		return err
+	}
+	userRole := systemModel.SystemUserRole{UserID: userID, RoleID: role.ID}
+	return s.db.WithContext(ctx).Where("user_id = ? AND role_id = ?", userID, role.ID).FirstOrCreate(&userRole).Error
+}
+
 func (s *GormAuthStore) RolesForUser(ctx context.Context, userID uint) ([]SystemRoleSummary, error) {
 	var roles []SystemRoleSummary
 	err := s.db.WithContext(ctx).
