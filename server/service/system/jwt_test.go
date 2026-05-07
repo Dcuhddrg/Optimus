@@ -35,7 +35,7 @@ func TestIssueAndParseJWT(t *testing.T) {
 
 func TestParseJWTRejectsExpiredToken(t *testing.T) {
 	cfg := testJWTConfig()
-	now := time.Date(2026, 5, 7, 10, 0, 0, 0, time.UTC)
+	now := time.Now()
 
 	token, err := IssueJWT(TokenSubject{
 		ID:       7,
