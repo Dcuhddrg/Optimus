@@ -1,0 +1,38 @@
+.page {
+  display: grid;
+  gap: 24px;
+}
+
+.title {
+  margin: 0;
+  font-size: 2rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.card {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  border: 1px solid rgba(84, 68, 52, 0.12);
+  border-radius: 12px;
+  background: rgba(255, 251, 246, 0.86);
+}
+
+.card p {
+  margin: 0;
+  color: #756554;
+}
+
+.card button {
+  min-height: 38px;
+  border: 0;
+  border-radius: 10px;
+  background: #2f5f59;
+  color: #fffaf3;
+  cursor: pointer;
+}

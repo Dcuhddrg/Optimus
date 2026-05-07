@@ -1,6 +1,14 @@
-import { createBrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, Outlet } from 'react-router-dom';
 
+import { AuthProvider } from '../auth/AuthContext';
+import { RequireAuth } from '../auth/RequireAuth';
 import { AppShell } from '../layout/AppShell';
+import { LoginPage } from '../view/auth/LoginPage';
+import { ForbiddenPage } from '../view/system/ForbiddenPage';
+import { SystemAuditLogsPage } from '../view/system/SystemAuditLogsPage';
+import { SystemLdapPage } from '../view/system/SystemLdapPage';
+import { SystemRolesPage } from '../view/system/SystemRolesPage';
+import { SystemUsersPage } from '../view/system/SystemUsersPage';
 
 function DashboardPlaceholder() {
   return (
@@ -15,34 +23,59 @@ function DashboardPlaceholder() {
   );
 }
 
-function SystemLdapPlaceholder() {
+function AuthRoot() {
   return (
-    <section className="page-card">
-      <p className="page-eyebrow">System / LDAP</p>
-      <h1 className="page-title">LDAP configuration shell</h1>
-      <p className="page-description">
-        This route is reserved for the static LDAP settings page in the next
-        implementation tasks.
-      </p>
-    </section>
+    <AuthProvider>
+      <Outlet />
+    </AuthProvider>
   );
 }
 
 export const router = createBrowserRouter([
   {
     path: '/',
-    element: <AppShell />,
+    element: <AuthRoot />,
     children: [
       {
-        index: true,
-        element: <DashboardPlaceholder />,
+        path: 'login',
+        element: <LoginPage />,
       },
       {
-        path: 'system',
+        element: <RequireAuth />,
         children: [
           {
-            path: 'ldap',
-            element: <SystemLdapPlaceholder />,
+            element: <AppShell />,
+            children: [
+              {
+                index: true,
+                element: <DashboardPlaceholder />,
+              },
+              {
+                path: 'forbidden',
+                element: <ForbiddenPage />,
+              },
+              {
+                path: 'system',
+                children: [
+                  {
+                    path: 'users',
+                    element: <SystemUsersPage />,
+                  },
+                  {
+                    path: 'roles',
+                    element: <SystemRolesPage />,
+                  },
+                  {
+                    path: 'ldap',
+                    element: <SystemLdapPage />,
+                  },
+                  {
+                    path: 'audit-logs',
+                    element: <SystemAuditLogsPage />,
+                  },
+                ],
+              },
+            ],
           },
         ],
       },

@@ -44,6 +44,22 @@
   font-size: 0.85rem;
 }
 
+.session {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logout {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid rgba(111, 81, 49, 0.14);
+  border-radius: 12px;
+  background: #2f5f59;
+  color: #fffaf3;
+  cursor: pointer;
+}
+
 .main {
   flex: 1;
   padding: 8px 40px 40px;

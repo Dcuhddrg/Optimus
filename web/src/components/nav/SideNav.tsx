@@ -1,10 +1,16 @@
 import { NavLink, useLocation } from 'react-router-dom';
 
+import { useAuth } from '../../auth/AuthContext';
 import styles from './SideNav.module.css';
 
 export function SideNav() {
   const location = useLocation();
+  const { hasMenu } = useAuth();
   const systemExpanded = location.pathname.startsWith('/system');
+  const showUsers = hasMenu('system.users.menu');
+  const showRoles = hasMenu('system.roles.menu');
+  const showLDAP = hasMenu('system.ldap.menu');
+  const showAudit = hasMenu('system.audit.menu');
 
   return (
     <aside className={styles.sidebar}>
@@ -32,14 +38,46 @@ export function SideNav() {
             System
           </div>
           <div className={styles.groupChildren}>
-            <NavLink
-              to="/system/ldap"
-              className={({ isActive }) =>
-                isActive ? styles.childItemActive : styles.childItem
-              }
-            >
-              LDAP
-            </NavLink>
+            {showUsers ? (
+              <NavLink
+                to="/system/users"
+                className={({ isActive }) =>
+                  isActive ? styles.childItemActive : styles.childItem
+                }
+              >
+                Users
+              </NavLink>
+            ) : null}
+            {showRoles ? (
+              <NavLink
+                to="/system/roles"
+                className={({ isActive }) =>
+                  isActive ? styles.childItemActive : styles.childItem
+                }
+              >
+                Roles
+              </NavLink>
+            ) : null}
+            {showLDAP ? (
+              <NavLink
+                to="/system/ldap"
+                className={({ isActive }) =>
+                  isActive ? styles.childItemActive : styles.childItem
+                }
+              >
+                LDAP
+              </NavLink>
+            ) : null}
+            {showAudit ? (
+              <NavLink
+                to="/system/audit-logs"
+                className={({ isActive }) =>
+                  isActive ? styles.childItemActive : styles.childItem
+                }
+              >
+                Audit Logs
+              </NavLink>
+            ) : null}
           </div>
         </div>
       </nav>

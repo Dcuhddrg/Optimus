@@ -1,0 +1,30 @@
+.page {
+  display: grid;
+  gap: 24px;
+}
+
+.title {
+  margin: 0;
+  font-size: 2rem;
+}
+
+.list {
+  display: grid;
+  gap: 10px;
+}
+
+.item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 120px;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid rgba(84, 68, 52, 0.12);
+  border-radius: 12px;
+  background: rgba(255, 251, 246, 0.86);
+}
+
+.item p {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #756554;
+}
