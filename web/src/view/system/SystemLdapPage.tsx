@@ -91,15 +91,15 @@ export function SystemLdapPage() {
         <div className={styles.formGrid}>
           <label className={styles.field}>
             <span>{t('system.ldap.urlLabel')}</span>
-            <input value={config.url} onChange={(event) => update('url', event.target.value)} />
+            <input placeholder={t('system.ldap.urlPlaceholder')} value={config.url} onChange={(event) => update('url', event.target.value)} />
           </label>
           <label className={styles.field}>
             <span>{t('system.ldap.baseDnLabel')}</span>
-            <input value={config.baseDn} onChange={(event) => update('baseDn', event.target.value)} />
+            <input placeholder={t('system.ldap.baseDnPlaceholder')} value={config.baseDn} onChange={(event) => update('baseDn', event.target.value)} />
           </label>
           <label className={styles.field}>
             <span>{t('system.ldap.bindDnLabel')}</span>
-            <input value={config.bindDn} onChange={(event) => update('bindDn', event.target.value)} />
+            <input placeholder={t('system.ldap.bindDnPlaceholder')} value={config.bindDn} onChange={(event) => update('bindDn', event.target.value)} />
           </label>
           <label className={styles.field}>
             <span>{t('system.ldap.bindPasswordLabel')}</span>
@@ -113,6 +113,7 @@ export function SystemLdapPage() {
           <label className={styles.field}>
             <span>{t('system.ldap.userFilterLabel')}</span>
             <input
+              placeholder={t('system.ldap.userFilterPlaceholder')}
               value={config.userFilter}
               onChange={(event) => update('userFilter', event.target.value)}
             />
@@ -120,6 +121,7 @@ export function SystemLdapPage() {
           <label className={styles.field}>
             <span>{t('system.ldap.usernameAttributeLabel')}</span>
             <input
+              placeholder={t('system.ldap.usernameAttrPlaceholder')}
               value={config.usernameAttr}
               onChange={(event) => update('usernameAttr', event.target.value)}
             />
@@ -127,13 +129,14 @@ export function SystemLdapPage() {
           <label className={styles.field}>
             <span>{t('system.ldap.displayNameAttributeLabel')}</span>
             <input
+              placeholder={t('system.ldap.displayNameAttrPlaceholder')}
               value={config.displayNameAttr}
               onChange={(event) => update('displayNameAttr', event.target.value)}
             />
           </label>
           <label className={styles.field}>
             <span>{t('system.ldap.emailAttributeLabel')}</span>
-            <input value={config.emailAttr} onChange={(event) => update('emailAttr', event.target.value)} />
+            <input placeholder={t('system.ldap.emailAttrPlaceholder')} value={config.emailAttr} onChange={(event) => update('emailAttr', event.target.value)} />
           </label>
         </div>
 

@@ -217,7 +217,7 @@ func (s *GormLDAPStore) SaveLDAPConfig(ctx context.Context, cfg systemModel.Syst
 		err := s.db.WithContext(ctx).Create(&cfg).Error
 		return cfg, err
 	}
-	err := s.db.WithContext(ctx).Save(&cfg).Error
+	err := s.db.WithContext(ctx).Omit("CreatedAt").Save(&cfg).Error
 	return cfg, err
 }
 
