@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useState } from 'react';
 
 import { getLDAPConfig, saveLDAPConfig, testLDAPConfig } from '../../api/system';
 import { PageHeader } from '../../components/page/PageHeader';
+import { useI18n } from '../../locale/useI18n';
 import type { LDAPConfig } from '../../types/system';
 import styles from './SystemLdapPage.module.css';
 
@@ -19,6 +20,7 @@ const emptyConfig: LDAPConfig = {
 };
 
 export function SystemLdapPage() {
+  const { t } = useI18n();
   const [config, setConfig] = useState<LDAPConfig>(emptyConfig);
   const [message, setMessage] = useState('');
   const [saving, setSaving] = useState(false);
@@ -39,9 +41,9 @@ export function SystemLdapPage() {
     try {
       const saved = await saveLDAPConfig(config);
       setConfig({ ...emptyConfig, ...saved, bindPassword: '' });
-      setMessage('LDAP configuration saved');
+      setMessage(t('system.ldap.saveSuccess'));
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : 'Failed to save LDAP configuration');
+      setMessage(err instanceof Error ? err.message : t('system.ldap.saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -57,7 +59,7 @@ export function SystemLdapPage() {
       });
       setMessage(result.message);
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : 'LDAP connection test failed');
+      setMessage(err instanceof Error ? err.message : t('system.ldap.testFailed'));
     } finally {
       setTesting(false);
     }
@@ -66,12 +68,12 @@ export function SystemLdapPage() {
   return (
     <div className={styles.page}>
       <PageHeader
-        eyebrow="System / LDAP"
-        title="Directory access"
-        description="Manage LDAP login configuration for non-admin users."
+        eyebrow={t('system.ldap.eyebrow')}
+        title={t('system.ldap.title')}
+        description={t('system.ldap.description')}
         actions={
           <button className={styles.primaryAction} type="button" onClick={() => void handleTest()}>
-            {testing ? 'Testing...' : 'Test Connection'}
+            {testing ? t('system.ldap.testing') : t('system.ldap.testConnection')}
           </button>
         }
       />
@@ -83,54 +85,54 @@ export function SystemLdapPage() {
             checked={config.enabled}
             onChange={(event) => update('enabled', event.target.checked)}
           />
-          <span>Enable LDAP login</span>
+          <span>{t('system.ldap.enableLogin')}</span>
         </label>
 
         <div className={styles.formGrid}>
           <label className={styles.field}>
-            <span>LDAP URL</span>
+            <span>{t('system.ldap.urlLabel')}</span>
             <input value={config.url} onChange={(event) => update('url', event.target.value)} />
           </label>
           <label className={styles.field}>
-            <span>Base DN</span>
+            <span>{t('system.ldap.baseDnLabel')}</span>
             <input value={config.baseDn} onChange={(event) => update('baseDn', event.target.value)} />
           </label>
           <label className={styles.field}>
-            <span>Bind DN</span>
+            <span>{t('system.ldap.bindDnLabel')}</span>
             <input value={config.bindDn} onChange={(event) => update('bindDn', event.target.value)} />
           </label>
           <label className={styles.field}>
-            <span>Bind password</span>
+            <span>{t('system.ldap.bindPasswordLabel')}</span>
             <input
               type="password"
               value={config.bindPassword || ''}
-              placeholder={config.hasBindPassword ? 'Saved password retained' : ''}
+              placeholder={config.hasBindPassword ? t('system.ldap.savedPasswordRetained') : ''}
               onChange={(event) => update('bindPassword', event.target.value)}
             />
           </label>
           <label className={styles.field}>
-            <span>User filter</span>
+            <span>{t('system.ldap.userFilterLabel')}</span>
             <input
               value={config.userFilter}
               onChange={(event) => update('userFilter', event.target.value)}
             />
           </label>
           <label className={styles.field}>
-            <span>Username attribute</span>
+            <span>{t('system.ldap.usernameAttributeLabel')}</span>
             <input
               value={config.usernameAttr}
               onChange={(event) => update('usernameAttr', event.target.value)}
             />
           </label>
           <label className={styles.field}>
-            <span>Display name attribute</span>
+            <span>{t('system.ldap.displayNameAttributeLabel')}</span>
             <input
               value={config.displayNameAttr}
               onChange={(event) => update('displayNameAttr', event.target.value)}
             />
           </label>
           <label className={styles.field}>
-            <span>Email attribute</span>
+            <span>{t('system.ldap.emailAttributeLabel')}</span>
             <input value={config.emailAttr} onChange={(event) => update('emailAttr', event.target.value)} />
           </label>
         </div>
@@ -139,7 +141,7 @@ export function SystemLdapPage() {
 
         <div className={styles.actions}>
           <button className={styles.primaryAction} type="submit" disabled={saving}>
-            {saving ? 'Saving...' : 'Save Configuration'}
+            {saving ? t('system.ldap.saving') : t('system.ldap.saveConfiguration')}
           </button>
         </div>
       </form>

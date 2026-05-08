@@ -115,6 +115,38 @@ const PERMISSION_TYPE_LABELS = createLocaleLabelTable<PermissionTypeValue>({
   en: EN_PERMISSION_TYPE_LABELS,
 });
 
+const EN_AUDIT_RESULT_LABELS = {
+  failure: 'Failure',
+  success: 'Success',
+} as const;
+
+type AuditResultValue = keyof typeof EN_AUDIT_RESULT_LABELS;
+
+const AUDIT_RESULT_LABELS = createLocaleLabelTable<AuditResultValue>({
+  'zh-CN': {
+    failure: '失败',
+    success: '成功',
+  },
+  en: EN_AUDIT_RESULT_LABELS,
+});
+
+const EN_AUDIT_RESOURCE_TYPE_LABELS = {
+  ldap: 'LDAP',
+  role: 'Role',
+  user: 'User',
+} as const;
+
+type AuditResourceTypeValue = keyof typeof EN_AUDIT_RESOURCE_TYPE_LABELS;
+
+const AUDIT_RESOURCE_TYPE_LABELS = createLocaleLabelTable<AuditResourceTypeValue>({
+  'zh-CN': {
+    ldap: 'LDAP',
+    role: '角色',
+    user: '用户',
+  },
+  en: EN_AUDIT_RESOURCE_TYPE_LABELS,
+});
+
 export function getStatusLabel(value: string, locale: AppLocale): string {
   return getLocalizedLabel(STATUS_LABELS, value, locale);
 }
@@ -133,6 +165,14 @@ export function getPermissionCodeLabel(code: string, locale: AppLocale): string 
 
 export function getPermissionTypeLabel(type: string, locale: AppLocale): string {
   return getLocalizedLabel(PERMISSION_TYPE_LABELS, type, locale);
+}
+
+export function getAuditResultLabel(value: string, locale: AppLocale): string {
+  return getLocalizedLabel(AUDIT_RESULT_LABELS, value, locale);
+}
+
+export function getAuditResourceTypeLabel(value: string, locale: AppLocale): string {
+  return getLocalizedLabel(AUDIT_RESOURCE_TYPE_LABELS, value, locale);
 }
 
 function getLocalizedLabel<Key extends string>(
