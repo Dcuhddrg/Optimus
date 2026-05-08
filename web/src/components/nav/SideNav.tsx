@@ -10,7 +10,7 @@ export function SideNav() {
   const { hasMenu } = useAuth();
   const { t } = useI18n();
   const onSystemPage = location.pathname.startsWith('/system');
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => !onSystemPage);
   const showUsers = hasMenu('system.users.menu');
   const showRoles = hasMenu('system.roles.menu');
   const showLDAP = hasMenu('system.ldap.menu');
@@ -22,7 +22,7 @@ export function SideNav() {
     }
   }, [location.pathname, onSystemPage]);
 
-  const expanded = onSystemPage && !collapsed;
+  const expanded = !collapsed;
 
   return (
     <aside className={styles.sidebar}>
