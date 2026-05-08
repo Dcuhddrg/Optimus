@@ -1,0 +1,213 @@
+import type { AppLocale } from './types';
+
+const en = {
+  common: {
+    locale: {
+      english: 'English',
+      simplifiedChinese: 'Simplified Chinese',
+    },
+  },
+  auth: {
+    eyebrow: 'Optimus Ops',
+    signInTitle: 'Sign in to operations control',
+    signInDescription: 'Use the seeded admin account or an enabled LDAP account.',
+    usernameLabel: 'Username',
+    passwordLabel: 'Password',
+    signIn: 'Sign in',
+    signingIn: 'Signing in...',
+    loginFailed: 'Login failed',
+  },
+  shell: {
+    brandEyebrow: 'Platform',
+    brandTitle: 'Optimus',
+    topbarEyebrow: 'Optimus Ops',
+    topbarTitle: 'Operations workspace',
+    dashboard: 'Dashboard',
+    system: 'System',
+    users: 'Users',
+    roles: 'Roles',
+    ldap: 'LDAP',
+    auditLogs: 'Audit Logs',
+    signOut: 'Sign out',
+  },
+  dashboard: {
+    eyebrow: 'Dashboard',
+    title: 'Platform overview is under construction',
+    description:
+      'This area is reserved for the future operations overview. The first frontend iteration keeps the dashboard intentionally empty while the shell, navigation, and system settings surfaces are being established.',
+    emptyEyebrow: 'Coming soon',
+    emptyTitle: 'A focused ops overview will land here',
+    emptyDescription:
+      "The dashboard will become the platform's shared working surface after the first set of foundational pages is in place. For now, this placeholder keeps the structure clear without inventing metrics, charts, or operational summaries that do not exist yet.",
+    plannedUseLabel: 'Planned use',
+    plannedUseStatusSummary: 'Platform-wide status summary',
+    plannedUsePriorityContext: 'High-priority operational context',
+    plannedUseOverviewModules: 'Action-oriented overview modules',
+  },
+  system: {
+    forbidden: {
+      eyebrow: 'Access',
+      title: 'Permission required',
+      description:
+        'Your account is signed in, but this area is not included in your current role permissions.',
+    },
+    users: {
+      eyebrow: 'System / Users',
+      title: 'Users',
+      emptyRoles: 'No roles',
+    },
+    roles: {
+      eyebrow: 'System / Roles',
+      title: 'Roles',
+      grantCorePermissions: 'Grant core permissions',
+    },
+    ldap: {
+      eyebrow: 'System / LDAP',
+      title: 'Directory access',
+      description: 'Manage LDAP login configuration for non-admin users.',
+      testConnection: 'Test Connection',
+      testing: 'Testing...',
+      enableLogin: 'Enable LDAP login',
+      urlLabel: 'LDAP URL',
+      baseDnLabel: 'Base DN',
+      bindDnLabel: 'Bind DN',
+      bindPasswordLabel: 'Bind password',
+      savedPasswordRetained: 'Saved password retained',
+      userFilterLabel: 'User filter',
+      usernameAttributeLabel: 'Username attribute',
+      displayNameAttributeLabel: 'Display name attribute',
+      emailAttributeLabel: 'Email attribute',
+      saveConfiguration: 'Save Configuration',
+      saving: 'Saving...',
+      saveSuccess: 'LDAP configuration saved',
+      saveFailed: 'Failed to save LDAP configuration',
+      testFailed: 'LDAP connection test failed',
+    },
+    audit: {
+      eyebrow: 'System / Audit',
+      title: 'Audit logs',
+    },
+  },
+};
+
+const zhCN: typeof en = {
+  common: {
+    locale: {
+      english: 'English',
+      simplifiedChinese: '简体中文',
+    },
+  },
+  auth: {
+    eyebrow: 'Optimus Ops',
+    signInTitle: '登录运维控制台',
+    signInDescription: '请使用预置管理员账号或已启用的 LDAP 账号登录。',
+    usernameLabel: '用户名',
+    passwordLabel: '密码',
+    signIn: '登录',
+    signingIn: '登录中...',
+    loginFailed: '登录失败',
+  },
+  shell: {
+    brandEyebrow: '平台',
+    brandTitle: 'Optimus',
+    topbarEyebrow: 'Optimus Ops',
+    topbarTitle: '运维工作区',
+    dashboard: '仪表盘',
+    system: '系统',
+    users: '用户',
+    roles: '角色',
+    ldap: 'LDAP',
+    auditLogs: '审计日志',
+    signOut: '退出登录',
+  },
+  dashboard: {
+    eyebrow: '仪表盘',
+    title: '平台概览正在建设中',
+    description: '这里将用于后续运维概览。当前首版前端会先把外壳、导航和系统设置页面搭建完整，因此仪表盘暂时保持空白。',
+    emptyEyebrow: '即将推出',
+    emptyTitle: '这里会承载聚焦的运维总览',
+    emptyDescription:
+      '在首批基础页面稳定后，仪表盘会成为平台共享的工作界面。当前占位只用于保留结构，不会凭空添加尚不存在的指标、图表或运维摘要。',
+    plannedUseLabel: '规划用途',
+    plannedUseStatusSummary: '全平台状态摘要',
+    plannedUsePriorityContext: '高优先级运维上下文',
+    plannedUseOverviewModules: '面向行动的概览模块',
+  },
+  system: {
+    forbidden: {
+      eyebrow: '访问控制',
+      title: '需要权限',
+      description: '你的账号已登录，但当前角色权限不包含此区域。',
+    },
+    users: {
+      eyebrow: '系统 / 用户',
+      title: '用户',
+      emptyRoles: '无角色',
+    },
+    roles: {
+      eyebrow: '系统 / 角色',
+      title: '角色',
+      grantCorePermissions: '授予核心权限',
+    },
+    ldap: {
+      eyebrow: '系统 / LDAP',
+      title: '目录访问',
+      description: '管理非管理员用户的 LDAP 登录配置。',
+      testConnection: '测试连接',
+      testing: '测试中...',
+      enableLogin: '启用 LDAP 登录',
+      urlLabel: 'LDAP 地址',
+      baseDnLabel: 'Base DN',
+      bindDnLabel: 'Bind DN',
+      bindPasswordLabel: '绑定密码',
+      savedPasswordRetained: '保留已保存密码',
+      userFilterLabel: '用户过滤器',
+      usernameAttributeLabel: '用户名属性',
+      displayNameAttributeLabel: '显示名属性',
+      emailAttributeLabel: '邮箱属性',
+      saveConfiguration: '保存配置',
+      saving: '保存中...',
+      saveSuccess: 'LDAP 配置已保存',
+      saveFailed: '保存 LDAP 配置失败',
+      testFailed: 'LDAP 连接测试失败',
+    },
+    audit: {
+      eyebrow: '系统 / 审计',
+      title: '审计日志',
+    },
+  },
+};
+
+type DotJoin<Prefix extends string, Key extends string> = `${Prefix}.${Key}`;
+
+type LeafMessageKeys<T> = {
+  [Key in keyof T & string]: T[Key] extends string
+    ? Key
+    : T[Key] extends Record<string, unknown>
+      ? DotJoin<Key, LeafMessageKeys<T[Key]>>
+      : never;
+}[keyof T & string];
+
+export type MessageDictionary = typeof en;
+export type MessageKey = LeafMessageKeys<MessageDictionary>;
+
+export const messages = {
+  'zh-CN': zhCN,
+  en,
+} satisfies Record<AppLocale, MessageDictionary>;
+
+export function getMessage(locale: AppLocale, key: MessageKey): string {
+  return readMessage(messages[locale], key) ?? readMessage(messages.en, key) ?? key;
+}
+
+function readMessage(dictionary: MessageDictionary, key: MessageKey): string | undefined {
+  const value = key
+    .split('.')
+    .reduce<unknown>((current, segment) => (isRecord(current) ? current[segment] : undefined), dictionary);
+
+  return typeof value === 'string' ? value : undefined;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
