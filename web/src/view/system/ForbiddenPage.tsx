@@ -1,11 +1,13 @@
+import { useI18n } from '../../locale/useI18n';
+
 export function ForbiddenPage() {
+  const { t } = useI18n();
+
   return (
     <section className="page-card">
-      <p className="page-eyebrow">Access</p>
-      <h1 className="page-title">Permission required</h1>
-      <p className="page-description">
-        Your account is signed in, but this area is not included in your current role permissions.
-      </p>
+      <p className="page-eyebrow">{t('system.forbidden.eyebrow')}</p>
+      <h1 className="page-title">{t('system.forbidden.title')}</h1>
+      <p className="page-description">{t('system.forbidden.description')}</p>
     </section>
   );
 }

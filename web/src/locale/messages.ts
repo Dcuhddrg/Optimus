@@ -3,8 +3,9 @@ import type { AppLocale } from './types';
 const en = {
   common: {
     locale: {
+      switcherLabel: 'Language',
       english: 'English',
-      simplifiedChinese: 'Simplified Chinese',
+      simplifiedChinese: '中文',
     },
   },
   auth: {
@@ -22,6 +23,7 @@ const en = {
     brandTitle: 'Optimus',
     topbarEyebrow: 'Optimus Ops',
     topbarTitle: 'Operations workspace',
+    navLabel: 'Primary navigation',
     dashboard: 'Dashboard',
     system: 'System',
     users: 'Users',
@@ -93,8 +95,9 @@ const en = {
 const zhCN: typeof en = {
   common: {
     locale: {
+      switcherLabel: '语言',
       english: 'English',
-      simplifiedChinese: '简体中文',
+      simplifiedChinese: '中文',
     },
   },
   auth: {
@@ -112,6 +115,7 @@ const zhCN: typeof en = {
     brandTitle: 'Optimus',
     topbarEyebrow: 'Optimus Ops',
     topbarTitle: '运维工作区',
+    navLabel: '主导航',
     dashboard: '仪表盘',
     system: '系统',
     users: '用户',

@@ -5,24 +5,12 @@ import { RequireAuth } from '../auth/RequireAuth';
 import { AppShell } from '../layout/AppShell';
 import { LanguageProvider } from '../locale/LanguageProvider';
 import { LoginPage } from '../view/auth/LoginPage';
+import { DashboardPage } from '../view/dashboard/DashboardPage';
 import { ForbiddenPage } from '../view/system/ForbiddenPage';
 import { SystemAuditLogsPage } from '../view/system/SystemAuditLogsPage';
 import { SystemLdapPage } from '../view/system/SystemLdapPage';
 import { SystemRolesPage } from '../view/system/SystemRolesPage';
 import { SystemUsersPage } from '../view/system/SystemUsersPage';
-
-function DashboardPlaceholder() {
-  return (
-    <section className="page-card">
-      <p className="page-eyebrow">Dashboard</p>
-      <h1 className="page-title">Ops workspace is being prepared.</h1>
-      <p className="page-description">
-        The first dashboard experience will be added after the shell and LDAP
-        management page are finalized.
-      </p>
-    </section>
-  );
-}
 
 function AuthRoot() {
   return (
@@ -51,7 +39,7 @@ export const router = createBrowserRouter([
             children: [
               {
                 index: true,
-                element: <DashboardPlaceholder />,
+                element: <DashboardPage />,
               },
               {
                 path: 'forbidden',

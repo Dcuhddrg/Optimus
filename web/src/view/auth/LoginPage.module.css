@@ -20,6 +20,12 @@
   box-shadow: 0 28px 70px rgba(80, 54, 36, 0.12);
 }
 
+.panelHeader {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: -8px;
+}
+
 .eyebrow {
   margin: 0 0 10px;
   color: #7a6048;

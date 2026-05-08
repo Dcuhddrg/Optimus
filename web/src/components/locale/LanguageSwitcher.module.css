@@ -1,0 +1,38 @@
+.switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid rgba(111, 81, 49, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 250, 244, 0.82);
+}
+
+.option,
+.optionActive {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #6f5131;
+  font: inherit;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.option:hover {
+  background: rgba(111, 81, 49, 0.08);
+}
+
+.option:focus-visible,
+.optionActive:focus-visible {
+  outline: 2px solid #c38954;
+  outline-offset: 1px;
+}
+
+.optionActive {
+  background: #2f5f59;
+  color: #fffaf3;
+  font-weight: 700;
+}

@@ -2,12 +2,15 @@ import { FormEvent, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../../auth/AuthContext';
+import { LanguageSwitcher } from '../../components/locale/LanguageSwitcher';
+import { useI18n } from '../../locale/useI18n';
 import styles from './LoginPage.module.css';
 
 export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { login } = useAuth();
+  const { t } = useI18n();
   const [username, setUsername] = useState('admin');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -22,7 +25,7 @@ export function LoginPage() {
       const destination = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname || '/';
       navigate(destination, { replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      setError(err instanceof Error ? err.message : t('auth.loginFailed'));
     } finally {
       setSubmitting(false);
     }
@@ -31,21 +34,22 @@ export function LoginPage() {
   return (
     <main className={styles.page}>
       <section className={styles.panel}>
+        <div className={styles.panelHeader}>
+          <LanguageSwitcher />
+        </div>
         <div>
-          <p className={styles.eyebrow}>Optimus Ops</p>
-          <h1 className={styles.title}>Sign in to operations control</h1>
-          <p className={styles.copy}>
-            Use the seeded admin account or an enabled LDAP account.
-          </p>
+          <p className={styles.eyebrow}>{t('auth.eyebrow')}</p>
+          <h1 className={styles.title}>{t('auth.signInTitle')}</h1>
+          <p className={styles.copy}>{t('auth.signInDescription')}</p>
         </div>
 
         <form className={styles.form} onSubmit={handleSubmit}>
           <label className={styles.field}>
-            <span>Username</span>
+            <span>{t('auth.usernameLabel')}</span>
             <input value={username} onChange={(event) => setUsername(event.target.value)} />
           </label>
           <label className={styles.field}>
-            <span>Password</span>
+            <span>{t('auth.passwordLabel')}</span>
             <input
               type="password"
               value={password}
@@ -54,7 +58,7 @@ export function LoginPage() {
           </label>
           {error ? <p className={styles.error}>{error}</p> : null}
           <button className={styles.submit} type="submit" disabled={submitting}>
-            {submitting ? 'Signing in...' : 'Sign in'}
+            {submitting ? t('auth.signingIn') : t('auth.signIn')}
           </button>
         </form>
       </section>

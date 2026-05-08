@@ -51,8 +51,6 @@
 
 .navItem,
 .navItemActive,
-.groupLabel,
-.groupLabelActive,
 .childItem,
 .childItemActive {
   display: flex;
@@ -62,14 +60,12 @@
   text-decoration: none;
 }
 
-.navItem,
-.groupLabel {
+.navItem {
   padding: 0 14px;
   color: #5c4734;
 }
 
-.navItemActive,
-.groupLabelActive {
+.navItemActive {
   padding: 0 14px;
   background: rgba(255, 251, 246, 0.92);
   box-shadow:
@@ -77,6 +73,73 @@
     inset 0 0 0 1px rgba(111, 81, 49, 0.08);
   color: #2c2118;
   font-weight: 600;
+}
+
+.groupLabel,
+.groupLabelActive {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 14px;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.groupLabel {
+  color: #5c4734;
+}
+
+.groupLabel:hover {
+  background: rgba(255, 251, 246, 0.5);
+}
+
+.groupLabel:focus-visible {
+  outline: 2px solid #c38954;
+  outline-offset: -2px;
+}
+
+.groupLabelActive {
+  background: rgba(255, 251, 246, 0.92);
+  box-shadow:
+    0 12px 24px rgba(126, 86, 53, 0.08),
+    inset 0 0 0 1px rgba(111, 81, 49, 0.08);
+  color: #2c2118;
+  font-weight: 600;
+}
+
+.chevron,
+.chevronOpen {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.chevron::before,
+.chevronOpen::before {
+  content: '';
+  display: block;
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid #8e7457;
+  margin: 5px 3px;
+}
+
+.chevronOpen {
+  transform: rotate(0deg);
+}
+
+.chevron {
+  transform: rotate(-90deg);
 }
 
 .group {
