@@ -3,6 +3,7 @@ import { createBrowserRouter, Outlet } from 'react-router-dom';
 import { AuthProvider } from '../auth/AuthContext';
 import { RequireAuth } from '../auth/RequireAuth';
 import { AppShell } from '../layout/AppShell';
+import { LanguageProvider } from '../locale/LanguageProvider';
 import { LoginPage } from '../view/auth/LoginPage';
 import { ForbiddenPage } from '../view/system/ForbiddenPage';
 import { SystemAuditLogsPage } from '../view/system/SystemAuditLogsPage';
@@ -25,9 +26,11 @@ function DashboardPlaceholder() {
 
 function AuthRoot() {
   return (
-    <AuthProvider>
-      <Outlet />
-    </AuthProvider>
+    <LanguageProvider>
+      <AuthProvider>
+        <Outlet />
+      </AuthProvider>
+    </LanguageProvider>
   );
 }
 
