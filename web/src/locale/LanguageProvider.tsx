@@ -1,27 +1,17 @@
 import { createContext, type ReactNode, useState } from 'react';
 
+import { getMessage, type MessageKey } from './messages';
 import { resolveLocale } from './resolveLocale';
 import { getStoredLocale, setStoredLocale } from './storage';
-import type { AppLocale, TranslationKey } from './types';
+import type { AppLocale } from './types';
 
 export interface I18nContextValue {
   locale: AppLocale;
   setLocale: (locale: AppLocale) => void;
-  t: (key: TranslationKey) => string;
+  t: (key: MessageKey) => string;
 }
 
 export const I18nContext = createContext<I18nContextValue | null>(null);
-
-const PLACEHOLDER_MESSAGES: Record<AppLocale, Record<TranslationKey, string>> = {
-  'zh-CN': {
-    'common.locale.english': 'English',
-    'common.locale.simplifiedChinese': '简体中文',
-  },
-  en: {
-    'common.locale.english': 'English',
-    'common.locale.simplifiedChinese': 'Simplified Chinese',
-  },
-};
 
 function getInitialLocale(): AppLocale {
   return getStoredLocale() ?? resolveLocale(window.navigator.language);
@@ -35,8 +25,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     setStoredLocale(locale);
   }
 
-  function t(key: TranslationKey) {
-    return PLACEHOLDER_MESSAGES[locale][key] ?? PLACEHOLDER_MESSAGES.en[key] ?? key;
+  function t(key: MessageKey) {
+    return getMessage(locale, key);
   }
 
   return (
