@@ -5,10 +5,18 @@ function isSupportedLocale(value: string | null): value is AppLocale {
 }
 
 export function getStoredLocale(): AppLocale | null {
-  const storedLocale = window.localStorage.getItem(LOCALE_STORAGE_KEY);
-  return isSupportedLocale(storedLocale) ? storedLocale : null;
+  try {
+    const storedLocale = window.localStorage.getItem(LOCALE_STORAGE_KEY);
+    return isSupportedLocale(storedLocale) ? storedLocale : null;
+  } catch {
+    return null;
+  }
 }
 
 export function setStoredLocale(locale: AppLocale): void {
-  window.localStorage.setItem(LOCALE_STORAGE_KEY, locale);
+  try {
+    window.localStorage.setItem(LOCALE_STORAGE_KEY, locale);
+  } catch {
+    // Ignore storage failures so restricted browser contexts still render.
+  }
 }

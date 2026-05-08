@@ -1,4 +1,4 @@
-import { createContext, type ReactNode, useEffect, useState } from 'react';
+import { createContext, type ReactNode, useState } from 'react';
 
 import { resolveLocale } from './resolveLocale';
 import { getStoredLocale, setStoredLocale } from './storage';
@@ -23,25 +23,17 @@ const PLACEHOLDER_MESSAGES: Record<AppLocale, Record<TranslationKey, string>> = 
   },
 };
 
+function getInitialLocale(): AppLocale {
+  return getStoredLocale() ?? resolveLocale(window.navigator.language);
+}
+
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocale] = useState<AppLocale>('en');
-  const [hydrated, setHydrated] = useState(false);
+  const [locale, setLocaleState] = useState<AppLocale>(() => getInitialLocale());
 
-  useEffect(() => {
-    const initialLocale =
-      getStoredLocale() ?? resolveLocale(window.navigator.language);
-
-    setLocale(initialLocale);
-    setHydrated(true);
-  }, []);
-
-  useEffect(() => {
-    if (!hydrated) {
-      return;
-    }
-
+  function setLocale(locale: AppLocale) {
+    setLocaleState(locale);
     setStoredLocale(locale);
-  }, [hydrated, locale]);
+  }
 
   function t(key: TranslationKey) {
     return PLACEHOLDER_MESSAGES[locale][key] ?? PLACEHOLDER_MESSAGES.en[key] ?? key;
