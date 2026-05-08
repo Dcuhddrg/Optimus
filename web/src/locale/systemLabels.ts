@@ -120,5 +120,5 @@ function getLocalizedLabel(
   value: string,
   locale: AppLocale,
 ): string {
-  return table[locale][value] ?? table.en[value] ?? value;
+  return table[locale][value] ?? value;
 }
