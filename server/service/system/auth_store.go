@@ -91,10 +91,11 @@ func (s *GormAuthStore) MenuPermissionCodesForRoles(ctx context.Context, roleIDs
 	var codes []string
 	err := s.db.WithContext(ctx).
 		Table((&systemModel.SystemPermission{}).TableName()+" AS permissions").
-		Select("DISTINCT permissions.code").
+		Select("permissions.code").
 		Joins("JOIN sys_role_permissions role_permissions ON role_permissions.permission_id = permissions.id").
 		Where("role_permissions.role_id IN ? AND permissions.type = ?", roleIDs, "menu").
-		Order("permissions.sort ASC").
+		Group("permissions.code").
+		Order("MIN(permissions.sort) ASC").
 		Pluck("permissions.code", &codes).Error
 	return codes, err
 }
