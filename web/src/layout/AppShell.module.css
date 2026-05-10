@@ -81,10 +81,10 @@ Shell invariants:
 .badge {
   display: inline-flex;
   align-items: center;
-  flex: 0 1 clamp(10rem, 24vw, 16rem);
+  flex: 0 1 auto;
   min-height: 36px;
   min-width: 0;
-  max-width: clamp(10rem, 24vw, 16rem);
+  max-width: clamp(8rem, 20vw, 14rem);
   padding: 0 14px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.58);

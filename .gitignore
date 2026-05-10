@@ -6,4 +6,4 @@ dist/
 .env
 .env.local
 # backend ignore
-.superpower/
+.superpowers/
