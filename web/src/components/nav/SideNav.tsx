@@ -5,6 +5,15 @@ import { useAuth } from '../../auth/AuthContext';
 import { useI18n } from '../../locale/useI18n';
 import styles from './SideNav.module.css';
 
+type SystemItem = {
+  to: string;
+  label: string;
+};
+
+function isSystemItem(item: SystemItem | null): item is SystemItem {
+  return item !== null;
+}
+
 export function SideNav() {
   const location = useLocation();
   const { hasMenu } = useAuth();
@@ -23,6 +32,20 @@ export function SideNav() {
   }, [location.pathname, onSystemPage]);
 
   const expanded = !collapsed;
+  const systemItems = [
+    showUsers ? { to: '/system/users', label: t('shell.users') } : null,
+    showRoles ? { to: '/system/roles', label: t('shell.roles') } : null,
+    showLDAP ? { to: '/system/ldap', label: t('shell.ldap') } : null,
+    showAudit ? { to: '/system/audit-logs', label: t('shell.auditLogs') } : null,
+  ].filter(isSystemItem);
+  const hasSystemItems = systemItems.length > 0;
+  const systemSectionClassName = [
+    styles.section,
+    expanded ? styles.sectionOpen : '',
+    onSystemPage ? styles.sectionActive : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   return (
     <aside className={styles.sidebar}>
@@ -39,70 +62,59 @@ export function SideNav() {
           to="/"
           end
           className={({ isActive }) =>
-            isActive ? styles.navItemActive : styles.navItem
+            [styles.navEntry, isActive ? styles.navEntryActive : '']
+              .filter(Boolean)
+              .join(' ')
           }
         >
           {t('shell.dashboard')}
         </NavLink>
 
-        <div className={styles.group}>
-          <button
-            type="button"
-            className={expanded ? styles.groupLabelActive : styles.groupLabel}
-            onClick={() => setCollapsed((c) => !c)}
-            aria-expanded={expanded}
-          >
-            <span
-              className={expanded ? styles.chevronOpen : styles.chevron}
-              aria-hidden="true"
-            />
-            {t('shell.system')}
-          </button>
-          {expanded ? (
-            <div className={styles.groupChildren}>
-              {showUsers ? (
-                <NavLink
-                  to="/system/users"
-                  className={({ isActive }) =>
-                    isActive ? styles.childItemActive : styles.childItem
-                  }
-                >
-                  {t('shell.users')}
-                </NavLink>
-              ) : null}
-              {showRoles ? (
-                <NavLink
-                  to="/system/roles"
-                  className={({ isActive }) =>
-                    isActive ? styles.childItemActive : styles.childItem
-                  }
-                >
-                  {t('shell.roles')}
-                </NavLink>
-              ) : null}
-              {showLDAP ? (
-                <NavLink
-                  to="/system/ldap"
-                  className={({ isActive }) =>
-                    isActive ? styles.childItemActive : styles.childItem
-                  }
-                >
-                  {t('shell.ldap')}
-                </NavLink>
-              ) : null}
-              {showAudit ? (
-                <NavLink
-                  to="/system/audit-logs"
-                  className={({ isActive }) =>
-                    isActive ? styles.childItemActive : styles.childItem
-                  }
-                >
-                  {t('shell.auditLogs')}
-                </NavLink>
-              ) : null}
-            </div>
-          ) : null}
-        </div>
+        {hasSystemItems ? (
+          <section className={systemSectionClassName}>
+            <button
+              type="button"
+              className={[styles.navEntry, styles.sectionButton].join(' ')}
+              onClick={() => {
+                if (onSystemPage) {
+                  setCollapsed(false);
+                  return;
+                }
+
+                setCollapsed((c) => !c);
+              }}
+              aria-expanded={expanded}
+            >
+              <span
+                className={[
+                  styles.chevron,
+                  expanded ? styles.chevronOpen : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+                aria-hidden="true"
+              />
+              {t('shell.system')}
+            </button>
+            {expanded ? (
+              <div className={styles.sectionChildren}>
+                {systemItems.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    className={({ isActive }) =>
+                      [styles.childItem, isActive ? styles.childItemActive : '']
+                        .filter(Boolean)
+                        .join(' ')
+                    }
+                  >
+                    {item.label}
+                  </NavLink>
+                ))}
+              </div>
+            ) : null}
+          </section>
+        ) : null}
       </nav>
     </aside>
   );

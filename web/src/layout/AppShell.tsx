@@ -15,16 +15,18 @@ export function AppShell() {
       <SideNav />
       <div className={styles.content}>
         <header className={styles.topbar}>
-          <div>
+          <div className={styles.topbarCopy}>
             <p className={styles.eyebrow}>{t('shell.topbarEyebrow')}</p>
             <h1 className={styles.title}>{t('shell.topbarTitle')}</h1>
           </div>
-          <div className={styles.session}>
+          <div className={styles.topbarActions}>
             <LanguageSwitcher />
-            <span className={styles.badge}>{current?.user.displayName || current?.user.username}</span>
-            <button className={styles.logout} type="button" onClick={() => void logout()}>
-              {t('shell.signOut')}
-            </button>
+            <div className={styles.session}>
+              <span className={styles.badge}>{current?.user.displayName || current?.user.username}</span>
+              <button className={styles.logout} type="button" onClick={() => void logout()}>
+                {t('shell.signOut')}
+              </button>
+            </div>
           </div>
         </header>
         <main className={styles.main}>

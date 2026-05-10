@@ -1,27 +1,24 @@
 .page {
   display: grid;
-  gap: 1.5rem;
+  gap: 1.35rem;
 }
 
 .panel {
   display: grid;
-  gap: 1.25rem;
-  padding: 1.5rem;
-  border: 1px solid rgba(143, 110, 84, 0.18);
-  border-radius: 1.5rem;
-  background:
-    linear-gradient(180deg, rgba(255, 252, 247, 0.95), rgba(246, 238, 229, 0.82));
-  box-shadow:
-    0 18px 40px rgba(101, 70, 46, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.74);
+  gap: 1.1rem;
+  padding: 1.375rem;
+  border: 1px solid var(--shell-border-strong);
+  border-radius: 1.375rem;
+  background: var(--shell-surface-strong);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.42);
 }
 
 .toggle {
   display: flex;
   align-items: center;
-  gap: 0.7rem;
-  font-weight: 800;
-  color: #2c2118;
+  gap: 0.65rem;
+  font-weight: 700;
+  color: var(--text-primary);
 }
 
 .toggle input {
@@ -47,15 +44,16 @@
   min-height: 44px;
   width: 100%;
   padding: 0 0.9rem;
-  border: 1px solid rgba(84, 68, 52, 0.16);
+  border: 1px solid var(--shell-border);
   border-radius: 0.75rem;
-  background: rgba(255, 253, 249, 0.92);
-  color: #2c2118;
+  background: rgba(255, 255, 255, 0.74);
+  color: var(--text-primary);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.48);
 }
 
 .message {
   margin: 0;
-  color: #2f5f59;
+  color: var(--shell-control-active-bg);
   font-weight: 700;
 }
 
@@ -65,14 +63,33 @@
 }
 
 .primaryAction {
-  border: 0;
+  border: 1px solid rgba(47, 95, 89, 0.22);
   border-radius: 999px;
-  padding: 0.78rem 1.2rem;
-  background: linear-gradient(135deg, #2f5f59, #244c47);
+  padding: 0.74rem 1.15rem;
+  background: rgba(47, 95, 89, 0.94);
   color: #fffaf5;
-  font-weight: 800;
-  box-shadow: 0 14px 28px rgba(47, 95, 89, 0.18);
+  font-weight: 700;
+  box-shadow:
+    0 8px 18px rgba(47, 95, 89, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
   cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.primaryAction:hover:not(:disabled) {
+  border-color: rgba(47, 95, 89, 0.3);
+  background: #2a5550;
+  box-shadow:
+    0 10px 20px rgba(47, 95, 89, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.primaryAction:focus-visible {
+  outline: 2px solid var(--shell-control-focus);
+  outline-offset: 2px;
 }
 
 .primaryAction:disabled {
