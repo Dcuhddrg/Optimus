@@ -131,10 +131,19 @@
 
 ### Git Commit 约定
 
-- 格式：`类型(范围): 中文描述`
-- 常用类型：feat / fix / chore / docs / refactor
-- 范围对应目录：server / web / deploy 等
-- 示例：`feat(web): 添加 LDAP 静态展示页`
+- 提交意图行保持中文描述，直接说明这次提交为什么存在。
+- 提交信息遵循仓库当前的 Lore protocol：首行写中文意图，空行后按需补充说明与 trailers。
+- 常用 trailers 包括：`Constraint:`、`Rejected:`、`Directive:`、`Confidence:`、`Scope-risk:`、`Tested:`。
+- 不再默认使用 `feat(scope): 中文描述` 这类 Conventional Commit 形式。
+- 示例：
+  ```text
+  使提交规则与当前仓库风格保持一致
+
+  Constraint: Chinese intent descriptions must remain part of the shared contract
+  Confidence: high
+  Scope-risk: narrow
+  Tested: grep -nE 'feat\(web\)|Lore|中文描述|Output Contract|OUTPUT CONTRACT' .codex/project_rules.md
+  ```
 
 ---
 
