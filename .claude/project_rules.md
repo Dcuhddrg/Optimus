@@ -50,7 +50,7 @@
 ### Superpowers 工作流
 
 - 非平凡任务优先从 brainstorming 开始，先澄清目标、边界与设计取舍
-- 设计结论或已批准规格应进入 writing-plans，沉淀为可执行计划
+- brainstorming 形成并确认规格后进入 writing-plans，沉淀为可执行计划
 - 完成规划后，实施可根据任务形态选择 subagent-driven-development 或 executing-plans
 - 设计文档写入 `docs/superpowers/specs/`
 - 实施计划写入 `docs/superpowers/plans/`
