@@ -2,6 +2,7 @@ package system
 
 import (
 	"net/http"
+	"sync"
 
 	systemService "optimus/server/service/system"
 
@@ -64,8 +65,9 @@ type Api struct {
 	handlers *SystemHandlers
 }
 
+var compatibilityHandlersMu sync.RWMutex
 var systemDefaultStatusService systemService.Service
-var defaultCompatibilityHandlers = NewSystemHandlers(SystemHandlerDeps{})
+var compatibilityHandlers = NewSystemHandlers(SystemHandlerDeps{})
 
 func NewSystemHandlers(deps SystemHandlerDeps) *SystemHandlers {
 	systemDeps := deps.System
@@ -88,11 +90,43 @@ func NewAPI(handlers *SystemHandlers) *Api {
 	return &Api{handlers: handlers}
 }
 
+func SetCompatibilityHandlers(handlers *SystemHandlers) {
+	compatibilityHandlersMu.Lock()
+	defer compatibilityHandlersMu.Unlock()
+
+	if handlers == nil {
+		compatibilityHandlers = NewSystemHandlers(SystemHandlerDeps{})
+		return
+	}
+
+	compatibilityHandlers = handlers
+}
+
+func CompatibilityHandlers() *SystemHandlers {
+	compatibilityHandlersMu.RLock()
+	handlers := compatibilityHandlers
+	compatibilityHandlersMu.RUnlock()
+
+	if handlers != nil {
+		return handlers
+	}
+
+	fallback := NewSystemHandlers(SystemHandlerDeps{})
+	compatibilityHandlersMu.Lock()
+	if compatibilityHandlers == nil {
+		compatibilityHandlers = fallback
+	}
+	handlers = compatibilityHandlers
+	compatibilityHandlersMu.Unlock()
+
+	return handlers
+}
+
 func (a *Api) currentHandlers() *SystemHandlers {
 	if a != nil && a.handlers != nil {
 		return a.handlers
 	}
-	return defaultCompatibilityHandlers
+	return CompatibilityHandlers()
 }
 
 func (a *Api) Login(c *gin.Context) {

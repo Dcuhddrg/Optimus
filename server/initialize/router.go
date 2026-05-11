@@ -3,6 +3,7 @@ package initialize
 import (
 	"strings"
 
+	systemApi "optimus/server/api/v1/system"
 	"optimus/server/global"
 	"optimus/server/middleware"
 	"optimus/server/router"
@@ -12,7 +13,16 @@ import (
 
 const defaultRouterPrefix = "/api/v1"
 
+var newSystemModule = NewSystemModule
+
 func Routers() *gin.Engine {
+	systemModule := newSystemModule(global.OPTIMUS_DB, global.OPTIMUS_CONFIG)
+	if systemModule != nil {
+		systemApi.SetCompatibilityHandlers(systemModule.Handlers)
+	} else {
+		systemApi.SetCompatibilityHandlers(nil)
+	}
+
 	engine := gin.New()
 	// 全局中间件
 	engine.Use(middleware.Logger(), middleware.Recovery())
