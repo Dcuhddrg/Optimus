@@ -4,25 +4,16 @@ import (
 	"context"
 	"net/http"
 
-	"optimus/server/global"
-	systemService "optimus/server/service/system"
 	"optimus/server/utils"
 
 	"github.com/gin-gonic/gin"
 )
 
-type rbacAuthorizer interface {
+type APIAuthorizer interface {
 	AuthorizeAPI(ctx context.Context, method string, path string, roleIDs []uint) (bool, error)
 }
 
-var newRBACAuthorizer = func() rbacAuthorizer {
-	if global.OPTIMUS_DB == nil {
-		return nil
-	}
-	return systemService.NewRBACService(systemService.NewGormRBACStore(global.OPTIMUS_DB))
-}
-
-func CasbinHandler() gin.HandlerFunc {
+func CasbinHandler(authorizer APIAuthorizer) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		claimsValue, ok := c.Get(utils.ClaimsContextKey)
 		if !ok {
@@ -35,7 +26,6 @@ func CasbinHandler() gin.HandlerFunc {
 			return
 		}
 
-		authorizer := newRBACAuthorizer()
 		if authorizer == nil {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"message": "permission denied"})
 			return

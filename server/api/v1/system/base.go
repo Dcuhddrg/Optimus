@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	commonModel "optimus/server/model/common"
+	systemService "optimus/server/service/system"
 	"optimus/server/utils"
 
 	"github.com/gin-gonic/gin"
@@ -12,7 +13,7 @@ import (
 func (h *BaseHandler) Ping(c *gin.Context) {
 	service := h.service
 	if service == nil {
-		service = &systemDefaultStatusService
+		service = &systemService.Service{}
 	}
 
 	payload := service.Ping()

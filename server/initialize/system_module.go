@@ -3,13 +3,14 @@ package initialize
 import (
 	systemApi "optimus/server/api/v1/system"
 	"optimus/server/config"
+	"optimus/server/middleware"
 	systemService "optimus/server/service/system"
 
 	"gorm.io/gorm"
 )
 
 type SystemCapabilities struct {
-	RBAC *systemService.RBACService
+	RBAC middleware.APIAuthorizer
 }
 
 type SystemModule struct {

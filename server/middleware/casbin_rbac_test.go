@@ -35,7 +35,7 @@ func TestCasbinHandlerDeniesUnauthorizedRoute(t *testing.T) {
 func TestCasbinHandlerDeniesMissingClaims(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	engine := gin.New()
-	engine.GET("/api/v1/system/users", CasbinHandler(), func(c *gin.Context) {
+	engine.GET("/api/v1/system/users", CasbinHandler(fakeMiddlewareRBAC{allowed: true}), func(c *gin.Context) {
 		c.Status(http.StatusOK)
 	})
 
@@ -71,19 +71,13 @@ func (f fakeMiddlewareRBAC) AuthorizeAPI(_ context.Context, method string, path 
 	return f.allowed && method == http.MethodGet && path == "/api/v1/system/users" && len(roleIDs) == 1 && roleIDs[0] == 1, nil
 }
 
-func rbacTestEngine(t *testing.T, authorizer rbacAuthorizer) *gin.Engine {
+func rbacTestEngine(t *testing.T, authorizer APIAuthorizer) *gin.Engine {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
 
-	previous := newRBACAuthorizer
-	newRBACAuthorizer = func() rbacAuthorizer { return authorizer }
-	t.Cleanup(func() {
-		newRBACAuthorizer = previous
-	})
-
 	engine := gin.New()
 	engine.Use(seedRBACClaims())
-	engine.GET("/api/v1/system/users", CasbinHandler(), func(c *gin.Context) {
+	engine.GET("/api/v1/system/users", CasbinHandler(authorizer), func(c *gin.Context) {
 		c.Status(http.StatusOK)
 	})
 	return engine

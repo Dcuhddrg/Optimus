@@ -3,7 +3,6 @@ package initialize
 import (
 	"strings"
 
-	systemApi "optimus/server/api/v1/system"
 	"optimus/server/global"
 	"optimus/server/middleware"
 	"optimus/server/router"
@@ -17,10 +16,8 @@ var newSystemModule = NewSystemModule
 
 func Routers() *gin.Engine {
 	systemModule := newSystemModule(global.OPTIMUS_DB, global.OPTIMUS_CONFIG)
-	if systemModule != nil {
-		systemApi.SetCompatibilityHandlers(systemModule.Handlers)
-	} else {
-		systemApi.SetCompatibilityHandlers(nil)
+	if systemModule == nil {
+		systemModule = NewSystemModule(nil, global.OPTIMUS_CONFIG)
 	}
 
 	engine := gin.New()
@@ -30,10 +27,10 @@ func Routers() *gin.Engine {
 	publicGroup := engine.Group(routerPrefix())
 	// 私有路由
 	privateGroup := engine.Group(routerPrefix())
-	privateGroup.Use(middleware.JWTAuth(), middleware.CasbinHandler())
+	privateGroup.Use(middleware.JWTAuth(), middleware.CasbinHandler(systemModule.Capabilities.RBAC))
 
 	routerGroup := router.RouterGroupApp
-	routerGroup.System.InitSystemRouter(publicGroup, privateGroup)
+	routerGroup.System.InitSystemRouter(publicGroup, privateGroup, systemModule.Handlers)
 
 	return engine
 }

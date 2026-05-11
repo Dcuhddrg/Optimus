@@ -2,7 +2,6 @@ package system
 
 import (
 	"net/http"
-	"sync"
 
 	systemService "optimus/server/service/system"
 
@@ -61,14 +60,6 @@ type SystemHandlerDeps struct {
 	System systemStatusService
 }
 
-type Api struct {
-	handlers *SystemHandlers
-}
-
-var compatibilityHandlersMu sync.RWMutex
-var systemDefaultStatusService systemService.Service
-var compatibilityHandlers = NewSystemHandlers(SystemHandlerDeps{})
-
 func NewSystemHandlers(deps SystemHandlerDeps) *SystemHandlers {
 	systemDeps := deps.System
 	if systemDeps == nil {
@@ -84,125 +75,6 @@ func NewSystemHandlers(deps SystemHandlerDeps) *SystemHandlers {
 		Base:   &BaseHandler{service: systemDeps},
 		Health: &HealthHandler{service: systemDeps},
 	}
-}
-
-func NewAPI(handlers *SystemHandlers) *Api {
-	return &Api{handlers: handlers}
-}
-
-func SetCompatibilityHandlers(handlers *SystemHandlers) {
-	compatibilityHandlersMu.Lock()
-	defer compatibilityHandlersMu.Unlock()
-
-	if handlers == nil {
-		compatibilityHandlers = NewSystemHandlers(SystemHandlerDeps{})
-		return
-	}
-
-	compatibilityHandlers = handlers
-}
-
-func CompatibilityHandlers() *SystemHandlers {
-	compatibilityHandlersMu.RLock()
-	handlers := compatibilityHandlers
-	compatibilityHandlersMu.RUnlock()
-
-	if handlers != nil {
-		return handlers
-	}
-
-	fallback := NewSystemHandlers(SystemHandlerDeps{})
-	compatibilityHandlersMu.Lock()
-	if compatibilityHandlers == nil {
-		compatibilityHandlers = fallback
-	}
-	handlers = compatibilityHandlers
-	compatibilityHandlersMu.Unlock()
-
-	return handlers
-}
-
-func (a *Api) currentHandlers() *SystemHandlers {
-	if a != nil && a.handlers != nil {
-		return a.handlers
-	}
-	return CompatibilityHandlers()
-}
-
-func (a *Api) Login(c *gin.Context) {
-	a.currentHandlers().Auth.Login(c)
-}
-
-func (a *Api) CurrentUser(c *gin.Context) {
-	a.currentHandlers().Auth.CurrentUser(c)
-}
-
-func (a *Api) Logout(c *gin.Context) {
-	a.currentHandlers().Auth.Logout(c)
-}
-
-func (a *Api) Users(c *gin.Context) {
-	a.currentHandlers().User.Users(c)
-}
-
-func (a *Api) UpdateUser(c *gin.Context) {
-	a.currentHandlers().User.UpdateUser(c)
-}
-
-func (a *Api) UpdateUserStatus(c *gin.Context) {
-	a.currentHandlers().User.UpdateUserStatus(c)
-}
-
-func (a *Api) UpdateUserRoles(c *gin.Context) {
-	a.currentHandlers().User.UpdateUserRoles(c)
-}
-
-func (a *Api) Roles(c *gin.Context) {
-	a.currentHandlers().Role.Roles(c)
-}
-
-func (a *Api) CreateRole(c *gin.Context) {
-	a.currentHandlers().Role.CreateRole(c)
-}
-
-func (a *Api) UpdateRole(c *gin.Context) {
-	a.currentHandlers().Role.UpdateRole(c)
-}
-
-func (a *Api) UpdateRoleStatus(c *gin.Context) {
-	a.currentHandlers().Role.UpdateRoleStatus(c)
-}
-
-func (a *Api) UpdateRolePermissions(c *gin.Context) {
-	a.currentHandlers().Role.UpdateRolePermissions(c)
-}
-
-func (a *Api) PermissionTree(c *gin.Context) {
-	a.currentHandlers().Role.PermissionTree(c)
-}
-
-func (a *Api) LDAPConfig(c *gin.Context) {
-	a.currentHandlers().LDAP.LDAPConfig(c)
-}
-
-func (a *Api) UpdateLDAPConfig(c *gin.Context) {
-	a.currentHandlers().LDAP.UpdateLDAPConfig(c)
-}
-
-func (a *Api) TestLDAPConfig(c *gin.Context) {
-	a.currentHandlers().LDAP.TestLDAPConfig(c)
-}
-
-func (a *Api) AuditLogs(c *gin.Context) {
-	a.currentHandlers().Audit.AuditLogs(c)
-}
-
-func (a *Api) Ping(c *gin.Context) {
-	a.currentHandlers().Base.Ping(c)
-}
-
-func (a *Api) Health(c *gin.Context) {
-	a.currentHandlers().Health.Health(c)
 }
 
 func writeServiceUnavailable(c *gin.Context, message string) {

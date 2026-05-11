@@ -11,6 +11,7 @@ import (
 
 	systemApi "optimus/server/api/v1/system"
 	"optimus/server/config"
+	"optimus/server/global"
 	systemModel "optimus/server/model/system"
 	systemService "optimus/server/service/system"
 
@@ -19,14 +20,12 @@ import (
 	"gorm.io/gorm"
 )
 
-func TestRoutersSeedSystemCompatibilityHandlersForAuthRoutes(t *testing.T) {
+func TestRoutersUseInjectedSystemHandlersForAuthRoutes(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	previousBuilder := newSystemModule
-	previousHandlers := systemApi.CompatibilityHandlers()
 	t.Cleanup(func() {
 		newSystemModule = previousBuilder
-		systemApi.SetCompatibilityHandlers(previousHandlers)
 	})
 
 	newSystemModule = func(db *gorm.DB, cfg config.Config) *SystemModule {
@@ -41,9 +40,6 @@ func TestRoutersSeedSystemCompatibilityHandlersForAuthRoutes(t *testing.T) {
 
 	engine := Routers()
 
-	require.NotNil(t, systemApi.CompatibilityHandlers())
-	require.NotNil(t, systemApi.CompatibilityHandlers().Auth)
-
 	recorder := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/system/auth/login", strings.NewReader(`{"username":"admin","password":"secret"}`))
 	req.Header.Set("Content-Type", "application/json")
@@ -54,7 +50,61 @@ func TestRoutersSeedSystemCompatibilityHandlersForAuthRoutes(t *testing.T) {
 	require.JSONEq(t, `{"message":"username or password is incorrect"}`, recorder.Body.String())
 }
 
+func TestRoutersUseInjectedRBACCapability(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	originalConfig := global.OPTIMUS_CONFIG
+	previousBuilder := newSystemModule
+	t.Cleanup(func() {
+		global.OPTIMUS_CONFIG = originalConfig
+		newSystemModule = previousBuilder
+	})
+
+	global.OPTIMUS_CONFIG.JWT = config.JWT{
+		SigningKey:  "router-test-signing-key",
+		ExpiresTime: 3600,
+		BufferTime:  300,
+		Issuer:      "optimus-router-test",
+	}
+	newSystemModule = func(db *gorm.DB, cfg config.Config) *SystemModule {
+		return &SystemModule{
+			Handlers: systemApi.NewSystemHandlers(systemApi.SystemHandlerDeps{}),
+			Capabilities: &SystemCapabilities{
+				RBAC: fakeRouterRBAC{allowed: true},
+			},
+			cfg: cfg,
+		}
+	}
+
+	engine := Routers()
+	token, err := systemService.IssueJWT(systemService.TokenSubject{
+		ID:        1,
+		UUID:      "router-test-user",
+		Username:  "admin",
+		RoleIDs:   []uint{1},
+		RoleCodes: []string{"admin"},
+	}, global.OPTIMUS_CONFIG.JWT, time.Now())
+	require.NoError(t, err)
+
+	recorder := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/system/permissions/tree", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	engine.ServeHTTP(recorder, req)
+
+	require.Equal(t, http.StatusOK, recorder.Code)
+	require.Contains(t, recorder.Body.String(), "\"code\":\"system.permissions.view\"")
+}
+
 type fakeRouterAuthStore struct{}
+
+type fakeRouterRBAC struct {
+	allowed bool
+}
+
+func (f fakeRouterRBAC) AuthorizeAPI(_ context.Context, method string, path string, roleIDs []uint) (bool, error) {
+	return f.allowed && method == http.MethodGet && path == "/api/v1/system/permissions/tree" && len(roleIDs) == 1 && roleIDs[0] == 1, nil
+}
 
 func (fakeRouterAuthStore) FindUserByUsername(context.Context, string) (systemModel.SystemUser, error) {
 	return systemModel.SystemUser{}, errors.New("not found")
