@@ -47,6 +47,7 @@ func TestCasbinHandlerDeniesMissingClaims(t *testing.T) {
 }
 
 func TestCasbinHandlerUsesInjectedAuthorizer(t *testing.T) {
+	gin.SetMode(gin.TestMode)
 	engine := gin.New()
 	engine.Use(seedRBACClaims())
 
