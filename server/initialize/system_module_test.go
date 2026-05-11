@@ -6,6 +6,8 @@ import (
 	"optimus/server/config"
 	"optimus/server/global"
 
+	"gorm.io/gorm"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -42,7 +44,21 @@ func TestNewSystemModuleBuildsPublicHandlersWithoutDatabase(t *testing.T) {
 	module := NewSystemModule(nil, cfg)
 
 	require.NotNil(t, module)
-	require.NotNil(t, module.Auth)
-	require.NotNil(t, module.Base)
-	require.NotNil(t, module.Health)
+	require.Equal(t, cfg, module.cfg)
+	require.NotNil(t, module.Handlers)
+	require.NotNil(t, module.Handlers.Auth)
+	require.NotNil(t, module.Handlers.Base)
+	require.NotNil(t, module.Handlers.Health)
+	require.NotNil(t, module.Capabilities)
+	require.Nil(t, module.Capabilities.RBAC)
+}
+
+func TestNewSystemModuleBuildsRBACCapabilityWhenDatabaseExists(t *testing.T) {
+	cfg := config.Config{}
+
+	module := NewSystemModule(&gorm.DB{}, cfg)
+
+	require.NotNil(t, module)
+	require.NotNil(t, module.Capabilities)
+	require.NotNil(t, module.Capabilities.RBAC)
 }
