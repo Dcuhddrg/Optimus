@@ -48,14 +48,7 @@ func TestCasbinHandlerDeniesMissingClaims(t *testing.T) {
 
 func TestCasbinHandlerUsesInjectedAuthorizer(t *testing.T) {
 	engine := gin.New()
-	engine.Use(func(c *gin.Context) {
-		c.Set(utils.ClaimsContextKey, &utils.CustomClaims{
-			BaseClaims: utils.BaseClaims{
-				ID:      1,
-				RoleIDs: []uint{1},
-			},
-		})
-	})
+	engine.Use(seedRBACClaims())
 
 	authorizer := fakeMiddlewareRBAC{allowed: true}
 	engine.GET("/api/v1/system/users", CasbinHandler(authorizer), func(c *gin.Context) {
@@ -88,16 +81,20 @@ func rbacTestEngine(t *testing.T, authorizer rbacAuthorizer) *gin.Engine {
 	})
 
 	engine := gin.New()
-	engine.Use(func(c *gin.Context) {
+	engine.Use(seedRBACClaims())
+	engine.GET("/api/v1/system/users", CasbinHandler(), func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	})
+	return engine
+}
+
+func seedRBACClaims() gin.HandlerFunc {
+	return func(c *gin.Context) {
 		c.Set(utils.ClaimsContextKey, &utils.CustomClaims{
 			BaseClaims: utils.BaseClaims{
 				ID:      1,
 				RoleIDs: []uint{1},
 			},
 		})
-	})
-	engine.GET("/api/v1/system/users", CasbinHandler(), func(c *gin.Context) {
-		c.Status(http.StatusOK)
-	})
-	return engine
+	}
 }

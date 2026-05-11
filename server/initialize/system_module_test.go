@@ -9,7 +9,13 @@ import (
 )
 
 func TestNewSystemModuleBuildsPublicHandlersWithoutDatabase(t *testing.T) {
-	module := NewSystemModule(nil, global.OPTIMUS_CONFIG)
+	originalConfig := global.OPTIMUS_CONFIG
+	t.Cleanup(func() {
+		global.OPTIMUS_CONFIG = originalConfig
+	})
+
+	cfg := originalConfig
+	module := NewSystemModule(nil, cfg)
 
 	require.NotNil(t, module)
 	require.NotNil(t, module.Auth)
