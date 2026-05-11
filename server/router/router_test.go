@@ -16,12 +16,22 @@ func TestRoutersExposeHealthAndPing(t *testing.T) {
 
 	engine := initialize.Routers()
 
-	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/health", nil)
+	routes := []string{
+		"/api/v1/health",
+		"/api/v1/ping",
+		"/api/v1/base/ping",
+	}
 
-	engine.ServeHTTP(w, req)
+	for _, route := range routes {
+		t.Run(route, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodGet, route, nil)
 
-	require.Equal(t, http.StatusOK, w.Code)
+			engine.ServeHTTP(w, req)
+
+			require.Equal(t, http.StatusOK, w.Code)
+		})
+	}
 }
 
 func TestPingRouteReturnsExpectedPayload(t *testing.T) {
