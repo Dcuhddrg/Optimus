@@ -4,16 +4,18 @@ import (
 	"net/http"
 
 	commonModel "optimus/server/model/common"
-	"optimus/server/service"
 	"optimus/server/utils"
 
 	"github.com/gin-gonic/gin"
 )
 
-type Api struct{}
+func (h *HealthHandler) Health(c *gin.Context) {
+	service := h.service
+	if service == nil {
+		service = &systemDefaultStatusService
+	}
 
-func (a *Api) Health(c *gin.Context) {
-	payload := service.ServiceGroupApp.System.Health()
+	payload := service.Health()
 	utils.JSON(c, http.StatusOK, commonModel.HealthResponse{
 		Status: payload.Status,
 	})

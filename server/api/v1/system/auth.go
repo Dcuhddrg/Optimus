@@ -4,30 +4,24 @@ import (
 	"errors"
 	"net/http"
 
-	"optimus/server/global"
 	systemService "optimus/server/service/system"
 	"optimus/server/utils"
 
 	"github.com/gin-gonic/gin"
 )
 
-func (a *Api) Login(c *gin.Context) {
+func (h *AuthHandler) Login(c *gin.Context) {
 	var req systemService.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid login request"})
 		return
 	}
-	if global.OPTIMUS_DB == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"message": "database is not available"})
+	if h.service == nil {
+		writeServiceUnavailable(c, "auth service is not available")
 		return
 	}
 
-	auth := systemService.NewAuthServiceWithLDAP(
-		systemService.NewGormAuthStore(global.OPTIMUS_DB),
-		global.OPTIMUS_CONFIG.JWT,
-		systemService.NewGoLDAPClient(),
-	)
-	result, err := auth.Login(c.Request.Context(), req, systemService.AuditMeta{
+	result, err := h.service.Login(c.Request.Context(), req, systemService.AuditMeta{
 		IP:        c.ClientIP(),
 		UserAgent: c.Request.UserAgent(),
 	})
@@ -45,7 +39,7 @@ func (a *Api) Login(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
-func (a *Api) CurrentUser(c *gin.Context) {
+func (h *AuthHandler) CurrentUser(c *gin.Context) {
 	claims, ok := c.Get(utils.ClaimsContextKey)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"message": "claims are required"})
@@ -56,13 +50,12 @@ func (a *Api) CurrentUser(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"message": "invalid claims"})
 		return
 	}
-	if global.OPTIMUS_DB == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"message": "database is not available"})
+	if h.service == nil {
+		writeServiceUnavailable(c, "auth service is not available")
 		return
 	}
 
-	auth := systemService.NewAuthService(systemService.NewGormAuthStore(global.OPTIMUS_DB), global.OPTIMUS_CONFIG.JWT)
-	result, err := auth.CurrentUser(c.Request.Context(), customClaims.BaseClaims.ID)
+	result, err := h.service.CurrentUser(c.Request.Context(), customClaims.BaseClaims.ID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to load current user"})
 		return
@@ -71,12 +64,11 @@ func (a *Api) CurrentUser(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
-func (a *Api) Logout(c *gin.Context) {
+func (h *AuthHandler) Logout(c *gin.Context) {
 	claims, ok := c.Get(utils.ClaimsContextKey)
-	if ok && global.OPTIMUS_DB != nil {
+	if ok && h.service != nil {
 		if customClaims, ok := claims.(*utils.CustomClaims); ok {
-			auth := systemService.NewAuthService(systemService.NewGormAuthStore(global.OPTIMUS_DB), global.OPTIMUS_CONFIG.JWT)
-			_ = auth.Logout(c.Request.Context(), customClaims.BaseClaims.ID, systemService.AuditMeta{
+			_ = h.service.Logout(c.Request.Context(), customClaims.BaseClaims.ID, systemService.AuditMeta{
 				IP:        c.ClientIP(),
 				UserAgent: c.Request.UserAgent(),
 			})

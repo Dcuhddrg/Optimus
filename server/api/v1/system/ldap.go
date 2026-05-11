@@ -4,18 +4,17 @@ import (
 	"errors"
 	"net/http"
 
-	"optimus/server/global"
 	systemService "optimus/server/service/system"
 
 	"github.com/gin-gonic/gin"
 )
 
-func (a *Api) LDAPConfig(c *gin.Context) {
-	service, ok := newLDAPService(c)
-	if !ok {
+func (h *LDAPHandler) LDAPConfig(c *gin.Context) {
+	if h.service == nil {
+		writeServiceUnavailable(c, "ldap service is not available")
 		return
 	}
-	cfg, err := service.GetConfig(c.Request.Context())
+	cfg, err := h.service.GetConfig(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to load ldap config"})
 		return
@@ -23,9 +22,9 @@ func (a *Api) LDAPConfig(c *gin.Context) {
 	c.JSON(http.StatusOK, cfg)
 }
 
-func (a *Api) UpdateLDAPConfig(c *gin.Context) {
-	service, ok := newLDAPService(c)
-	if !ok {
+func (h *LDAPHandler) UpdateLDAPConfig(c *gin.Context) {
+	if h.service == nil {
+		writeServiceUnavailable(c, "ldap service is not available")
 		return
 	}
 	var req systemService.LDAPConfigRequest
@@ -33,7 +32,7 @@ func (a *Api) UpdateLDAPConfig(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid ldap config request"})
 		return
 	}
-	cfg, err := service.SaveConfig(c.Request.Context(), actorID(c), req, auditMeta(c))
+	cfg, err := h.service.SaveConfig(c.Request.Context(), actorID(c), req, auditMeta(c))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to save ldap config"})
 		return
@@ -41,9 +40,9 @@ func (a *Api) UpdateLDAPConfig(c *gin.Context) {
 	c.JSON(http.StatusOK, cfg)
 }
 
-func (a *Api) TestLDAPConfig(c *gin.Context) {
-	service, ok := newLDAPService(c)
-	if !ok {
+func (h *LDAPHandler) TestLDAPConfig(c *gin.Context) {
+	if h.service == nil {
+		writeServiceUnavailable(c, "ldap service is not available")
 		return
 	}
 	var req systemService.LDAPTestRequest
@@ -51,7 +50,7 @@ func (a *Api) TestLDAPConfig(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid ldap test request"})
 		return
 	}
-	result, err := service.TestConfig(c.Request.Context(), actorID(c), req, auditMeta(c))
+	result, err := h.service.TestConfig(c.Request.Context(), actorID(c), req, auditMeta(c))
 	if errors.Is(err, systemService.ErrInvalidLDAPConfig) {
 		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return
@@ -61,15 +60,4 @@ func (a *Api) TestLDAPConfig(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, result)
-}
-
-func newLDAPService(c *gin.Context) (*systemService.LDAPService, bool) {
-	if global.OPTIMUS_DB == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"message": "database is not available"})
-		return nil, false
-	}
-	return systemService.NewLDAPService(
-		systemService.NewGormLDAPStore(global.OPTIMUS_DB),
-		systemService.NewGoLDAPClient(),
-	), true
 }

@@ -5,19 +5,18 @@ import (
 	"net/http"
 	"strconv"
 
-	"optimus/server/global"
 	systemService "optimus/server/service/system"
 	"optimus/server/utils"
 
 	"github.com/gin-gonic/gin"
 )
 
-func (a *Api) Users(c *gin.Context) {
-	service, ok := newUserService(c)
-	if !ok {
+func (h *UserHandler) Users(c *gin.Context) {
+	if h.service == nil {
+		writeServiceUnavailable(c, "user service is not available")
 		return
 	}
-	result, err := service.ListUsers(c.Request.Context())
+	result, err := h.service.ListUsers(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to list users"})
 		return
@@ -25,9 +24,9 @@ func (a *Api) Users(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
-func (a *Api) UpdateUser(c *gin.Context) {
-	service, ok := newUserService(c)
-	if !ok {
+func (h *UserHandler) UpdateUser(c *gin.Context) {
+	if h.service == nil {
+		writeServiceUnavailable(c, "user service is not available")
 		return
 	}
 	id, ok := parseUintParam(c, "id")
@@ -39,13 +38,13 @@ func (a *Api) UpdateUser(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid user request"})
 		return
 	}
-	user, err := service.UpdateUser(c.Request.Context(), actorID(c), id, req, auditMeta(c))
+	user, err := h.service.UpdateUser(c.Request.Context(), actorID(c), id, req, auditMeta(c))
 	writeUserServiceResult(c, user, err)
 }
 
-func (a *Api) UpdateUserStatus(c *gin.Context) {
-	service, ok := newUserService(c)
-	if !ok {
+func (h *UserHandler) UpdateUserStatus(c *gin.Context) {
+	if h.service == nil {
+		writeServiceUnavailable(c, "user service is not available")
 		return
 	}
 	id, ok := parseUintParam(c, "id")
@@ -59,13 +58,13 @@ func (a *Api) UpdateUserStatus(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid status request"})
 		return
 	}
-	user, err := service.UpdateUserStatus(c.Request.Context(), actorID(c), id, req.Status, auditMeta(c))
+	user, err := h.service.UpdateUserStatus(c.Request.Context(), actorID(c), id, req.Status, auditMeta(c))
 	writeUserServiceResult(c, user, err)
 }
 
-func (a *Api) UpdateUserRoles(c *gin.Context) {
-	service, ok := newUserService(c)
-	if !ok {
+func (h *UserHandler) UpdateUserRoles(c *gin.Context) {
+	if h.service == nil {
+		writeServiceUnavailable(c, "user service is not available")
 		return
 	}
 	id, ok := parseUintParam(c, "id")
@@ -79,7 +78,7 @@ func (a *Api) UpdateUserRoles(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid role request"})
 		return
 	}
-	err := service.UpdateUserRoles(c.Request.Context(), actorID(c), id, req.RoleIDs, auditMeta(c))
+	err := h.service.UpdateUserRoles(c.Request.Context(), actorID(c), id, req.RoleIDs, auditMeta(c))
 	if errors.Is(err, systemService.ErrLastAdminCapableUser) {
 		c.JSON(http.StatusForbidden, gin.H{"message": err.Error()})
 		return
@@ -89,14 +88,6 @@ func (a *Api) UpdateUserRoles(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "user roles updated"})
-}
-
-func newUserService(c *gin.Context) (*systemService.UserService, bool) {
-	if global.OPTIMUS_DB == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"message": "database is not available"})
-		return nil, false
-	}
-	return systemService.NewUserService(systemService.NewGormUserStore(global.OPTIMUS_DB)), true
 }
 
 func parseUintParam(c *gin.Context, name string) (uint, bool) {
