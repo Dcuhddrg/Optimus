@@ -82,12 +82,18 @@
   - `jwt.go`
 - `server/system/infra/directory`
   - `ldap_client.go`
-- `server/system/shared` 或 `server/system/contracts`
-  - 只放少量跨用例共享、且不带基础设施倾向的稳定类型
+- `server/system/shared`
+  - 默认不建立；只有出现真实反向依赖时才引入，用于承载少量跨用例共享、且不带基础设施倾向的稳定类型
 
-依赖流向固定为：
+运行时装配流向固定为：
 
 `initialize/SystemModule -> infra implementations -> usecase -> api/middleware`
+
+静态包依赖方向固定为：
+
+`api/middleware -> usecase contracts or compat seams`
+
+`infra implementations -> usecase contracts`
 
 反向依赖禁止：
 
@@ -142,7 +148,7 @@
 
 - LDAP 连接、测试、认证的客户端适配器实现
 
-### `shared/contracts`
+### `shared`
 
 负责：
 
@@ -162,6 +168,24 @@
 - `GormAuthStore` 迁入 `server/system/infra/persistence/auth_store_gorm.go`
 - JWT 实现迁入 `server/system/infra/identity/jwt.go`
 - LDAP 客户端实现迁入 `server/system/infra/directory/ldap_client.go`
+- 当前 `server/service/system/jwt.go` 在本轮保留为薄兼容层，只做转发，不继续承载真实实现
+
+### JWT 兼容策略
+
+本轮明确采用：
+
+- `JWT` 真实实现迁入 `server/system/infra/identity/jwt.go`
+- `server/service/system/jwt.go` 暂时保留为薄包装，向旧调用方暴露兼容函数
+- `server/middleware/jwt.go` 与现有相关测试本轮允许继续走兼容层，不在本轮引入 `TokenParser` capability
+
+本轮明确不做：
+
+- 不让 `middleware` 直接依赖 `infra/identity`
+- 不把 JWT middleware 的能力边界重构与 `问题 2` 绑定在一起
+
+后续处理方向：
+
+- 等 `system` 域内部边界稳定后，再在后续问题中评估是否把 token 解析进一步收敛为 capability，并与认证/授权治理一起处理
 
 ### `user`
 
