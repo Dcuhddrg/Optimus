@@ -82,8 +82,8 @@
   - `jwt.go`
 - `server/service/system/infra/directory`
   - `ldap_client.go`
-- `server/service/system/shared`
-  - 默认不建立；只有出现真实反向依赖时才引入，用于承载少量跨用例共享、且不带基础设施倾向的稳定类型
+- `server/service/system`
+  - 仅保留极小兼容层与暂不纳入本轮主体的辅助能力，不再作为真实业务实现所在包
 
 运行时装配流向固定为：
 
@@ -94,6 +94,12 @@
 `api/middleware -> usecase contracts or compat seams`
 
 `infra implementations -> usecase contracts`
+
+本轮对 `server/api/v1/system` 的约束进一步明确为：
+
+- handler 直接依赖对应 `usecase` 服务或其一对一的极薄注入接口
+- 不再在 `api` 层额外定义会脱离用例语义膨胀的业务契约
+- 无论选择具体服务还是极薄接口，依赖都必须停在 `usecase` 边界，不得回落到 `infra`
 
 反向依赖禁止：
 
@@ -108,10 +114,10 @@
 
 负责：
 
-- 定义输入输出模型
+- 定义本用例对上暴露的输入输出模型
 - 编排一个业务能力所需的依赖
 - 承载稳定业务规则与错误语义
-- 定义它依赖的接口，如 `UserStore`、`TokenIssuer`、`LDAPAuthenticator`、`AuditWriter`
+- 按用例本地定义它依赖的接口，如 `UserStore`、`TokenIssuer`、`LDAPAuthenticator`、`AuditWriter`
 
 不负责：
 
@@ -141,30 +147,37 @@
 
 - token 签发和解析的适配器实现
 - 将当前 JWT 细节包裹在 `usecase` 可消费的接口之后
+- 吸收 `config.JWT` 与具体 JWT 库的细节，不把这些细节泄漏回 `usecase`
 
 ### `infra/directory`
 
 负责：
 
 - LDAP 连接、测试、认证的客户端适配器实现
+- 吸收 LDAP 网络调用与连接细节，不把客户端实现泄漏回 `usecase`
 
-### `shared`
+本轮明确不建立：
 
-负责：
+- `shared` 共享契约包
+- `policy` 独立策略层
 
-- 少量跨用例稳定共享、且不带基础设施倾向的类型
+原因：
 
-边界约束：
+- 当前目标是先把 `问题 2` 收紧为真实的 `usecase` / `infra` 包边界
+- 共享契约层很容易过早退化成新的内部平台或杂物间
+- 策略层拆分是下一阶段可选优化，不应与本轮拆包绑定
 
-- 默认不新增共享包
-- 只有当类型被多个用例稳定共享，且放回单一用例会造成反向依赖时，才允许进入此层
+允许的最小共享方式是：
+
+- 少量仅供 `usecase` 包内部复用的稳定类型，可直接放在 `server/service/system/usecase` 包内
+- 这类类型服务于包内实现复用，不单独升级成新的导出共享契约层
 
 ## 现有能力的迁移落位
 
 ### `auth`
 
 - 用例迁入 `server/service/system/usecase/auth.go`
-- `AuthStore` 接口仍由 `auth` 用例定义
+- `auth` 用例同时定义自己的输入输出 DTO、语义错误与依赖端口
 - `GormAuthStore` 迁入 `server/service/system/infra/persistence/auth_store_gorm.go`
 - JWT 实现迁入 `server/service/system/infra/identity/jwt.go`
 - LDAP 客户端实现迁入 `server/service/system/infra/directory/ldap_client.go`
@@ -190,6 +203,7 @@
 ### `user`
 
 - `UserService` 迁入 `server/service/system/usecase/user.go`
+- `user` 用例定义自己的 DTO、语义错误与端口，不依赖共享契约包
 - `GormUserStore` 迁入 `server/service/system/infra/persistence/user_store_gorm.go`
 
 ### `role`
@@ -230,6 +244,12 @@
 - 新的 LDAP / JWT 真实适配器实现
 - 面向外部调用方的长期过渡 façade
 
+兼容层允许存在的前提：
+
+- 它只是转发，不重新定义新的业务边界
+- 它不会继续吸引新的调用方长期依赖
+- 一旦直接迁移调用方的成本可接受，就优先删除而不是继续扩容
+
 ### 暂不纳入本轮主体
 
 以下文件不作为 `问题 2` 的主改造对象，只在需要维持编译或引用路径时做最小配合：
@@ -259,6 +279,12 @@
 - 不把 HTTP 语义带进 `usecase`
 - 不把业务规则判断塞进 `infra`
 
+DTO 归属明确为：
+
+- `usecase` 持有稳定输入输出 DTO
+- `api` 负责把 HTTP 请求映射到用例 DTO，再把用例结果映射回响应
+- `api` 不再持有独立于用例语义之外的大量并行响应模型
+
 ## 测试策略
 
 本轮验收不以“目录拆完”为标准，而以“行为不退化、边界变清晰”为标准。
@@ -278,6 +304,7 @@
 
 - 证明业务规则、审计触发、错误语义未变
 - 避免用例测试依赖 Gorm
+- 证明用例在 fake port 下可独立运行，边界不再依赖具体 JWT / LDAP / Gorm 实现
 
 ### 2. 基础设施测试
 
@@ -299,6 +326,25 @@
 
 - 证明 `SystemModule` 仍然是唯一装配边界
 - 证明 public/private 路由与授权链行为未变
+
+建议在实现计划中把验证命令至少细化到以下包范围：
+
+- `./service/system/...` 或拆分后的 `./service/system/usecase/...`、`./service/system/infra/...`
+- `./initialize`
+- `./middleware`
+- `./router`
+
+## 后续边界保留
+
+本设计显式记录但不在本轮执行的后续方向：
+
+- 如果稳定业务规则开始在多个用例中重复、或单个用例因策略判断变得过重，再评估独立 `policy` 层
+- 如果 JWT 解析、认证、授权、审计需要脱离 `system` 域成为运行时级 capability，再在后续问题中单独设计
+
+当前约束是：
+
+- 不因为预判未来需要 `policy` 层，就在本轮提前引入
+- 不因为未来可能要做 capability 治理，就让本轮兼容层长期存在
 
 ## 改造顺序
 
