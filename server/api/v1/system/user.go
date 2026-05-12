@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	systemService "optimus/server/service/system"
+	systemUsecase "optimus/server/service/system/usecase"
 	"optimus/server/utils"
 
 	"github.com/gin-gonic/gin"
@@ -33,7 +33,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 	if !ok {
 		return
 	}
-	var req systemService.UpdateUserRequest
+	var req systemUsecase.UpdateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid user request"})
 		return
@@ -79,7 +79,7 @@ func (h *UserHandler) UpdateUserRoles(c *gin.Context) {
 		return
 	}
 	err := h.service.UpdateUserRoles(c.Request.Context(), actorID(c), id, req.RoleIDs, auditMeta(c))
-	if errors.Is(err, systemService.ErrLastAdminCapableUser) {
+	if errors.Is(err, systemUsecase.ErrLastAdminCapableUser) {
 		c.JSON(http.StatusForbidden, gin.H{"message": err.Error()})
 		return
 	}
@@ -111,16 +111,16 @@ func actorID(c *gin.Context) uint {
 	return customClaims.BaseClaims.ID
 }
 
-func auditMeta(c *gin.Context) systemService.AuditMeta {
-	return systemService.AuditMeta{IP: c.ClientIP(), UserAgent: c.Request.UserAgent()}
+func auditMeta(c *gin.Context) systemUsecase.AuditMeta {
+	return systemUsecase.AuditMeta{IP: c.ClientIP(), UserAgent: c.Request.UserAgent()}
 }
 
-func writeUserServiceResult(c *gin.Context, user systemService.SystemUserSummary, err error) {
-	if errors.Is(err, systemService.ErrUserNotFound) {
+func writeUserServiceResult(c *gin.Context, user systemUsecase.SystemUserSummary, err error) {
+	if errors.Is(err, systemUsecase.ErrUserNotFound) {
 		c.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
 		return
 	}
-	if errors.Is(err, systemService.ErrLastAdminCapableUser) {
+	if errors.Is(err, systemUsecase.ErrLastAdminCapableUser) {
 		c.JSON(http.StatusForbidden, gin.H{"message": err.Error()})
 		return
 	}

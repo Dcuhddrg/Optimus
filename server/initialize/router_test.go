@@ -14,6 +14,7 @@ import (
 	"optimus/server/global"
 	systemModel "optimus/server/model/system"
 	systemService "optimus/server/service/system"
+	systemUsecase "optimus/server/service/system/usecase"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
@@ -31,7 +32,7 @@ func TestRoutersUseInjectedSystemHandlersForAuthRoutes(t *testing.T) {
 	newSystemModule = func(db *gorm.DB, cfg config.Config) *SystemModule {
 		return &SystemModule{
 			Handlers: systemApi.NewSystemHandlers(systemApi.SystemHandlerDeps{
-				Auth: systemService.NewAuthService(fakeRouterAuthStore{}, cfg.JWT),
+				Auth: systemUsecase.NewAuthService(fakeRouterAuthStore{}, fakeRouterTokenIssuer{}, nil),
 			}),
 			Capabilities: &SystemCapabilities{},
 			cfg:          cfg,
@@ -77,7 +78,7 @@ func TestRoutersUseInjectedRBACCapability(t *testing.T) {
 	}
 
 	engine := Routers()
-	token, err := systemService.IssueJWT(systemService.TokenSubject{
+	token, err := systemService.IssueJWT(systemUsecase.TokenSubject{
 		ID:        1,
 		UUID:      "router-test-user",
 		Username:  "admin",
@@ -98,12 +99,18 @@ func TestRoutersUseInjectedRBACCapability(t *testing.T) {
 
 type fakeRouterAuthStore struct{}
 
+type fakeRouterTokenIssuer struct{}
+
 type fakeRouterRBAC struct {
 	allowed bool
 }
 
 func (f fakeRouterRBAC) AuthorizeAPI(_ context.Context, method string, path string, roleIDs []uint) (bool, error) {
 	return f.allowed && method == http.MethodGet && path == "/api/v1/system/permissions/tree" && len(roleIDs) == 1 && roleIDs[0] == 1, nil
+}
+
+func (fakeRouterTokenIssuer) IssueToken(systemUsecase.TokenSubject) (string, error) {
+	return "", nil
 }
 
 func (fakeRouterAuthStore) FindUserByUsername(context.Context, string) (systemModel.SystemUser, error) {
@@ -118,11 +125,11 @@ func (fakeRouterAuthStore) GetLDAPConfig(context.Context) (systemModel.SystemLDA
 	return systemModel.SystemLDAPConfig{}, nil
 }
 
-func (fakeRouterAuthStore) SyncLDAPUser(context.Context, systemService.LDAPUser) (systemModel.SystemUser, error) {
+func (fakeRouterAuthStore) SyncLDAPUser(context.Context, systemUsecase.LDAPUser) (systemModel.SystemUser, error) {
 	return systemModel.SystemUser{}, errors.New("not implemented")
 }
 
-func (fakeRouterAuthStore) RolesForUser(context.Context, uint) ([]systemService.SystemRoleSummary, error) {
+func (fakeRouterAuthStore) RolesForUser(context.Context, uint) ([]systemUsecase.SystemRoleSummary, error) {
 	return nil, errors.New("not implemented")
 }
 
@@ -134,6 +141,6 @@ func (fakeRouterAuthStore) UpdateLastLogin(context.Context, uint, time.Time) err
 	return nil
 }
 
-func (fakeRouterAuthStore) WriteAudit(context.Context, systemService.AuditEvent) error {
+func (fakeRouterAuthStore) WriteAudit(context.Context, systemUsecase.AuditEvent) error {
 	return nil
 }

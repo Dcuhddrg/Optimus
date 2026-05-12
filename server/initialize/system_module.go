@@ -4,6 +4,10 @@ import (
 	systemApi "optimus/server/api/v1/system"
 	"optimus/server/config"
 	"optimus/server/middleware"
+	"optimus/server/service/system/infra/directory"
+	"optimus/server/service/system/infra/identity"
+	"optimus/server/service/system/infra/persistence"
+	systemUsecase "optimus/server/service/system/usecase"
 	systemService "optimus/server/service/system"
 
 	"gorm.io/gorm"
@@ -42,57 +46,51 @@ func NewSystemModule(db *gorm.DB, cfg config.Config) *SystemModule {
 	}
 }
 
-func newSystemRBACCapability(db *gorm.DB) *systemService.RBACService {
+func newSystemRBACCapability(db *gorm.DB) *systemUsecase.RBACService {
 	if db == nil {
 		return nil
 	}
-
-	return systemService.NewRBACService(systemService.NewGormRBACStore(db))
+	return systemUsecase.NewRBACService(persistence.NewGormRBACStore(db))
 }
 
-func newSystemAuthService(db *gorm.DB, cfg config.Config) *systemService.AuthService {
+func newSystemAuthService(db *gorm.DB, cfg config.Config) *systemUsecase.AuthService {
 	if db == nil {
 		return nil
 	}
-
-	return systemService.NewAuthServiceWithLDAP(
-		systemService.NewGormAuthStore(db),
-		cfg.JWT,
-		systemService.NewGoLDAPClient(),
+	return systemUsecase.NewAuthService(
+		persistence.NewGormAuthStore(db),
+		identity.JWTIssuer{Config: cfg.JWT},
+		directory.NewGoLDAPClient(),
 	)
 }
 
-func newSystemUserService(db *gorm.DB) *systemService.UserService {
+func newSystemUserService(db *gorm.DB) *systemUsecase.UserService {
 	if db == nil {
 		return nil
 	}
-
-	return systemService.NewUserService(systemService.NewGormUserStore(db))
+	return systemUsecase.NewUserService(persistence.NewGormUserStore(db))
 }
 
-func newSystemRoleService(db *gorm.DB) *systemService.RoleService {
+func newSystemRoleService(db *gorm.DB) *systemUsecase.RoleService {
 	if db == nil {
 		return nil
 	}
-
-	return systemService.NewRoleService(systemService.NewGormRoleStore(db))
+	return systemUsecase.NewRoleService(persistence.NewGormRoleStore(db))
 }
 
-func newSystemLDAPService(db *gorm.DB) *systemService.LDAPService {
+func newSystemLDAPService(db *gorm.DB) *systemUsecase.LDAPService {
 	if db == nil {
 		return nil
 	}
-
-	return systemService.NewLDAPService(
-		systemService.NewGormLDAPStore(db),
-		systemService.NewGoLDAPClient(),
+	return systemUsecase.NewLDAPService(
+		persistence.NewGormLDAPStore(db),
+		directory.NewGoLDAPClient(),
 	)
 }
 
-func newSystemAuditService(db *gorm.DB) *systemService.AuditService {
+func newSystemAuditService(db *gorm.DB) *systemUsecase.AuditService {
 	if db == nil {
 		return nil
 	}
-
-	return systemService.NewAuditService(systemService.NewGormAuditStore(db))
+	return systemUsecase.NewAuditService(persistence.NewGormAuditStore(db))
 }

@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	systemService "optimus/server/service/system"
+	systemUsecase "optimus/server/service/system/usecase"
 
 	"github.com/gin-gonic/gin"
 )
@@ -27,7 +28,7 @@ func (h *RoleHandler) CreateRole(c *gin.Context) {
 		writeServiceUnavailable(c, "role service is not available")
 		return
 	}
-	var req systemService.RoleRequest
+	var req systemUsecase.RoleRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid role request"})
 		return
@@ -45,7 +46,7 @@ func (h *RoleHandler) UpdateRole(c *gin.Context) {
 	if !ok {
 		return
 	}
-	var req systemService.RoleRequest
+	var req systemUsecase.RoleRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid role request"})
 		return
@@ -91,11 +92,11 @@ func (h *RoleHandler) UpdateRolePermissions(c *gin.Context) {
 		return
 	}
 	err := h.service.UpdateRolePermissions(c.Request.Context(), actorID(c), id, req.PermissionCodes, auditMeta(c))
-	if errors.Is(err, systemService.ErrRoleNotFound) {
+	if errors.Is(err, systemUsecase.ErrRoleNotFound) {
 		c.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
 		return
 	}
-	if errors.Is(err, systemService.ErrProtectedAdminRole) {
+	if errors.Is(err, systemUsecase.ErrProtectedAdminRole) {
 		c.JSON(http.StatusForbidden, gin.H{"message": err.Error()})
 		return
 	}
@@ -111,11 +112,11 @@ func (h *RoleHandler) PermissionTree(c *gin.Context) {
 }
 
 func writeRoleServiceResult(c *gin.Context, role any, err error) {
-	if errors.Is(err, systemService.ErrRoleNotFound) {
+	if errors.Is(err, systemUsecase.ErrRoleNotFound) {
 		c.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
 		return
 	}
-	if errors.Is(err, systemService.ErrProtectedAdminRole) {
+	if errors.Is(err, systemUsecase.ErrProtectedAdminRole) {
 		c.JSON(http.StatusForbidden, gin.H{"message": err.Error()})
 		return
 	}

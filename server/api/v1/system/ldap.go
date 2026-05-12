@@ -4,7 +4,7 @@ import (
 	"errors"
 	"net/http"
 
-	systemService "optimus/server/service/system"
+	systemUsecase "optimus/server/service/system/usecase"
 
 	"github.com/gin-gonic/gin"
 )
@@ -27,7 +27,7 @@ func (h *LDAPHandler) UpdateLDAPConfig(c *gin.Context) {
 		writeServiceUnavailable(c, "ldap service is not available")
 		return
 	}
-	var req systemService.LDAPConfigRequest
+	var req systemUsecase.LDAPConfigRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid ldap config request"})
 		return
@@ -45,13 +45,13 @@ func (h *LDAPHandler) TestLDAPConfig(c *gin.Context) {
 		writeServiceUnavailable(c, "ldap service is not available")
 		return
 	}
-	var req systemService.LDAPTestRequest
+	var req systemUsecase.LDAPTestRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid ldap test request"})
 		return
 	}
 	result, err := h.service.TestConfig(c.Request.Context(), actorID(c), req, auditMeta(c))
-	if errors.Is(err, systemService.ErrInvalidLDAPConfig) {
+	if errors.Is(err, systemUsecase.ErrInvalidLDAPConfig) {
 		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return
 	}
