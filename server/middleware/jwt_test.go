@@ -9,6 +9,7 @@ import (
 	"optimus/server/config"
 	"optimus/server/global"
 	systemService "optimus/server/service/system"
+	systemUsecase "optimus/server/service/system/usecase"
 	"optimus/server/utils"
 
 	"github.com/gin-gonic/gin"
@@ -42,7 +43,7 @@ func TestJWTAuthStoresClaimsForValidToken(t *testing.T) {
 	cfg := testMiddlewareJWTConfig()
 	global.OPTIMUS_CONFIG.JWT = cfg
 	engine := jwtTestEngine(t)
-	token, err := systemService.IssueJWT(systemService.TokenSubject{
+	token, err := systemService.IssueJWT(systemUsecase.TokenSubject{
 		ID:        9,
 		UUID:      "uuid-9",
 		Username:  "admin",
