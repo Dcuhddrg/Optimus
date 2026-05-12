@@ -62,27 +62,27 @@
 
 ## 设计概览
 
-本轮在 `server/system/` 下建立新的域内分层，建议结构如下：
+本轮在 `server/service/system/` 下建立新的域内分层，建议结构如下：
 
-- `server/system/usecase`
+- `server/service/system/usecase`
   - `auth.go`
   - `user.go`
   - `role.go`
   - `ldap.go`
   - `audit.go`
   - `rbac.go`
-- `server/system/infra/persistence`
+- `server/service/system/infra/persistence`
   - `auth_store_gorm.go`
   - `user_store_gorm.go`
   - `role_store_gorm.go`
   - `ldap_store_gorm.go`
   - `audit_store_gorm.go`
   - `rbac_store_gorm.go`
-- `server/system/infra/identity`
+- `server/service/system/infra/identity`
   - `jwt.go`
-- `server/system/infra/directory`
+- `server/service/system/infra/directory`
   - `ldap_client.go`
-- `server/system/shared`
+- `server/service/system/shared`
   - 默认不建立；只有出现真实反向依赖时才引入，用于承载少量跨用例共享、且不带基础设施倾向的稳定类型
 
 运行时装配流向固定为：
@@ -163,18 +163,18 @@
 
 ### `auth`
 
-- 用例迁入 `server/system/usecase/auth.go`
+- 用例迁入 `server/service/system/usecase/auth.go`
 - `AuthStore` 接口仍由 `auth` 用例定义
-- `GormAuthStore` 迁入 `server/system/infra/persistence/auth_store_gorm.go`
-- JWT 实现迁入 `server/system/infra/identity/jwt.go`
-- LDAP 客户端实现迁入 `server/system/infra/directory/ldap_client.go`
+- `GormAuthStore` 迁入 `server/service/system/infra/persistence/auth_store_gorm.go`
+- JWT 实现迁入 `server/service/system/infra/identity/jwt.go`
+- LDAP 客户端实现迁入 `server/service/system/infra/directory/ldap_client.go`
 - 当前 `server/service/system/jwt.go` 在本轮保留为薄兼容层，只做转发，不继续承载真实实现
 
 ### JWT 兼容策略
 
 本轮明确采用：
 
-- `JWT` 真实实现迁入 `server/system/infra/identity/jwt.go`
+- `JWT` 真实实现迁入 `server/service/system/infra/identity/jwt.go`
 - `server/service/system/jwt.go` 暂时保留为薄包装，向旧调用方暴露兼容函数
 - `server/middleware/jwt.go` 与现有相关测试本轮允许继续走兼容层，不在本轮引入 `TokenParser` capability
 
@@ -189,29 +189,46 @@
 
 ### `user`
 
-- `UserService` 迁入 `server/system/usecase/user.go`
-- `GormUserStore` 迁入 `server/system/infra/persistence/user_store_gorm.go`
+- `UserService` 迁入 `server/service/system/usecase/user.go`
+- `GormUserStore` 迁入 `server/service/system/infra/persistence/user_store_gorm.go`
 
 ### `role`
 
-- `RoleService` 迁入 `server/system/usecase/role.go`
-- `GormRoleStore` 迁入 `server/system/infra/persistence/role_store_gorm.go`
+- `RoleService` 迁入 `server/service/system/usecase/role.go`
+- `GormRoleStore` 迁入 `server/service/system/infra/persistence/role_store_gorm.go`
 
 ### `ldap`
 
-- `LDAPService` 迁入 `server/system/usecase/ldap.go`
-- `GormLDAPStore` 迁入 `server/system/infra/persistence/ldap_store_gorm.go`
-- LDAP 网络调用实现复用 `server/system/infra/directory/ldap_client.go`
+- `LDAPService` 迁入 `server/service/system/usecase/ldap.go`
+- `GormLDAPStore` 迁入 `server/service/system/infra/persistence/ldap_store_gorm.go`
+- LDAP 网络调用实现复用 `server/service/system/infra/directory/ldap_client.go`
 
 ### `audit`
 
-- `AuditService` 迁入 `server/system/usecase/audit.go`
-- `GormAuditStore` 迁入 `server/system/infra/persistence/audit_store_gorm.go`
+- `AuditService` 迁入 `server/service/system/usecase/audit.go`
+- `GormAuditStore` 迁入 `server/service/system/infra/persistence/audit_store_gorm.go`
 
 ### `rbac`
 
-- `RBACService` 迁入 `server/system/usecase/rbac.go`
-- `GormRBACStore` 迁入 `server/system/infra/persistence/rbac_store_gorm.go`
+- `RBACService` 迁入 `server/service/system/usecase/rbac.go`
+- `GormRBACStore` 迁入 `server/service/system/infra/persistence/rbac_store_gorm.go`
+
+### `server/service/system` 根包兼容策略
+
+本轮明确采用“直接迁移调用方 + 极小兼容层”：
+
+- `server/api/v1/system`、`server/initialize`、`server/middleware` 以及相关测试在本轮内直接迁移到新的 `usecase` / `infra` 子包依赖
+- `server/service/system` 根包不作为长期 façade 保留
+- 根包仅允许保留以下两类内容：
+  - 本轮暂不纳入主体的辅助能力，如 `seed.go`、`health.go`、`password.go`
+  - 为压缩迁移爆炸面而临时保留的极小兼容包装，例如 `jwt.go`
+
+根包明确不再承载：
+
+- 新的业务用例实现
+- 新的 Gorm store 实现
+- 新的 LDAP / JWT 真实适配器实现
+- 面向外部调用方的长期过渡 façade
 
 ### 暂不纳入本轮主体
 
@@ -287,7 +304,7 @@
 
 建议按以下顺序执行，避免一次性爆炸式迁移：
 
-1. 先建立 `server/system/usecase` 与 `server/system/infra/*` 目录
+1. 先建立 `server/service/system/usecase` 与 `server/service/system/infra/*` 目录
 2. 迁移 `auth / user / role / ldap / audit / rbac` 的接口与用例实现
 3. 迁移对应 `Gorm*Store`、JWT、LDAP 客户端实现
 4. 调整 `initialize.SystemModule`，改为装配新边界
