@@ -8,3 +8,4 @@ dist/
 # backend ignore
 .superpowers/
 .worktrees/
+docs/superpowers/
