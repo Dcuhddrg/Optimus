@@ -3,216 +3,153 @@
 **Date:** 2026-05-12
 **Status:** Approved
 
-## Overview
+## Document Purpose
 
-Optimus is positioned as an enterprise-grade unified operations platform covering both FinOps (cloud cost governance) and DevOps (infrastructure automation). The platform is built on a **Unified Asset Registry** as the central data foundation, ensuring cost data and infrastructure state share a single source of truth.
+This document is a platform roadmap for `Optimus`, not an implementation spec.
 
----
+Its purpose is to define:
 
-## Platform Module Map
+- the intended platform direction
+- the sequence of major capability phases
+- the dependency relationship between those phases
+- the decomposition rule for future design and planning work
 
-| Phase | Modules | Status |
-|-------|---------|--------|
-| 0 | User / Role / Permission / Audit | ✅ Done |
-| 0.5 | Audit Log Upgrade | **Next delivery** |
-| 1 | Cloud Account + Unified Asset Registry | Planning |
-| 2 | DevOps Layer | Future |
-| 3 | FinOps Layer | Future |
-| 4 | Automation Layer | Future |
+It does not define implementation details such as data models, API contracts, storage layout, provider adapters, scheduling strategies, or package structure. Those decisions belong in later stage-specific specs.
 
----
+It is also not the place to define frontend UX, billing integration behavior, or provider-specific implementation choices.
 
-## Phase 0.5 — Audit Log Upgrade
+## Current Baseline
 
-### Motivation
+The current repository is still centered on the `system` domain and foundational platform governance capabilities. The active focus is on stabilizing:
 
-The current `system_audit_logs` table is write-only with no query or export capabilities. As the platform grows to cover cloud accounts and cost data, the audit trail becomes a compliance requirement — not just a debug tool.
+- identity, authentication, authorization, and audit behavior
+- module composition and service boundary cleanup
+- the backend shell needed to support later platform expansion
 
-### Data Model Changes
+At this stage, `Optimus` should not be described as already having a cloud control-plane core. Cloud account onboarding, unified asset management, DevOps execution, FinOps analysis, and automation remain future platform phases rather than established codebase capabilities.
 
-**Existing columns kept as-is:** `id`, `user_id`, `action`, `resource_type`, `resource_id`, `detail`, `ip`, `user_agent`, `created_at`
+## Platform Direction
 
-**New column:**
-- `actor_username VARCHAR(64)` — snapshot of the username at write time; retained even after the user is deleted or renamed
+`Optimus` is intended to evolve into a unified operations platform that connects governance, infrastructure visibility, execution, and cost management in one system.
 
-**New indexes:**
-- `(result, created_at)` — filter by outcome with time range
-- `(resource_type, created_at)` — filter by resource category with time range
-- `FULLTEXT(detail)` — keyword search inside JSON detail blobs (MySQL InnoDB FULLTEXT)
+The long-term direction is:
 
-**New column (existing schema):**
-- `result VARCHAR(16)` — `"success"` | `"failure"` (already implied; make explicit and indexed)
+1. establish a reliable governance foundation
+2. build a shared cloud resource foundation
+3. expand that foundation into DevOps capabilities
+4. expand that foundation into FinOps capabilities
+5. close the loop with automation and policy-driven operations
 
-### Query API
+The core product idea is that later operational and cost capabilities should not invent separate models of infrastructure state. They should build on a shared platform foundation and a common understanding of managed resources.
 
-`GET /api/v1/system/audit-logs`
+## Roadmap Phases
 
-New query parameters:
+### Phase 0: System Foundation
 
-| Param | Type | Description |
-|-------|------|-------------|
-| `page` | int | 1-based page number (default 1) |
-| `pageSize` | int | Records per page (default 20, max 200) |
-| `actorUserId` | uint | Filter by user ID |
-| `action` | string | Exact action match (e.g. `"login"`) |
-| `resourceType` | string | Exact resource type match |
-| `result` | string | `"success"` or `"failure"` |
-| `startTime` | RFC3339 | Lower bound on `created_at` |
-| `endTime` | RFC3339 | Upper bound on `created_at` |
-| `keyword` | string | FULLTEXT search against `detail` |
+Goal:
+Establish the platform's baseline governance capabilities, including the system domain needed to manage users, roles, permissions, authentication, and auditability.
 
-Response shape:
-```json
-{
-  "items": [...],
-  "total": 1234,
-  "page": 1,
-  "pageSize": 20
-}
-```
+Why it comes first:
+Every later platform capability depends on a stable identity, access, and traceability model.
 
-### Export API
+Non-goal:
+This phase is not where cloud management, deployment orchestration, or cost analysis begins.
 
-`GET /api/v1/system/audit-logs/export`
+### Phase 0.5: Audit and Governance Hardening
 
-- Same filter params as query API (no pagination)
-- Returns `text/csv` with `Content-Disposition: attachment; filename="audit-logs.csv"`
-- Columns: `id`, `actor_username`, `action`, `resource_type`, `resource_id`, `result`, `ip`, `created_at`, `detail`
-- Capped at 10,000 rows per export to prevent memory exhaustion
+Goal:
+Strengthen audit and governance capabilities so the platform can support higher-risk operational workflows with adequate traceability and control.
 
-### Retention Policy
+Why it comes next:
+Before the platform starts managing cloud credentials, resources, or automated actions, it needs stronger governance maturity than a basic write-only audit trail.
 
-- New config field: `system.audit_log_retention_days` (default `90`)
-- A background goroutine (started in `SystemModule`) runs once per day at 02:00 local time and deletes records older than the retention window
-- The deletion is batched (1,000 rows per batch) to avoid long-held locks
+Role in the roadmap:
+This phase is a hardening step between foundational system capabilities and broader platform expansion.
 
-### Backend Implementation
+### Phase 1: Cloud Resource Foundation
 
-**`service/system/usecase/audit.go`** — add:
-```go
-type AuditFilter struct {
-    ActorUserID  *uint
-    Action       *string
-    ResourceType *string
-    Result       *string
-    StartTime    *time.Time
-    EndTime      *time.Time
-    Keyword      *string
-    Page         int
-    PageSize     int
-}
+Goal:
+Introduce the shared cloud resource foundation that future platform capabilities will depend on.
 
-type AuditPage struct {
-    Items    []AuditLogEntry
-    Total    int64
-    Page     int
-    PageSize int
-}
+What this phase establishes:
 
-type AuditLogEntry struct { /* mirrors table columns + ActorUsername */ }
-```
+- a way to connect the platform to external cloud environments
+- a consistent internal view of managed cloud resources
+- a common base for later operational and financial capabilities
 
-`AuditService.QueryLogs(ctx, AuditFilter) (AuditPage, error)`
-`AuditService.ExportLogs(ctx, AuditFilter) ([]AuditLogEntry, error)`
+Why it comes before DevOps and FinOps:
+Both DevOps and FinOps need a stable object model for the infrastructure they operate on or analyze. Without that shared foundation, each future capability would drift toward its own incompatible representation of cloud resources.
 
-**`service/system/infra/persistence/audit_store_gorm.go`** — refactor:
-- `QueryLogs` builds a dynamic GORM query from `AuditFilter`
-- FULLTEXT search uses raw `MATCH(detail) AGAINST(? IN BOOLEAN MODE)`
-- `ExportLogs` applies same filters, `LIMIT 10000`, no pagination
+### Phase 2: DevOps Enablement
 
-**`api/v1/system/audit.go`** — add:
-- `AuditHandler.QueryLogs` — parse query params, call service, return `AuditPage`
-- `AuditHandler.ExportLogs` — parse same params, stream CSV via `encoding/csv`
+Goal:
+Build operational capabilities on top of the shared resource foundation so managed infrastructure can be acted on, not just observed.
 
----
+Role in the roadmap:
+This phase extends the platform from governance and visibility into controlled operational execution.
 
-## Phase 1 — Cloud Account + Unified Asset Registry
+Dependency:
+It depends on the prior existence of a shared resource foundation and governance controls.
 
-### Motivation
+Planning note:
+After Phase 1 is stable, this phase can be planned independently from Phase 3. The roadmap lists them in sequence for communication clarity, not because one must be fully implemented before the other can be designed.
 
-Every subsequent feature (cost analysis, pipeline targets, alerts) references a cloud resource. The Asset Registry is the single source of truth for what resources exist, which cloud account owns them, and their current state. Building this foundation first prevents each feature from inventing its own resource model.
+### Phase 3: FinOps Enablement
 
-### Cloud Account Module
+Goal:
+Build financial governance and cost analysis capabilities on top of the same shared resource foundation.
 
-**Purpose:** Credentials vault and connectivity baseline for each cloud provider account.
+Role in the roadmap:
+This phase extends the platform from infrastructure visibility into cost visibility, allocation, and optimization.
 
-**Data model — `cloud_accounts`:**
-| Column | Type | Notes |
-|--------|------|-------|
-| `id` | uint PK | |
-| `name` | varchar(128) | Human-friendly label |
-| `provider` | varchar(32) | `"aws"`, `"aliyun"`, `"tencent"`, `"azure"` |
-| `account_id` | varchar(64) | Provider-native account/subscription ID |
-| `credential_type` | varchar(32) | `"ak_sk"`, `"role_arn"`, `"service_principal"` |
-| `credential_json` | text | AES-256-GCM encrypted at rest |
-| `status` | varchar(16) | `"active"`, `"disabled"`, `"error"` |
-| `last_synced_at` | datetime | Last successful asset sync |
-| `created_at`, `updated_at` | datetime | |
+Dependency:
+It depends on the same shared foundation used by DevOps capabilities, so cost analysis and infrastructure operations remain aligned to the same resource model.
 
-**API endpoints:**
-- `POST /api/v1/cloud/accounts` — register account
-- `GET /api/v1/cloud/accounts` — list with status
-- `GET /api/v1/cloud/accounts/:id` — detail
-- `PUT /api/v1/cloud/accounts/:id` — update label or rotate credentials
-- `DELETE /api/v1/cloud/accounts/:id` — soft delete
-- `POST /api/v1/cloud/accounts/:id/verify` — test connectivity, return latency + IAM permission check
+Planning note:
+After Phase 1 is stable, this phase can also be planned independently from Phase 2 based on product priority and team capacity.
 
-**Credential security:**
-- Credentials never returned in plaintext via API (masked on read)
-- Encryption key stored in config (`cloud.credential_encryption_key`), separate from JWT signing key
-- Audit logged on every credential write
+### Phase 4: Automation and Policy
 
-### Unified Asset Registry
+Goal:
+Introduce automation and policy-driven workflows that connect governance, infrastructure state, operational actions, and financial controls into a closed loop.
 
-**Purpose:** Normalized, provider-agnostic snapshot of all discovered cloud resources.
+Role in the roadmap:
+This phase turns the platform from a collection of managed capabilities into a system that can enforce intent and reduce manual operational overhead.
 
-**Data model — `cloud_assets`:**
-| Column | Type | Notes |
-|--------|------|-------|
-| `id` | uint PK | |
-| `account_id` | uint FK → cloud_accounts | |
-| `provider` | varchar(32) | Denormalized for query efficiency |
-| `region` | varchar(64) | |
-| `resource_type` | varchar(64) | `"ec2_instance"`, `"ecs_instance"`, `"rds_mysql"`, … |
-| `resource_id` | varchar(128) | Provider-native resource ID |
-| `name` | varchar(256) | Display name / tag |
-| `status` | varchar(32) | Provider-native status |
-| `config_json` | text (JSON) | Provider-specific attributes |
-| `tags_json` | text (JSON) | Key-value tags |
-| `discovered_at` | datetime | First seen |
-| `last_seen_at` | datetime | Last sync confirmed existence |
-| `deleted_at` | datetime | Soft delete — resource no longer exists |
+Dependency:
+This phase should build on stable foundations from the earlier phases rather than define them itself.
 
-**Indexes:** `(account_id, resource_type)`, `(provider, region, resource_type)`, `(resource_id)` unique per account.
+## Decomposition Principle
 
-**Sync architecture:**
-- `AssetSyncer` interface: `Sync(ctx, account CloudAccount) ([]RawAsset, error)`
-- One implementation per provider (`AWSAssetSyncer`, `AliyunAssetSyncer`, …)
-- `AssetRegistryService.SyncAccount(ctx, accountID)` orchestrates: fetch → normalize → upsert
-- Sync triggered manually (`POST /api/v1/cloud/accounts/:id/sync`) and on a configurable cron schedule
+This roadmap is intentionally high level.
 
-**Query API — `GET /api/v1/cloud/assets`:**
+When a phase becomes ready for execution, it must be broken into one or more dedicated design specs and implementation plans that reflect the codebase reality at that time.
 
-| Param | Description |
-|-------|-------------|
-| `accountId` | Filter by account |
-| `provider` | Filter by provider |
-| `region` | Filter by region |
-| `resourceType` | Filter by resource type |
-| `status` | Filter by status |
-| `keyword` | Name/tag search |
-| `page`, `pageSize` | Pagination |
+The next artifact after this roadmap should always be a scoped phase design spec, not a repo-wide implementation plan.
 
----
+Rules for decomposition:
 
-## Architecture Decisions
+- the roadmap does not serve as a build-ready design
+- each implementation phase must have its own scoped spec
+- each scoped spec must be validated against the then-current repository structure
+- detailed technical choices must be made in those scoped specs, not backfilled into this roadmap
 
-1. **Asset Registry before FinOps / DevOps**: Cost data and pipeline targets are both views over assets. A shared registry prevents divergent resource models in each feature.
+This rule prevents the roadmap from being misread as a frozen implementation decision record.
 
-2. **Provider adapters behind interfaces**: `AssetSyncer`, `CostFetcher` (Phase 3), `PipelineRunner` (Phase 2) are interfaces. Provider implementations live in `infra/cloud/<provider>/`. New providers don't touch usecase code.
+## Status Snapshot
 
-3. **Credential encryption at rest**: AES-256-GCM, key in config. Not in the database, not in JWT signing secrets. Rotation requires re-encrypting the `credential_json` column — acceptable for Phase 1.
+Current focus:
 
-4. **Soft deletes for assets**: Resources that disappear from a sync are marked `deleted_at`, not hard-deleted. Historical cost data in Phase 3 will reference these records.
+- system-domain stabilization
+- governance and audit hardening
+- boundary cleanup in the backend architecture
 
-5. **Audit log as compliance foundation**: Phase 0.5 is done before Phase 1 because cloud credential operations (rotate, delete) must be audit-logged with full filter/export capability before those credentials exist.
+Next likely platform focus:
+
+- cloud resource foundation
+
+Later platform directions:
+
+- DevOps enablement
+- FinOps enablement
+- automation and policy
