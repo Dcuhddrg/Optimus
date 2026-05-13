@@ -2,75 +2,142 @@
 
 ## Scope
 
-- `server/` 下的 Go 后端骨架
-- `web/` 下的 React + TypeScript + Vite 前端壳子
+- `server/` 下的 Go 后端，已实现完整的系统管理域（鉴权、用户、角色、权限、审计日志）
+- `web/` 下的 React + TypeScript + Vite 前端，已实现对应系统管理页面
 - `deploy/docker-compose/` 下的容器化部署编排
-- 当前阶段目标是可运行、可验证、可扩展的基础骨架，不是完整业务系统
+
+---
 
 ## Repository Layout
 
-- `server/`：当前主要实现目录与默认工作面
-- `server/config`：配置结构与默认配置文件
-- `server/core`：配置加载、日志初始化、HTTP 服务启动、启动输出
-- `server/global`：进程级共享对象
-- `server/initialize`：基础设施与路由装配
-- `server/router`：路由聚合与注册
-- `server/api/v1/system`：系统相关 HTTP handlers
-- `server/service/system`：系统相关业务响应封装
-- `server/middleware`：日志、恢复、JWT/Casbin 占位中间件
-- `server/model/common`：公共响应模型
-- `server/utils`：轻量响应工具与 claims
-- `docs/superpowers`：设计与实施计划文档
-- `.codex`：Codex 本地规则文件（引用 `.claude/project_rules.md`）
-- `.claude`：Claude Code 项目规则与设置
+```
+server/
+├── api/v1/system/       # system 模块 HTTP handlers
+├── config/              # 配置结构（System、JWT、MySQL、Redis、Casbin、Zap）
+├── core/                # 配置加载、日志初始化、HTTP 服务启动
+├── global/              # 进程级共享对象（DB、Config、Logger、Casbin）
+├── initialize/          # 基础设施与路由装配
+│   ├── system_module.go # SystemModule 组装（handlers + capabilities）
+│   ├── audit_retention.go # 审计日志定时清理 worker
+│   └── startup.go       # DB 迁移、seed、worker 启动
+├── middleware/          # JWT、Casbin RBAC、日志、恢复中间件
+├── model/system/        # GORM 模型（SystemUser、SystemAuditLog 等）
+├── router/system/       # system 路由注册（public / private 分组）
+├── service/system/
+│   ├── usecase/         # 业务逻辑层：接口定义 + service 实现
+│   │   ├── auth.go      # AuthService（本地登录 + LDAP）
+│   │   ├── user.go      # UserService
+│   │   ├── role.go      # RoleService
+│   │   ├── audit.go     # AuditService（QueryLogs / ExportLogs / PurgeBefore）
+│   │   ├── ldap.go      # LDAPService
+│   │   └── rbac.go      # RBACService
+│   └── infra/
+│       ├── persistence/ # GORM 实现各 Store 接口
+│       ├── directory/   # LDAP 客户端适配器
+│       └── identity/    # JWT 签发 / 验证适配器
+└── utils/               # 轻量工具（claims、响应封装）
 
-## Frontend Architecture
+web/
+├── src/
+│   ├── api/             # 后端接口调用封装
+│   ├── auth/            # AuthContext、RequireAuth 守卫
+│   ├── components/      # 通用组件（导航、页头、空态、语言切换）
+│   ├── layout/          # AppShell（侧边栏 + 内容区布局）
+│   ├── locale/          # i18n（中/英双语）
+│   ├── router/          # React Router 路由定义
+│   ├── types/           # TypeScript 类型定义
+│   └── view/
+│       ├── auth/        # 登录页
+│       ├── dashboard/   # 仪表盘（占位）
+│       └── system/      # 用户管理、角色管理、LDAP 配置、审计日志
+```
 
-- `web/` 下 React + TypeScript + Vite 项目
-- AppShell 布局含侧边栏与内容区
-- 一级导航：Dashboard、System
-- Dashboard 为空态页
-- System > LDAP 为静态展示页
-- 目录结构：view/ layout/ router/ components/ style/
-
-## Deployment
-
-- `deploy/docker-compose/` 下三服务编排（frontend + backend + mysql）
-- 前端通过 nginx 反向代理 `/api` 到后端
-- Caddy HTTPS 代理方案已设计（optimus.intellivis.cn）
+---
 
 ## Backend Architecture
 
-- `main`：唯一程序入口，只负责初始化系统并启动服务
-- `core`：运行时核心能力，包括配置、日志、HTTP 服务启动
-- `initialize`：负责把配置、依赖和路由接起来
-- `router`：只负责路由分组与挂载
-- `api`：处理 HTTP 请求与响应输出
-- `service`：承载当前最小业务逻辑与响应数据组织
-- `model/common`：放共享响应模型
-- `utils`：放轻量工具，不承担大型业务逻辑
-- `global`：放配置、日志、数据库、Redis、Casbin 等共享实例
+分层流向：
 
-当前默认分层流向为：
+```
+main → initialize → router → api/handlers → usecase/service → infra/persistence
+```
 
-`main -> initialize/core -> router -> api -> service`
+**关键分层原则：**
 
-## Runtime Flow
+- `usecase/` 只依赖标准库，定义接口（`AuthStore`、`AuditStore` 等），不感知数据库或框架
+- `infra/persistence/` 实现 Store 接口，持有 `*gorm.DB`
+- `infra/directory/` 实现 LDAP 客户端接口
+- `infra/identity/` 实现 JWT 签发 / 验证
+- `initialize/system_module.go` 负责依赖注入：把 GORM 实现传入 usecase，再传入 handlers
 
-当前运行时流程如下：
+**新模块目录约定（新模块参照此结构）：**
 
-1. `core.Viper()` 读取配置
-2. 使用 `server/config.yaml` 作为默认配置文件
-3. 通过 `OPTIMUS_` 前缀环境变量覆盖配置项
-4. `initialize.OtherInit()` 完成基础环境准备
-5. `core.Zap()` 初始化日志
-6. `initialize.Routers()` 构建 Gin 路由
-7. `core.RunServer(...)` 启动 HTTP 服务
+```
+service/<module>/
+├── usecase/         # 接口 + 业务逻辑，可纯单元测试
+└── infra/
+    ├── persistence/ # GORM Store 实现
+    └── provider/    # 外部 SDK 适配器（如云厂商同步器）
 
-可选依赖：
+api/v1/<module>/     # HTTP handlers
+router/<module>/     # 路由注册
+initialize/<module>/ # 模块组装（Module struct）
+```
 
-- Redis 启动时可选
-- Casbin 启动时可选
+---
+
+## API Endpoints
+
+**公开（无鉴权）：**
+
+| Method | Path | 说明 |
+|--------|------|------|
+| GET | `/api/v1/health` | 健康检查 |
+| GET | `/api/v1/ping` | ping |
+| GET | `/api/v1/base/ping` | ping（别名） |
+| POST | `/api/v1/system/auth/login` | 登录（本地 / LDAP） |
+
+**私有（JWT + Casbin RBAC）：**
+
+| Method | Path | 说明 |
+|--------|------|------|
+| GET | `/api/v1/system/auth/me` | 当前用户信息 |
+| POST | `/api/v1/system/auth/logout` | 登出 |
+| GET | `/api/v1/system/users` | 用户列表 |
+| PUT | `/api/v1/system/users/:id` | 更新用户 |
+| PATCH | `/api/v1/system/users/:id/status` | 更新用户状态 |
+| PUT | `/api/v1/system/users/:id/roles` | 更新用户角色 |
+| GET | `/api/v1/system/roles` | 角色列表 |
+| POST | `/api/v1/system/roles` | 创建角色 |
+| PUT | `/api/v1/system/roles/:id` | 更新角色 |
+| PATCH | `/api/v1/system/roles/:id/status` | 更新角色状态 |
+| PUT | `/api/v1/system/roles/:id/permissions` | 更新角色权限 |
+| GET | `/api/v1/system/permissions/tree` | 权限树 |
+| GET | `/api/v1/system/ldap/config` | LDAP 配置 |
+| PUT | `/api/v1/system/ldap/config` | 更新 LDAP 配置 |
+| POST | `/api/v1/system/ldap/test` | 测试 LDAP 连接 |
+| GET | `/api/v1/system/audit-logs` | 审计日志查询（分页 + 多维过滤） |
+| GET | `/api/v1/system/audit-logs/export` | 审计日志 CSV 导出 |
+
+---
+
+## Frontend Architecture
+
+- React 18 + TypeScript + Vite，包管理器为 **pnpm**
+- 路由守卫：未登录重定向到 `/login`，无权限跳转 403 页
+- i18n：中 / 英双语，`LanguageProvider` + `useI18n`
+- 一级导航：Dashboard、System
+- System 子页面：用户管理、角色管理、LDAP 配置、审计日志
+
+---
+
+## Deployment
+
+- `deploy/docker-compose/` 三服务编排（frontend + backend + mysql）
+- 前端 nginx 反向代理 `/api` 到后端
+- Caddy HTTPS 代理方案已设计（`optimus.intellivis.cn`）
+
+---
 
 ## Tech Stack
 
@@ -79,36 +146,49 @@
 | 语言 | Go 1.23 |
 | HTTP 框架 | Gin 1.10 |
 | ORM | GORM 1.25 |
-| 数据库目标 | MySQL |
+| 数据库 | MySQL |
 | 配置 | Viper 1.19 |
 | 日志 | Zap 1.27 |
 | Redis 客户端 | go-redis/v9 |
 | 权限 | Casbin v2 |
-| JWT | github.com/golang-jwt/jwt/v5 |
+| JWT | golang-jwt/jwt v5 |
 | 测试 | Go test + testify |
+| 前端 | React 18 + TypeScript + Vite |
+| 前端包管理 | pnpm |
 
-## Public Endpoints & Verification
+---
 
-当前公开接口：
+## Verification Commands
 
-- `GET /api/v1/health`
-- `GET /api/v1/ping`
-- `GET /api/v1/base/ping`
+```bash
+# 后端
+cd server && go test ./...
+cd server && go build ./...
+cd server && go run .
 
-常用验证命令：
+# 前端
+cd web && pnpm build
+cd web && pnpm dev   # 开发模式
+```
 
-- `cd server && go test ./...`
-- `cd server && go build ./...`
-- `cd server && go run .`
-- `cd server && OPTIMUS_SYSTEM_ADDR=18089 go run .`
+---
 
-## Non-goals
+## Platform Roadmap
 
-当前尚未实现，也不应被误判为已存在的内容：
+已完成阶段：
 
-- 完整登录鉴权体系
-- 用户、角色、菜单等完整系统域
-- Swagger
-- 代码生成器
-- 完整后台联动能力
-- 成熟前端应用结构（当前仅为最小壳子）
+| 阶段 | 内容 | 状态 |
+|------|------|------|
+| Phase 0 | User / Role / Permission / Audit | ✅ 完成 |
+| Phase 0.5 | Audit Log Upgrade（查询/导出/保留策略） | ✅ 完成 |
+
+规划中阶段：
+
+| 阶段 | 内容 |
+|------|------|
+| Phase 1 | Cloud Account + Unified Asset Registry |
+| Phase 2 | DevOps Layer |
+| Phase 3 | FinOps Layer |
+| Phase 4 | Automation Layer |
+
+详见 `docs/superpowers/specs/2026-05-12-finops-devops-platform-roadmap-design.md`。

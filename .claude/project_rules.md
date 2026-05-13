@@ -74,18 +74,18 @@
 
 前端代码改动默认验证基线：
 
-- `cd web && npm run build`
+- `cd web && pnpm build`
 
 如存在以下情况，再先做条件性环境准备：
 
 - 依赖缺失
 - lockfile 或依赖状态发生变化
 - 本地环境不完整
-- 此时可执行 `cd web && npm install`
+- 此时可执行 `cd web && pnpm install`
 
 如果任务涉及前端运行效果，再追加：
 
-- `cd web && npm run dev`
+- `cd web && pnpm dev`
 - 确认 dev server 可访问
 
 如果任务涉及启动、路由或接口行为，再追加：
