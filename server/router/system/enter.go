@@ -33,5 +33,6 @@ func (r *RouterGroup) InitSystemRouter(publicGroup *gin.RouterGroup, privateGrou
 	privateGroup.GET("/system/ldap/config", handlers.LDAP.LDAPConfig)
 	privateGroup.PUT("/system/ldap/config", handlers.LDAP.UpdateLDAPConfig)
 	privateGroup.POST("/system/ldap/test", handlers.LDAP.TestLDAPConfig)
-	privateGroup.GET("/system/audit-logs", handlers.Audit.AuditLogs)
+	privateGroup.GET("/system/audit-logs", handlers.Audit.QueryAuditLogs)
+	privateGroup.GET("/system/audit-logs/export", handlers.Audit.ExportAuditLogs)
 }
