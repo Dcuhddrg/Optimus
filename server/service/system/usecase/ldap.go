@@ -121,21 +121,21 @@ func (s *LDAPService) SaveConfig(ctx context.Context, actorID uint, req LDAPConf
 	if err != nil {
 		return LDAPConfigResult{}, err
 	}
-	_ = s.store.WriteAudit(ctx, AuditEvent{ActorUserID: actorID, Action: "ldap.config.update", ResourceType: "ldap", Result: "success", IP: meta.IP, UserAgent: meta.UserAgent})
+	_ = s.store.WriteAudit(ctx, AuditEvent{ActorUserID: actorID, ActorUsername: meta.ActorUsername, Action: "ldap.config.update", ResourceType: "ldap", Result: "success", IP: meta.IP, UserAgent: meta.UserAgent})
 	return ldapConfigResult(saved), nil
 }
 
 func (s *LDAPService) TestConfig(ctx context.Context, actorID uint, req LDAPTestRequest, meta AuditMeta) (LDAPTestResult, error) {
 	cfg, err := s.connectionConfig(ctx, req)
 	if err != nil {
-		_ = s.store.WriteAudit(ctx, AuditEvent{ActorUserID: actorID, Action: "ldap.test.failure", ResourceType: "ldap", Result: "failure", IP: meta.IP, UserAgent: meta.UserAgent, Detail: err.Error()})
+		_ = s.store.WriteAudit(ctx, AuditEvent{ActorUserID: actorID, ActorUsername: meta.ActorUsername, Action: "ldap.test.failure", ResourceType: "ldap", Result: "failure", IP: meta.IP, UserAgent: meta.UserAgent, Detail: err.Error()})
 		return LDAPTestResult{}, err
 	}
 	if err := s.client.Test(ctx, cfg); err != nil {
-		_ = s.store.WriteAudit(ctx, AuditEvent{ActorUserID: actorID, Action: "ldap.test.failure", ResourceType: "ldap", Result: "failure", IP: meta.IP, UserAgent: meta.UserAgent, Detail: err.Error()})
+		_ = s.store.WriteAudit(ctx, AuditEvent{ActorUserID: actorID, ActorUsername: meta.ActorUsername, Action: "ldap.test.failure", ResourceType: "ldap", Result: "failure", IP: meta.IP, UserAgent: meta.UserAgent, Detail: err.Error()})
 		return LDAPTestResult{}, err
 	}
-	_ = s.store.WriteAudit(ctx, AuditEvent{ActorUserID: actorID, Action: "ldap.test.success", ResourceType: "ldap", Result: "success", IP: meta.IP, UserAgent: meta.UserAgent})
+	_ = s.store.WriteAudit(ctx, AuditEvent{ActorUserID: actorID, ActorUsername: meta.ActorUsername, Action: "ldap.test.success", ResourceType: "ldap", Result: "success", IP: meta.IP, UserAgent: meta.UserAgent})
 	return LDAPTestResult{Success: true, Message: "LDAP connection test passed"}, nil
 }
 

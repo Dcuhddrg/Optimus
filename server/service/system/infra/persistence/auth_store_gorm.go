@@ -119,14 +119,15 @@ func (s *GormAuthStore) UpdateLastLogin(ctx context.Context, userID uint, at tim
 
 func (s *GormAuthStore) WriteAudit(ctx context.Context, event usecase.AuditEvent) error {
 	log := systemModel.SystemAuditLog{
-		ActorUserID:  event.ActorUserID,
-		Action:       event.Action,
-		ResourceType: event.ResourceType,
-		ResourceID:   event.ResourceID,
-		Result:       event.Result,
-		IP:           event.IP,
-		UserAgent:    event.UserAgent,
-		Detail:       event.Detail,
+		ActorUserID:   event.ActorUserID,
+		ActorUsername: event.ActorUsername,
+		Action:        event.Action,
+		ResourceType:  event.ResourceType,
+		ResourceID:    event.ResourceID,
+		Result:        event.Result,
+		IP:            event.IP,
+		UserAgent:     event.UserAgent,
+		Detail:        event.Detail,
 	}
 	return s.db.WithContext(ctx).Create(&log).Error
 }

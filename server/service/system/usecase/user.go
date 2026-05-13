@@ -80,7 +80,7 @@ func (s *UserService) UpdateUser(ctx context.Context, actorID uint, userID uint,
 	if err != nil {
 		return SystemUserSummary{}, err
 	}
-	_ = s.store.WriteAudit(ctx, AuditEvent{ActorUserID: actorID, Action: "user.update", ResourceType: "user", ResourceID: resourceID(userID), Result: "success", IP: meta.IP, UserAgent: meta.UserAgent})
+	_ = s.store.WriteAudit(ctx, AuditEvent{ActorUserID: actorID, ActorUsername: meta.ActorUsername, Action: "user.update", ResourceType: "user", ResourceID: resourceID(userID), Result: "success", IP: meta.IP, UserAgent: meta.UserAgent})
 	return summarizeUser(updated), nil
 }
 
@@ -102,7 +102,7 @@ func (s *UserService) UpdateUserStatus(ctx context.Context, actorID uint, userID
 	if err != nil {
 		return SystemUserSummary{}, err
 	}
-	_ = s.store.WriteAudit(ctx, AuditEvent{ActorUserID: actorID, Action: "user.status.update", ResourceType: "user", ResourceID: resourceID(userID), Result: "success", IP: meta.IP, UserAgent: meta.UserAgent})
+	_ = s.store.WriteAudit(ctx, AuditEvent{ActorUserID: actorID, ActorUsername: meta.ActorUsername, Action: "user.status.update", ResourceType: "user", ResourceID: resourceID(userID), Result: "success", IP: meta.IP, UserAgent: meta.UserAgent})
 	return summarizeUser(updated), nil
 }
 
@@ -117,6 +117,6 @@ func (s *UserService) UpdateUserRoles(ctx context.Context, actorID uint, userID 
 	if err := s.store.ReplaceUserRoles(ctx, userID, roleIDs); err != nil {
 		return err
 	}
-	_ = s.store.WriteAudit(ctx, AuditEvent{ActorUserID: actorID, Action: "user.roles.update", ResourceType: "user", ResourceID: resourceID(userID), Result: "success", IP: meta.IP, UserAgent: meta.UserAgent})
+	_ = s.store.WriteAudit(ctx, AuditEvent{ActorUserID: actorID, ActorUsername: meta.ActorUsername, Action: "user.roles.update", ResourceType: "user", ResourceID: resourceID(userID), Result: "success", IP: meta.IP, UserAgent: meta.UserAgent})
 	return nil
 }

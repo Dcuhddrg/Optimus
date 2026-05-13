@@ -56,7 +56,7 @@ func (s *RoleService) CreateRole(ctx context.Context, actorID uint, req RoleRequ
 	if err != nil {
 		return systemModel.SystemRole{}, err
 	}
-	_ = s.store.WriteAudit(ctx, AuditEvent{ActorUserID: actorID, Action: "role.create", ResourceType: "role", ResourceID: resourceID(created.ID), Result: "success", IP: meta.IP, UserAgent: meta.UserAgent})
+	_ = s.store.WriteAudit(ctx, AuditEvent{ActorUserID: actorID, ActorUsername: meta.ActorUsername, Action: "role.create", ResourceType: "role", ResourceID: resourceID(created.ID), Result: "success", IP: meta.IP, UserAgent: meta.UserAgent})
 	return created, nil
 }
 
@@ -77,7 +77,7 @@ func (s *RoleService) UpdateRole(ctx context.Context, actorID uint, roleID uint,
 	if err != nil {
 		return systemModel.SystemRole{}, err
 	}
-	_ = s.store.WriteAudit(ctx, AuditEvent{ActorUserID: actorID, Action: "role.update", ResourceType: "role", ResourceID: resourceID(roleID), Result: "success", IP: meta.IP, UserAgent: meta.UserAgent})
+	_ = s.store.WriteAudit(ctx, AuditEvent{ActorUserID: actorID, ActorUsername: meta.ActorUsername, Action: "role.update", ResourceType: "role", ResourceID: resourceID(roleID), Result: "success", IP: meta.IP, UserAgent: meta.UserAgent})
 	return updated, nil
 }
 
@@ -94,7 +94,7 @@ func (s *RoleService) UpdateRoleStatus(ctx context.Context, actorID uint, roleID
 	if err != nil {
 		return systemModel.SystemRole{}, err
 	}
-	_ = s.store.WriteAudit(ctx, AuditEvent{ActorUserID: actorID, Action: "role.status.update", ResourceType: "role", ResourceID: resourceID(roleID), Result: "success", IP: meta.IP, UserAgent: meta.UserAgent})
+	_ = s.store.WriteAudit(ctx, AuditEvent{ActorUserID: actorID, ActorUsername: meta.ActorUsername, Action: "role.status.update", ResourceType: "role", ResourceID: resourceID(roleID), Result: "success", IP: meta.IP, UserAgent: meta.UserAgent})
 	return updated, nil
 }
 
@@ -117,7 +117,7 @@ func (s *RoleService) UpdateRolePermissions(ctx context.Context, actorID uint, r
 	if err := s.store.ReplaceRolePermissions(ctx, roleID, permissionIDs); err != nil {
 		return err
 	}
-	_ = s.store.WriteAudit(ctx, AuditEvent{ActorUserID: actorID, Action: "role.permissions.update", ResourceType: "role", ResourceID: resourceID(roleID), Result: "success", IP: meta.IP, UserAgent: meta.UserAgent})
+	_ = s.store.WriteAudit(ctx, AuditEvent{ActorUserID: actorID, ActorUsername: meta.ActorUsername, Action: "role.permissions.update", ResourceType: "role", ResourceID: resourceID(roleID), Result: "success", IP: meta.IP, UserAgent: meta.UserAgent})
 	return nil
 }
 

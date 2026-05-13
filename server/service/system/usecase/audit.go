@@ -7,19 +7,21 @@ import (
 )
 
 type AuditMeta struct {
-	IP        string
-	UserAgent string
+	IP            string
+	UserAgent     string
+	ActorUsername string
 }
 
 type AuditEvent struct {
-	ActorUserID  uint
-	Action       string
-	ResourceType string
-	ResourceID   string
-	Result       string
-	IP           string
-	UserAgent    string
-	Detail       string
+	ActorUserID   uint
+	ActorUsername string
+	Action        string
+	ResourceType  string
+	ResourceID    string
+	Result        string
+	IP            string
+	UserAgent     string
+	Detail        string
 }
 
 type AuditLogListResult struct {

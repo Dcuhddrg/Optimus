@@ -93,16 +93,17 @@ func (SystemLDAPConfig) TableName() string {
 }
 
 type SystemAuditLog struct {
-	ID           uint      `gorm:"primaryKey" json:"id"`
-	ActorUserID  uint      `gorm:"index" json:"actorUserId"`
-	Action       string    `gorm:"size:128;not null;index" json:"action"`
-	ResourceType string    `gorm:"size:128;index" json:"resourceType"`
-	ResourceID   string    `gorm:"size:128;index" json:"resourceId"`
-	Result       string    `gorm:"size:32;not null;index" json:"result"`
-	IP           string    `gorm:"size:64" json:"ip"`
-	UserAgent    string    `gorm:"size:255" json:"userAgent"`
-	Detail       string    `gorm:"type:text" json:"detail"`
-	CreatedAt    time.Time `json:"createdAt"`
+	ID            uint      `gorm:"primaryKey" json:"id"`
+	ActorUserID   uint      `gorm:"index" json:"actorUserId"`
+	ActorUsername string    `gorm:"size:64" json:"actorUsername"`
+	Action        string    `gorm:"size:128;not null;index" json:"action"`
+	ResourceType  string    `gorm:"size:128;index" json:"resourceType"`
+	ResourceID    string    `gorm:"size:128;index" json:"resourceId"`
+	Result        string    `gorm:"size:32;not null;index" json:"result"`
+	IP            string    `gorm:"size:64" json:"ip"`
+	UserAgent     string    `gorm:"size:255" json:"userAgent"`
+	Detail        string    `gorm:"type:text" json:"detail"`
+	CreatedAt     time.Time `json:"createdAt"`
 }
 
 func (SystemAuditLog) TableName() string {

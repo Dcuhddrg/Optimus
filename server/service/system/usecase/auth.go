@@ -97,7 +97,7 @@ func (s *AuthService) Login(ctx context.Context, req LoginRequest, meta AuditMet
 	}
 
 	if user.Status != defaultUserStatus {
-		s.writeAudit(ctx, AuditEvent{ActorUserID: user.ID, Action: "auth.login.failure", Result: "failure", IP: meta.IP, UserAgent: meta.UserAgent, Detail: "user disabled"})
+		s.writeAudit(ctx, AuditEvent{ActorUserID: user.ID, ActorUsername: user.Username, Action: "auth.login.failure", Result: "failure", IP: meta.IP, UserAgent: meta.UserAgent, Detail: "user disabled"})
 		return LoginResult{}, ErrUserDisabled
 	}
 
@@ -105,7 +105,7 @@ func (s *AuthService) Login(ctx context.Context, req LoginRequest, meta AuditMet
 		if user.Username != defaultAdminUsername {
 			return s.loginLDAP(ctx, req, meta)
 		}
-		s.writeAudit(ctx, AuditEvent{ActorUserID: user.ID, Action: "auth.login.failure", Result: "failure", IP: meta.IP, UserAgent: meta.UserAgent, Detail: "invalid credentials"})
+		s.writeAudit(ctx, AuditEvent{ActorUserID: user.ID, ActorUsername: user.Username, Action: "auth.login.failure", Result: "failure", IP: meta.IP, UserAgent: meta.UserAgent, Detail: "invalid credentials"})
 		return LoginResult{}, ErrInvalidCredentials
 	}
 
@@ -132,7 +132,7 @@ func (s *AuthService) loginLDAP(ctx context.Context, req LoginRequest, meta Audi
 		return LoginResult{}, err
 	}
 	if user.Status != defaultUserStatus {
-		s.writeAudit(ctx, AuditEvent{ActorUserID: user.ID, Action: "auth.login.failure", Result: "failure", IP: meta.IP, UserAgent: meta.UserAgent, Detail: "user disabled"})
+		s.writeAudit(ctx, AuditEvent{ActorUserID: user.ID, ActorUsername: user.Username, Action: "auth.login.failure", Result: "failure", IP: meta.IP, UserAgent: meta.UserAgent, Detail: "user disabled"})
 		return LoginResult{}, ErrUserDisabled
 	}
 	return s.issueLoginResult(ctx, user, meta)
@@ -162,7 +162,7 @@ func (s *AuthService) issueLoginResult(ctx context.Context, user systemModel.Sys
 	}
 
 	_ = s.store.UpdateLastLogin(ctx, user.ID, now)
-	s.writeAudit(ctx, AuditEvent{ActorUserID: user.ID, Action: "auth.login.success", Result: "success", IP: meta.IP, UserAgent: meta.UserAgent})
+	s.writeAudit(ctx, AuditEvent{ActorUserID: user.ID, ActorUsername: user.Username, Action: "auth.login.success", Result: "success", IP: meta.IP, UserAgent: meta.UserAgent})
 
 	return LoginResult{
 		Token:           token,

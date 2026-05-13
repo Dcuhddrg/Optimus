@@ -31,3 +31,20 @@ func TestGormAuditStoreListAuditLogsOrdersNewestFirst(t *testing.T) {
 	require.True(t, items[0].CreatedAt.After(items[1].CreatedAt) || items[0].CreatedAt.Equal(items[1].CreatedAt),
 		"audit logs should be ordered newest first")
 }
+
+func TestGormAuditStoreQueryLogsPreservesActorUsername(t *testing.T) {
+	db := openPersistenceTestDB(t)
+	auth := NewGormAuthStore(db)
+	require.NoError(t, auth.WriteAudit(context.Background(), usecase.AuditEvent{
+		ActorUserID:   42,
+		ActorUsername: "alice",
+		Action:        "login",
+		Result:        "success",
+	}))
+
+	store := NewGormAuditStore(db)
+	items, _, err := store.ListAuditLogs(context.Background())
+	require.NoError(t, err)
+	require.Len(t, items, 1)
+	require.Equal(t, "alice", items[0].ActorUsername)
+}

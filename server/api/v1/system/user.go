@@ -112,7 +112,13 @@ func actorID(c *gin.Context) uint {
 }
 
 func auditMeta(c *gin.Context) systemUsecase.AuditMeta {
-	return systemUsecase.AuditMeta{IP: c.ClientIP(), UserAgent: c.Request.UserAgent()}
+	meta := systemUsecase.AuditMeta{IP: c.ClientIP(), UserAgent: c.Request.UserAgent()}
+	if raw, ok := c.Get(utils.ClaimsContextKey); ok {
+		if cc, ok := raw.(*utils.CustomClaims); ok {
+			meta.ActorUsername = cc.BaseClaims.Username
+		}
+	}
+	return meta
 }
 
 func writeUserServiceResult(c *gin.Context, user systemUsecase.SystemUserSummary, err error) {
