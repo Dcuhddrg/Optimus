@@ -1,7 +1,6 @@
-# FinOps + DevOps Platform Roadmap Design
+# FinOps + DevOps Platform Roadmap
 
-**Date:** 2026-05-12
-**Status:** Approved
+**Last Updated:** 2026-05-12
 
 ## Document Purpose
 
@@ -80,6 +79,9 @@ What this phase establishes:
 Why it comes before DevOps and FinOps:
 Both DevOps and FinOps need a stable object model for the infrastructure they operate on or analyze. Without that shared foundation, each future capability would drift toward its own incompatible representation of cloud resources.
 
+Roadmap-level stability gate:
+For roadmap purposes, Phase 1 is considered stable when cloud connectivity and shared resource visibility are clear enough to support later scoped design work without redefining the platform's core resource foundation.
+
 ### Phase 2: DevOps Enablement
 
 Goal:
@@ -153,3 +155,6 @@ Later platform directions:
 - DevOps enablement
 - FinOps enablement
 - automation and policy
+
+Ordering note:
+After Phase 1 is stable, DevOps and FinOps can be planned in either order based on product priority and delivery capacity.
