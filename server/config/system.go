@@ -8,4 +8,5 @@ type System struct {
 	UseCasbin            bool   `mapstructure:"use-casbin"`
 	RouterPrefix         string `mapstructure:"router-prefix"`
 	AdminInitialPassword string `mapstructure:"admin-initial-password"`
+	AuditLogRetentionDays int   `mapstructure:"audit-log-retention-days"`
 }
