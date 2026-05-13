@@ -76,7 +76,16 @@ func newTestAccountService() (*CloudAccountService, *fakeAccountStore) {
 	for i := range key {
 		key[i] = byte(i + 1)
 	}
-	return NewCloudAccountService(store, key), store
+	svc, err := NewCloudAccountService(store, key)
+	if err != nil {
+		panic(err)
+	}
+	return svc, store
+}
+
+func TestNewCloudAccountServiceRejectsInvalidKey(t *testing.T) {
+	_, err := NewCloudAccountService(&fakeAccountStore{rows: make(map[uint]AccountRow)}, []byte("tooshort"))
+	require.ErrorIs(t, err, ErrInvalidEncryptionKey)
 }
 
 func TestCloudAccountServiceCreateMasksCredential(t *testing.T) {
@@ -117,4 +126,46 @@ func TestCloudAccountServiceDeleteRemovesAccount(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, svc.Delete(context.Background(), 1))
 	require.Empty(t, store.rows)
+}
+
+func TestCloudAccountServiceGetNotFoundReturnsErrAccountNotFound(t *testing.T) {
+	svc, _ := newTestAccountService()
+	_, err := svc.Get(context.Background(), 9999)
+	require.ErrorIs(t, err, ErrAccountNotFound)
+}
+
+func TestCloudAccountServiceUpdateEmptyCredentialIsNoop(t *testing.T) {
+	svc, store := newTestAccountService()
+	_, err := svc.Create(context.Background(), CreateAccountRequest{
+		Name: "prod", Provider: "aliyun", AccountID: "123",
+		CredentialType: "ak_sk",
+		Credential:     map[string]string{"access_key_id": "AK"},
+	})
+	require.NoError(t, err)
+	originalCred := store.rows[1].CredentialJSON
+
+	newName := "renamed"
+	_, err = svc.Update(context.Background(), 1, UpdateAccountRequest{Name: &newName, Credential: map[string]string{}})
+	require.NoError(t, err)
+	// credential must not have changed
+	require.Equal(t, originalCred, store.rows[1].CredentialJSON)
+	require.Equal(t, "renamed", store.rows[1].Name)
+}
+
+func TestCloudAccountServiceListMasksAllCredentials(t *testing.T) {
+	svc, _ := newTestAccountService()
+	for i := 0; i < 3; i++ {
+		_, err := svc.Create(context.Background(), CreateAccountRequest{
+			Name: "acc", Provider: "aliyun", AccountID: "id",
+			CredentialType: "ak_sk",
+			Credential:     map[string]string{"access_key_id": "AK"},
+		})
+		require.NoError(t, err)
+	}
+	views, err := svc.List(context.Background())
+	require.NoError(t, err)
+	require.Len(t, views, 3)
+	for _, v := range views {
+		require.Equal(t, "***", v.Credential)
+	}
 }

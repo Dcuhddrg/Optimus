@@ -64,8 +64,13 @@ type CloudAccountService struct {
 	encKey []byte
 }
 
-func NewCloudAccountService(store AccountStore, encKey []byte) *CloudAccountService {
-	return &CloudAccountService{store: store, encKey: encKey}
+func NewCloudAccountService(store AccountStore, encKey []byte) (*CloudAccountService, error) {
+	if len(encKey) != 32 {
+		return nil, ErrInvalidEncryptionKey
+	}
+	keyCopy := make([]byte, 32)
+	copy(keyCopy, encKey)
+	return &CloudAccountService{store: store, encKey: keyCopy}, nil
 }
 
 func (s *CloudAccountService) Create(ctx context.Context, req CreateAccountRequest) (AccountView, error) {
@@ -84,6 +89,7 @@ func (s *CloudAccountService) Create(ctx context.Context, req CreateAccountReque
 	return toAccountView(row), nil
 }
 
+// Get returns ErrAccountNotFound if no account exists with the given id.
 func (s *CloudAccountService) Get(ctx context.Context, id uint) (AccountView, error) {
 	row, err := s.store.Get(ctx, id)
 	if err != nil {
@@ -106,7 +112,7 @@ func (s *CloudAccountService) List(ctx context.Context) ([]AccountView, error) {
 
 func (s *CloudAccountService) Update(ctx context.Context, id uint, req UpdateAccountRequest) (AccountView, error) {
 	var encCredential *string
-	if req.Credential != nil {
+	if len(req.Credential) > 0 {
 		credJSON, err := json.Marshal(req.Credential)
 		if err != nil {
 			return AccountView{}, err
@@ -144,7 +150,7 @@ func (s *CloudAccountService) GetForSync(ctx context.Context, id uint) (SyncAcco
 		return SyncAccount{}, err
 	}
 	var cred map[string]string
-	if err := json.Unmarshal([]byte(plaintext), &cred); err != nil {
+	if err = json.Unmarshal([]byte(plaintext), &cred); err != nil {
 		return SyncAccount{}, err
 	}
 	return SyncAccount{
