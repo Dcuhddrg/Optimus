@@ -9,12 +9,9 @@ import (
 )
 
 func TestRunRetentionLoopCallsPurgeAfterTick(t *testing.T) {
-	var purgeCalled bool
-	var purgedBefore time.Time
-
+	purged := make(chan time.Time, 1)
 	fakePurger := func(ctx context.Context, before time.Time) error {
-		purgeCalled = true
-		purgedBefore = before
+		purged <- before
 		return nil
 	}
 
@@ -23,11 +20,12 @@ func TestRunRetentionLoopCallsPurgeAfterTick(t *testing.T) {
 
 	go runRetentionLoop(ctx, fakePurger, 30, 0)
 
-	time.Sleep(50 * time.Millisecond)
-	cancel()
-
-	require.True(t, purgeCalled)
-	diff := time.Since(purgedBefore)
-	require.Greater(t, diff, 29*24*time.Hour)
-	require.Less(t, diff, 31*24*time.Hour)
+	select {
+	case before := <-purged:
+		diff := time.Since(before)
+		require.Greater(t, diff, 29*24*time.Hour)
+		require.Less(t, diff, 31*24*time.Hour)
+	case <-time.After(2 * time.Second):
+		t.Fatal("purge was not called within timeout")
+	}
 }

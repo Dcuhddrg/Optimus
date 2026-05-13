@@ -28,7 +28,7 @@ func runRetentionLoop(ctx context.Context, purge func(context.Context, time.Time
 		case <-timer.C:
 			cutoff := time.Now().AddDate(0, 0, -retentionDays)
 			_ = purge(ctx, cutoff)
-			timer.Reset(24 * time.Hour)
+			timer.Reset(nextDailyTick())
 		}
 	}
 }
