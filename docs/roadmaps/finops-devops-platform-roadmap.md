@@ -1,160 +1,160 @@
-# FinOps + DevOps Platform Roadmap
+# FinOps + DevOps 平台路线图
 
-**Last Updated:** 2026-05-12
+**最近更新：** 2026-05-12
 
-## Document Purpose
+## 文档目的
 
-This document is a platform roadmap for `Optimus`, not an implementation spec.
+本文档是 `Optimus` 的平台路线图，不是实施设计说明。
 
-Its purpose is to define:
+它的职责是定义：
 
-- the intended platform direction
-- the sequence of major capability phases
-- the dependency relationship between those phases
-- the decomposition rule for future design and planning work
+- 平台的目标演进方向
+- 主要能力阶段的先后顺序
+- 各阶段之间的依赖关系
+- 后续设计与规划工作的拆分规则
 
-It does not define implementation details such as data models, API contracts, storage layout, provider adapters, scheduling strategies, or package structure. Those decisions belong in later stage-specific specs.
+本文档不定义数据模型、API 契约、存储结构、Provider 适配器、调度策略或包结构等实现细节。这些决策应放在后续各阶段的独立 spec 中。
 
-It is also not the place to define frontend UX, billing integration behavior, or provider-specific implementation choices.
+本文档也不负责定义前端 UX、计费集成行为或特定云厂商实现方案。
 
-## Current Baseline
+## 当前基线
 
-The current repository is still centered on the `system` domain and foundational platform governance capabilities. The active focus is on stabilizing:
+当前仓库仍以 `system` 域和平台治理基础能力为核心，当前重点在于稳定以下内容：
 
-- identity, authentication, authorization, and audit behavior
-- module composition and service boundary cleanup
-- the backend shell needed to support later platform expansion
+- 身份、认证、授权与审计行为
+- 模块装配与服务边界收口
+- 支撑后续平台扩展所需的后端基础骨架
 
-At this stage, `Optimus` should not be described as already having a cloud control-plane core. Cloud account onboarding, unified asset management, DevOps execution, FinOps analysis, and automation remain future platform phases rather than established codebase capabilities.
+在这一阶段，不应把 `Optimus` 描述成已经具备云控制平面内核的系统。云账号接入、统一资产管理、DevOps 执行、FinOps 分析与自动化能力仍属于后续平台阶段，而不是当前代码库已经具备的能力。
 
-## Platform Direction
+## 平台方向
 
-`Optimus` is intended to evolve into a unified operations platform that connects governance, infrastructure visibility, execution, and cost management in one system.
+`Optimus` 的目标是逐步演进为一个统一运维平台，把治理、基础设施可见性、执行能力和成本管理连接到同一个系统中。
 
-The long-term direction is:
+长期方向如下：
 
-1. establish a reliable governance foundation
-2. build a shared cloud resource foundation
-3. expand that foundation into DevOps capabilities
-4. expand that foundation into FinOps capabilities
-5. close the loop with automation and policy-driven operations
+1. 建立可靠的治理基础
+2. 建立共享的云资源基础层
+3. 在该基础层之上扩展 DevOps 能力
+4. 在该基础层之上扩展 FinOps 能力
+5. 通过自动化与策略执行形成闭环
 
-The core product idea is that later operational and cost capabilities should not invent separate models of infrastructure state. They should build on a shared platform foundation and a common understanding of managed resources.
+核心产品思路是：后续的运维能力和成本能力不应各自发明一套独立的基础设施状态模型，而应建立在共享的平台基础和统一的资源认知之上。
 
-## Roadmap Phases
+## 路线图阶段
 
-### Phase 0: System Foundation
+### Phase 0：系统基础层
 
-Goal:
-Establish the platform's baseline governance capabilities, including the system domain needed to manage users, roles, permissions, authentication, and auditability.
+目标：
+建立平台的基础治理能力，包括用于管理用户、角色、权限、认证与审计能力的 `system` 域。
 
-Why it comes first:
-Every later platform capability depends on a stable identity, access, and traceability model.
+为什么先做：
+后续所有平台能力都依赖稳定的身份、访问控制与可追溯性模型。
 
-Non-goal:
-This phase is not where cloud management, deployment orchestration, or cost analysis begins.
+非目标：
+这一阶段不负责启动云管理、部署编排或成本分析能力。
 
-### Phase 0.5: Audit and Governance Hardening
+### Phase 0.5：审计与治理加固
 
-Goal:
-Strengthen audit and governance capabilities so the platform can support higher-risk operational workflows with adequate traceability and control.
+目标：
+强化审计与治理能力，使平台能够支撑更高风险的运维流程，并具备足够的可追溯性与控制能力。
 
-Why it comes next:
-Before the platform starts managing cloud credentials, resources, or automated actions, it needs stronger governance maturity than a basic write-only audit trail.
+为什么紧接其后：
+在平台开始管理云凭证、资源或自动化动作之前，治理成熟度必须高于“只能写入、不能治理”的基础审计能力。
 
-Role in the roadmap:
-This phase is a hardening step between foundational system capabilities and broader platform expansion.
+在路线图中的角色：
+这一阶段是系统基础能力与更广泛平台扩展之间的加固阶段。
 
-### Phase 1: Cloud Resource Foundation
+### Phase 1：云资源基础层
 
-Goal:
-Introduce the shared cloud resource foundation that future platform capabilities will depend on.
+目标：
+建立后续平台能力所依赖的共享云资源基础层。
 
-What this phase establishes:
+这一阶段要建立的能力：
 
-- a way to connect the platform to external cloud environments
-- a consistent internal view of managed cloud resources
-- a common base for later operational and financial capabilities
+- 平台连接外部云环境的基础方式
+- 对受管云资源的一致内部视图
+- 后续运维能力与成本能力的共同基础
 
-Why it comes before DevOps and FinOps:
-Both DevOps and FinOps need a stable object model for the infrastructure they operate on or analyze. Without that shared foundation, each future capability would drift toward its own incompatible representation of cloud resources.
+为什么先于 DevOps 和 FinOps：
+DevOps 与 FinOps 都需要一个稳定的基础设施对象模型来执行或分析。如果没有这层共享基础，后续每个能力方向都容易演变出彼此不兼容的资源表示方式。
 
-Roadmap-level stability gate:
-For roadmap purposes, Phase 1 is considered stable when cloud connectivity and shared resource visibility are clear enough to support later scoped design work without redefining the platform's core resource foundation.
+路线图层面的稳定门槛：
+在路线图语境下，当云连接能力与共享资源可见性已经足以启动 Phase 2 或 Phase 3 的独立设计 spec，且不需要重新定义平台核心资源基础时，可视为 Phase 1 达到稳定。
 
-### Phase 2: DevOps Enablement
+### Phase 2：DevOps 能力扩展
 
-Goal:
-Build operational capabilities on top of the shared resource foundation so managed infrastructure can be acted on, not just observed.
+目标：
+在共享资源基础层之上构建运维执行能力，使受管基础设施不仅可见，而且可被受控操作。
 
-Role in the roadmap:
-This phase extends the platform from governance and visibility into controlled operational execution.
+在路线图中的角色：
+这一阶段使平台从治理与可见性扩展到受控的运维执行能力。
 
-Dependency:
-It depends on the prior existence of a shared resource foundation and governance controls.
+依赖关系：
+它依赖前置的共享资源基础层和治理控制能力。
 
-Planning note:
-After Phase 1 is stable, this phase can be planned independently from Phase 3. The roadmap lists them in sequence for communication clarity, not because one must be fully implemented before the other can be designed.
+规划说明：
+在 Phase 1 稳定之后，这一阶段可以独立于 Phase 3 进行规划。路线图中把它排在前面，是为了表达沟通顺序，而不是要求它必须在 Phase 3 之前完全实施完成。
 
-### Phase 3: FinOps Enablement
+### Phase 3：FinOps 能力扩展
 
-Goal:
-Build financial governance and cost analysis capabilities on top of the same shared resource foundation.
+目标：
+在同一套共享资源基础层之上构建财务治理与成本分析能力。
 
-Role in the roadmap:
-This phase extends the platform from infrastructure visibility into cost visibility, allocation, and optimization.
+在路线图中的角色：
+这一阶段使平台从基础设施可见性扩展到成本可见性、归因与优化能力。
 
-Dependency:
-It depends on the same shared foundation used by DevOps capabilities, so cost analysis and infrastructure operations remain aligned to the same resource model.
+依赖关系：
+它依赖与 DevOps 相同的共享基础层，从而保证成本分析与基础设施运维基于同一套资源模型。
 
-Planning note:
-After Phase 1 is stable, this phase can also be planned independently from Phase 2 based on product priority and team capacity.
+规划说明：
+在 Phase 1 稳定之后，这一阶段也可以独立于 Phase 2 进行规划，优先级由产品目标和交付能力决定。
 
-### Phase 4: Automation and Policy
+### Phase 4：自动化与策略执行
 
-Goal:
-Introduce automation and policy-driven workflows that connect governance, infrastructure state, operational actions, and financial controls into a closed loop.
+目标：
+引入自动化与策略驱动的工作流，把治理、基础设施状态、运维动作和财务控制连接成闭环。
 
-Role in the roadmap:
-This phase turns the platform from a collection of managed capabilities into a system that can enforce intent and reduce manual operational overhead.
+在路线图中的角色：
+这一阶段使平台从一组分散的能力集合，进一步演进为能够执行平台意图并降低人工运维负担的系统。
 
-Dependency:
-This phase should build on stable foundations from the earlier phases rather than define them itself.
+依赖关系：
+这一阶段应建立在前述阶段已经稳定的基础之上，而不负责重新定义这些基础。
 
-## Decomposition Principle
+## 拆分原则
 
-This roadmap is intentionally high level.
+这份路线图刻意保持高层抽象。
 
-When a phase becomes ready for execution, it must be broken into one or more dedicated design specs and implementation plans that reflect the codebase reality at that time.
+当某个阶段进入可执行准备状态时，必须拆分为一个或多个独立设计 spec 与实施计划，并以当时的代码库现实为准。
 
-The next artifact after this roadmap should always be a scoped phase design spec, not a repo-wide implementation plan.
+这份路线图之后的下一个文档产物，应始终是某个阶段的独立设计 spec，而不是一个覆盖全仓库的实施计划。
 
-Rules for decomposition:
+拆分规则如下：
 
-- the roadmap does not serve as a build-ready design
-- each implementation phase must have its own scoped spec
-- each scoped spec must be validated against the then-current repository structure
-- detailed technical choices must be made in those scoped specs, not backfilled into this roadmap
+- 路线图本身不是可直接开发的设计文档
+- 每个实施阶段都必须有独立且收敛范围的 spec
+- 每份独立设计 spec 都必须基于当时仓库结构重新校准
+- 具体技术决策必须在这些独立设计 spec 中作出，而不是回填到这份路线图中
 
-This rule prevents the roadmap from being misread as a frozen implementation decision record.
+这样做是为了避免路线图被误读成已经冻结的实施决策记录。
 
-## Status Snapshot
+## 状态快照
 
-Current focus:
+当前重点：
 
-- system-domain stabilization
-- governance and audit hardening
-- boundary cleanup in the backend architecture
+- `system` 域稳定化
+- 审计与治理能力加固
+- 后端架构边界收口
 
-Next likely platform focus:
+下一个最可能的平台重点：
 
-- cloud resource foundation
+- 云资源基础层
 
-Later platform directions:
+后续平台方向：
 
-- DevOps enablement
-- FinOps enablement
-- automation and policy
+- DevOps 能力扩展
+- FinOps 能力扩展
+- 自动化与策略执行
 
-Ordering note:
-After Phase 1 is stable, DevOps and FinOps can be planned in either order based on product priority and delivery capacity.
+顺序说明：
+在 Phase 1 稳定之后，DevOps 与 FinOps 可以根据产品优先级和交付能力按任意顺序进入规划。
