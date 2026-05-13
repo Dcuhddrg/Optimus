@@ -76,12 +76,22 @@ func (s *GormAccountStore) Update(ctx context.Context, id uint, name *string, en
 		if err := s.db.WithContext(ctx).Model(&m).Updates(updates).Error; err != nil {
 			return usecase.AccountRow{}, err
 		}
+		if err := s.db.WithContext(ctx).First(&m, m.ID).Error; err != nil {
+			return usecase.AccountRow{}, err
+		}
 	}
 	return toAccountRow(m), nil
 }
 
 func (s *GormAccountStore) Delete(ctx context.Context, id uint) error {
-	return s.db.WithContext(ctx).Delete(&cloudModel.CloudAccount{}, id).Error
+	res := s.db.WithContext(ctx).Delete(&cloudModel.CloudAccount{}, id)
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return usecase.ErrAccountNotFound
+	}
+	return nil
 }
 
 func (s *GormAccountStore) UpdateSyncStatus(ctx context.Context, id uint, lastSyncedAt *time.Time, status string) error {
@@ -89,7 +99,14 @@ func (s *GormAccountStore) UpdateSyncStatus(ctx context.Context, id uint, lastSy
 	if lastSyncedAt != nil {
 		updates["last_synced_at"] = lastSyncedAt
 	}
-	return s.db.WithContext(ctx).Model(&cloudModel.CloudAccount{}).Where("id = ?", id).Updates(updates).Error
+	res := s.db.WithContext(ctx).Model(&cloudModel.CloudAccount{}).Where("id = ?", id).Updates(updates)
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return usecase.ErrAccountNotFound
+	}
+	return nil
 }
 
 func toAccountRow(m cloudModel.CloudAccount) usecase.AccountRow {
