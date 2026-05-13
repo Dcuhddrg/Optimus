@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"time"
 )
 
@@ -59,36 +60,39 @@ type AssetRegistryService struct {
 	accounts *CloudAccountService
 	store    AssetStore
 	registry *SyncerRegistry
+	now      func() time.Time
 }
 
 func NewAssetRegistryService(accounts *CloudAccountService, store AssetStore, registry *SyncerRegistry) *AssetRegistryService {
-	return &AssetRegistryService{accounts: accounts, store: store, registry: registry}
+	return &AssetRegistryService{accounts: accounts, store: store, registry: registry, now: time.Now}
 }
 
 // SyncAccount fetches all assets for the given account and upserts them into the registry.
 func (s *AssetRegistryService) SyncAccount(ctx context.Context, accountID uint) (SyncResult, error) {
 	syncAcc, err := s.accounts.GetForSync(ctx, accountID)
 	if err != nil {
-		_ = s.accounts.UpdateSyncStatus(ctx, accountID, nil, "error")
-		return SyncResult{}, err
+		statusErr := s.accounts.UpdateSyncStatus(ctx, accountID, nil, "error")
+		return SyncResult{}, errors.Join(err, statusErr)
 	}
 	syncer, err := s.registry.Get(syncAcc.Provider)
 	if err != nil {
-		_ = s.accounts.UpdateSyncStatus(ctx, accountID, nil, "error")
-		return SyncResult{}, err
+		statusErr := s.accounts.UpdateSyncStatus(ctx, accountID, nil, "error")
+		return SyncResult{}, errors.Join(err, statusErr)
 	}
 	raw, err := syncer.Sync(ctx, syncAcc)
 	if err != nil {
-		_ = s.accounts.UpdateSyncStatus(ctx, accountID, nil, "error")
-		return SyncResult{}, err
+		statusErr := s.accounts.UpdateSyncStatus(ctx, accountID, nil, "error")
+		return SyncResult{}, errors.Join(err, statusErr)
 	}
 	result, err := s.store.Upsert(ctx, accountID, syncAcc.Provider, raw)
 	if err != nil {
-		_ = s.accounts.UpdateSyncStatus(ctx, accountID, nil, "error")
-		return SyncResult{}, err
+		statusErr := s.accounts.UpdateSyncStatus(ctx, accountID, nil, "error")
+		return SyncResult{}, errors.Join(err, statusErr)
 	}
-	now := timeNow()
-	_ = s.accounts.UpdateSyncStatus(ctx, accountID, &now, "active")
+	now := s.now()
+	if statusErr := s.accounts.UpdateSyncStatus(ctx, accountID, &now, "active"); statusErr != nil {
+		return result, statusErr
+	}
 	return result, nil
 }
 
@@ -96,6 +100,3 @@ func (s *AssetRegistryService) SyncAccount(ctx context.Context, accountID uint) 
 func (s *AssetRegistryService) QueryAssets(ctx context.Context, f AssetFilter) (AssetPage, error) {
 	return s.store.Query(ctx, f)
 }
-
-// timeNow is a hook for testing.
-var timeNow = func() time.Time { return time.Now() }
