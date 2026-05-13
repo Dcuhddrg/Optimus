@@ -3,6 +3,7 @@ package initialize
 import (
 	"strings"
 
+	cloudInit "optimus/server/initialize/cloud"
 	"optimus/server/global"
 	"optimus/server/middleware"
 	"optimus/server/router"
@@ -13,12 +14,14 @@ import (
 const defaultRouterPrefix = "/api/v1"
 
 var newSystemModule = NewSystemModule
+var newCloudModule = cloudInit.NewCloudModule
 
 func Routers() *gin.Engine {
 	systemModule := newSystemModule(global.OPTIMUS_DB, global.OPTIMUS_CONFIG)
 	if systemModule == nil {
 		systemModule = NewSystemModule(nil, global.OPTIMUS_CONFIG)
 	}
+	cloudModule := newCloudModule(global.OPTIMUS_DB, global.OPTIMUS_CONFIG)
 
 	engine := gin.New()
 	// 全局中间件
@@ -31,6 +34,7 @@ func Routers() *gin.Engine {
 
 	routerGroup := router.RouterGroupApp
 	routerGroup.System.InitSystemRouter(publicGroup, privateGroup, systemModule.Handlers)
+	routerGroup.Cloud.InitCloudRouter(privateGroup, cloudModule.Handlers)
 
 	return engine
 }

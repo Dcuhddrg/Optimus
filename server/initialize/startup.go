@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"optimus/server/global"
+	cloudService "optimus/server/service/cloud"
 	systemService "optimus/server/service/system"
 )
 
@@ -22,6 +23,14 @@ func Startup() {
 	}
 	if err := systemService.SeedSystemData(db, global.OPTIMUS_CONFIG.System.AdminInitialPassword); err != nil {
 		logDependencyInitFailure("system", "seed data", err)
+	}
+
+	if err := cloudService.AutoMigrateCloud(db); err != nil {
+		logDependencyInitFailure("cloud", "auto migrate", err)
+		return
+	}
+	if err := cloudService.SeedCloudData(db); err != nil {
+		logDependencyInitFailure("cloud", "seed data", err)
 	}
 
 	startAuditRetentionWorker(context.Background(), db, global.OPTIMUS_CONFIG.System.AuditLogRetentionDays)
