@@ -4,11 +4,11 @@ import (
 	systemApi "optimus/server/api/v1/system"
 	"optimus/server/config"
 	"optimus/server/middleware"
+	systemService "optimus/server/service/system"
 	"optimus/server/service/system/infra/directory"
 	"optimus/server/service/system/infra/identity"
 	"optimus/server/service/system/infra/persistence"
 	systemUsecase "optimus/server/service/system/usecase"
-	systemService "optimus/server/service/system"
 
 	"gorm.io/gorm"
 )

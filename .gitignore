@@ -7,7 +7,5 @@ dist/
 .env.local
 # backend ignore
 .superpowers/
-.codex/
-.claude/
 .worktrees/
 docs/superpowers/
