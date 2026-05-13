@@ -26,6 +26,10 @@ func (s *ECSSyncer) Sync(ctx context.Context, account usecase.SyncAccount) ([]us
 		region = "cn-hangzhou"
 	}
 
+	if ak == "" || sk == "" {
+		return nil, fmt.Errorf("aliyun ecs: missing access_key_id or access_key_secret in credentials")
+	}
+
 	client, err := ecs.NewClientWithAccessKey(region, ak, sk)
 	if err != nil {
 		return nil, fmt.Errorf("aliyun ecs client: %w", err)
@@ -34,6 +38,9 @@ func (s *ECSSyncer) Sync(ctx context.Context, account usecase.SyncAccount) ([]us
 	var assets []usecase.RawAsset
 	pageNumber := 1
 	for {
+		if err := ctx.Err(); err != nil {
+			return nil, fmt.Errorf("aliyun ecs sync cancelled: %w", err)
+		}
 		req := ecs.CreateDescribeInstancesRequest()
 		req.PageSize = requests.NewInteger(100)
 		req.PageNumber = requests.NewInteger(pageNumber)
@@ -44,18 +51,24 @@ func (s *ECSSyncer) Sync(ctx context.Context, account usecase.SyncAccount) ([]us
 		}
 
 		for _, inst := range resp.Instances.Instance {
-			configJSON, _ := json.Marshal(map[string]any{
+			configJSON, err := json.Marshal(map[string]any{
 				"instanceType":       inst.InstanceType,
 				"cpu":                inst.Cpu,
 				"memory":             inst.Memory,
 				"osType":             inst.OSType,
 				"instanceChargeType": inst.InstanceChargeType,
 			})
+			if err != nil {
+				return nil, fmt.Errorf("aliyun ecs marshal config for %s: %w", inst.InstanceId, err)
+			}
 			tagsMap := make(map[string]string, len(inst.Tags.Tag))
 			for _, tag := range inst.Tags.Tag {
 				tagsMap[tag.TagKey] = tag.TagValue
 			}
-			tagsJSON, _ := json.Marshal(tagsMap)
+			tagsJSON, err := json.Marshal(tagsMap)
+			if err != nil {
+				return nil, fmt.Errorf("aliyun ecs marshal tags for %s: %w", inst.InstanceId, err)
+			}
 
 			assets = append(assets, usecase.RawAsset{
 				ResourceType: "ecs_instance",
@@ -68,7 +81,7 @@ func (s *ECSSyncer) Sync(ctx context.Context, account usecase.SyncAccount) ([]us
 			})
 		}
 
-		if pageNumber*100 >= resp.TotalCount {
+		if len(resp.Instances.Instance) < 100 {
 			break
 		}
 		pageNumber++
