@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestGormAuditStoreListAuditLogsOrdersNewestFirst(t *testing.T) {
+func TestGormAuditStoreQueryLogsOrdersNewestFirst(t *testing.T) {
 	db := openPersistenceTestDB(t)
 
 	authStore := NewGormAuthStore(db)
