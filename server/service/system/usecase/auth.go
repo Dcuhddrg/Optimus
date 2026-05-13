@@ -196,11 +196,12 @@ func (s *AuthService) CurrentUser(ctx context.Context, userID uint) (CurrentUser
 
 func (s *AuthService) Logout(ctx context.Context, userID uint, meta AuditMeta) error {
 	s.writeAudit(ctx, AuditEvent{
-		ActorUserID: userID,
-		Action:      "auth.logout",
-		Result:      "success",
-		IP:          meta.IP,
-		UserAgent:   meta.UserAgent,
+		ActorUserID:   userID,
+		ActorUsername: meta.ActorUsername,
+		Action:        "auth.logout",
+		Result:        "success",
+		IP:            meta.IP,
+		UserAgent:     meta.UserAgent,
 	})
 	return nil
 }

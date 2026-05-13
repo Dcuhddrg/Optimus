@@ -21,10 +21,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	result, err := h.service.Login(c.Request.Context(), req, systemUsecase.AuditMeta{
-		IP:        c.ClientIP(),
-		UserAgent: c.Request.UserAgent(),
-	})
+	result, err := h.service.Login(c.Request.Context(), req, auditMeta(c))
 	if err != nil {
 		status := http.StatusUnauthorized
 		message := "username or password is incorrect"
@@ -68,10 +65,7 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	claims, ok := c.Get(utils.ClaimsContextKey)
 	if ok && h.service != nil {
 		if customClaims, ok := claims.(*utils.CustomClaims); ok {
-			_ = h.service.Logout(c.Request.Context(), customClaims.BaseClaims.ID, systemUsecase.AuditMeta{
-				IP:        c.ClientIP(),
-				UserAgent: c.Request.UserAgent(),
-			})
+			_ = h.service.Logout(c.Request.Context(), customClaims.BaseClaims.ID, auditMeta(c))
 		}
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "logged out"})

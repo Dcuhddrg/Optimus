@@ -95,7 +95,7 @@ func (SystemLDAPConfig) TableName() string {
 type SystemAuditLog struct {
 	ID            uint      `gorm:"primaryKey" json:"id"`
 	ActorUserID   uint      `gorm:"index" json:"actorUserId"`
-	ActorUsername string    `gorm:"size:64" json:"actorUsername"`
+	ActorUsername string    `gorm:"size:128" json:"actorUsername"`
 	Action        string    `gorm:"size:128;not null;index" json:"action"`
 	ResourceType  string    `gorm:"size:128;index" json:"resourceType"`
 	ResourceID    string    `gorm:"size:128;index" json:"resourceId"`
