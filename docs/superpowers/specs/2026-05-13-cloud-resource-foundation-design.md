@@ -53,7 +53,7 @@ The recent module-composition and service-boundary specs, [2026-05-11-system-mod
 Phase 1 is stable enough for later Phase 2 or Phase 3 specs when those downstream specs can reuse the shared foundation without redefining account and resource semantics or reopening the Phase 1 resource boundary.
 
 - the shared cloud resource vocabulary is fixed enough that later specs can reuse it without redefining account and resource semantics
-- cloud account onboarding and shared resource visibility are represented by the same foundation model across the repo
+- cloud account onboarding and shared resource visibility use the same account/resource vocabulary and boundary assumptions that later Phase 2 and Phase 3 specs can reuse without redefining the shared foundation
 - later phase specs can assume the shared foundation instead of reopening the Phase 1 resource boundary
 - any changes to the shared resource foundation would be treated as a foundation revision, not as a Phase 2 or Phase 3 local tweak
 
