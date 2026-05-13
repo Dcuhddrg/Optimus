@@ -39,7 +39,7 @@ func (s *GormAuditStore) buildQuery(ctx context.Context, f usecase.AuditFilter) 
 		q = q.Where("created_at <= ?", *f.EndTime)
 	}
 	if f.Keyword != nil && *f.Keyword != "" {
-		q = q.Where("MATCH(detail) AGAINST(? IN BOOLEAN MODE)", *f.Keyword)
+		q = q.Where("detail LIKE ?", "%"+*f.Keyword+"%")
 	}
 	return q
 }
@@ -88,9 +88,10 @@ func (s *GormAuditStore) ExportLogs(ctx context.Context, f usecase.AuditFilter) 
 }
 
 func (s *GormAuditStore) DeleteBefore(ctx context.Context, before time.Time) error {
+	tableName := systemModel.SystemAuditLog{}.TableName()
 	for {
 		result := s.db.WithContext(ctx).
-			Exec("DELETE FROM system_audit_logs WHERE created_at < ? LIMIT 1000", before)
+			Exec("DELETE FROM `"+tableName+"` WHERE created_at < ? LIMIT 1000", before)
 		if result.Error != nil {
 			return result.Error
 		}

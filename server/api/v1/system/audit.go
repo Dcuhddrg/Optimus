@@ -39,9 +39,13 @@ func (h *AuditHandler) ExportAuditLogs(c *gin.Context) {
 	c.Header("Content-Disposition", `attachment; filename="audit-logs.csv"`)
 
 	w := csv.NewWriter(c.Writer)
-	_ = w.Write([]string{"id", "actor_username", "action", "resource_type", "resource_id", "result", "ip", "created_at", "detail"})
+	defer w.Flush()
+
+	if err := w.Write([]string{"id", "actor_username", "action", "resource_type", "resource_id", "result", "ip", "created_at", "detail"}); err != nil {
+		return
+	}
 	for _, entry := range entries {
-		_ = w.Write([]string{
+		if err := w.Write([]string{
 			strconv.FormatUint(uint64(entry.ID), 10),
 			entry.ActorUsername,
 			entry.Action,
@@ -51,9 +55,10 @@ func (h *AuditHandler) ExportAuditLogs(c *gin.Context) {
 			entry.IP,
 			entry.CreatedAt.Format(time.RFC3339),
 			entry.Detail,
-		})
+		}); err != nil {
+			return
+		}
 	}
-	w.Flush()
 }
 
 func parseAuditFilter(c *gin.Context) systemUsecase.AuditFilter {

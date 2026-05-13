@@ -131,6 +131,7 @@ func containsAllCoreAdminPermissions(codes []string) bool {
 		"system.roles.permissions.update",
 		"system.ldap.update",
 		"system.audit.view",
+		"system.audit.export",
 	} {
 		if !set[required] {
 			return false
