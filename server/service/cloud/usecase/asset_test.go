@@ -1,0 +1,73 @@
+package usecase
+
+import (
+	"context"
+	"testing"
+
+	"github.com/stretchr/testify/require"
+)
+
+type fakeAssetStore struct {
+	upserted []RawAsset
+}
+
+func (f *fakeAssetStore) Upsert(_ context.Context, accountID uint, provider string, assets []RawAsset) (SyncResult, error) {
+	f.upserted = append(f.upserted, assets...)
+	return SyncResult{Upserted: len(assets)}, nil
+}
+
+func (f *fakeAssetStore) Query(_ context.Context, _ AssetFilter) (AssetPage, error) {
+	return AssetPage{Items: []AssetView{}, Total: 0, Page: 1, PageSize: 20}, nil
+}
+
+type fixedSyncer struct {
+	assets []RawAsset
+}
+
+func (s fixedSyncer) Sync(_ context.Context, _ SyncAccount) ([]RawAsset, error) {
+	return s.assets, nil
+}
+
+func TestAssetRegistryServiceSyncAccountUpsertsFetchedAssets(t *testing.T) {
+	key := make([]byte, 32)
+	accountStore := &fakeAccountStore{rows: make(map[uint]AccountRow)}
+	accountSvc, err := NewCloudAccountService(accountStore, key)
+	require.NoError(t, err)
+
+	_, err = accountSvc.Create(context.Background(), CreateAccountRequest{
+		Name: "prod", Provider: "aliyun", AccountID: "123",
+		CredentialType: "ak_sk",
+		Credential:     map[string]string{"access_key_id": "ak", "access_key_secret": "sk"},
+	})
+	require.NoError(t, err)
+
+	assetStore := &fakeAssetStore{}
+	registry := NewSyncerRegistry()
+	registry.Register("aliyun", fixedSyncer{assets: []RawAsset{
+		{ResourceType: "ecs_instance", ResourceID: "i-001", Name: "web-1", Region: "cn-hangzhou", Status: "Running"},
+	}})
+
+	svc := NewAssetRegistryService(accountSvc, assetStore, registry)
+	result, err := svc.SyncAccount(context.Background(), 1)
+	require.NoError(t, err)
+	require.Equal(t, 1, result.Upserted)
+	require.Equal(t, 1, len(assetStore.upserted))
+	require.Equal(t, "i-001", assetStore.upserted[0].ResourceID)
+}
+
+func TestAssetRegistryServiceSyncAccountReturnsErrForUnknownProvider(t *testing.T) {
+	key := make([]byte, 32)
+	accountStore := &fakeAccountStore{rows: make(map[uint]AccountRow)}
+	accountSvc, err := NewCloudAccountService(accountStore, key)
+	require.NoError(t, err)
+	_, err = accountSvc.Create(context.Background(), CreateAccountRequest{
+		Name: "aws-acc", Provider: "aws", AccountID: "456",
+		CredentialType: "ak_sk",
+		Credential:     map[string]string{"access_key_id": "ak", "access_key_secret": "sk"},
+	})
+	require.NoError(t, err)
+
+	svc := NewAssetRegistryService(accountSvc, &fakeAssetStore{}, NewSyncerRegistry())
+	_, err = svc.SyncAccount(context.Background(), 1)
+	require.ErrorIs(t, err, ErrProviderNotRegistered)
+}
