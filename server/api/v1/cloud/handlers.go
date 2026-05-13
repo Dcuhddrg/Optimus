@@ -44,9 +44,8 @@ func writeCloudServiceUnavailable(c *gin.Context, message string) {
 }
 
 func parseCloudUintParam(c *gin.Context, name string) (uint, bool) {
-	s := c.Param(name)
-	n, err := strconv.ParseUint(s, 10, 64)
-	if err != nil {
+	n, err := strconv.ParseUint(c.Param(name), 10, 64)
+	if err != nil || n == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid " + name})
 		return 0, false
 	}
