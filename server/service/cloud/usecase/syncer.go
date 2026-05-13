@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"errors"
+	"sync"
 )
 
 var ErrProviderNotRegistered = errors.New("provider not registered")
@@ -34,6 +35,7 @@ type AssetSyncer interface {
 
 // SyncerRegistry maps provider name → AssetSyncer.
 type SyncerRegistry struct {
+	mu      sync.RWMutex
 	syncers map[string]AssetSyncer
 }
 
@@ -42,10 +44,14 @@ func NewSyncerRegistry() *SyncerRegistry {
 }
 
 func (r *SyncerRegistry) Register(provider string, s AssetSyncer) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	r.syncers[provider] = s
 }
 
 func (r *SyncerRegistry) Get(provider string) (AssetSyncer, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 	s, ok := r.syncers[provider]
 	if !ok {
 		return nil, ErrProviderNotRegistered

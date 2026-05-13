@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"io"
 )
 
@@ -49,12 +50,12 @@ func decryptAESGCM(key []byte, cipherB64 string) (string, error) {
 	}
 	nonceSize := gcm.NonceSize()
 	if len(data) < nonceSize {
-		return "", errors.New("ciphertext too short")
+		return "", fmt.Errorf("decryptAESGCM: ciphertext too short")
 	}
 	nonce, ciphertext := data[:nonceSize], data[nonceSize:]
 	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("decryptAESGCM: %w", err)
 	}
 	return string(plaintext), nil
 }
