@@ -2,13 +2,14 @@ package persistence
 
 import (
 	"context"
-	"errors"
+	"strings"
 	"time"
 
 	cloudModel "optimus/server/model/cloud"
 	"optimus/server/service/cloud/usecase"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type GormAssetStore struct {
@@ -20,50 +21,38 @@ func NewGormAssetStore(db *gorm.DB) *GormAssetStore {
 }
 
 func (s *GormAssetStore) Upsert(ctx context.Context, accountID uint, provider string, assets []usecase.RawAsset) (usecase.SyncResult, error) {
-	now := time.Now()
-	var result usecase.SyncResult
-	for _, a := range assets {
-		var existing cloudModel.CloudAsset
-		err := s.db.WithContext(ctx).
-			Where("account_id = ? AND resource_id = ?", accountID, a.ResourceID).
-			First(&existing).Error
-
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			m := cloudModel.CloudAsset{
-				AccountID:    accountID,
-				Provider:     provider,
-				Region:       a.Region,
-				ResourceType: a.ResourceType,
-				ResourceID:   a.ResourceID,
-				Name:         a.Name,
-				Status:       a.Status,
-				ConfigJSON:   a.ConfigJSON,
-				TagsJSON:     a.TagsJSON,
-				DiscoveredAt: now,
-				LastSeenAt:   now,
-			}
-			if createErr := s.db.WithContext(ctx).Create(&m).Error; createErr != nil {
-				result.Errors++
-				continue
-			}
-		} else if err == nil {
-			existing.Name = a.Name
-			existing.Status = a.Status
-			existing.ConfigJSON = a.ConfigJSON
-			existing.TagsJSON = a.TagsJSON
-			existing.LastSeenAt = now
-			existing.DeletedAt = nil
-			if saveErr := s.db.WithContext(ctx).Save(&existing).Error; saveErr != nil {
-				result.Errors++
-				continue
-			}
-		} else {
-			result.Errors++
-			continue
-		}
-		result.Upserted++
+	if len(assets) == 0 {
+		return usecase.SyncResult{}, nil
 	}
-	return result, nil
+	now := time.Now()
+	records := make([]cloudModel.CloudAsset, len(assets))
+	for i, a := range assets {
+		records[i] = cloudModel.CloudAsset{
+			AccountID:    accountID,
+			Provider:     provider,
+			Region:       a.Region,
+			ResourceType: a.ResourceType,
+			ResourceID:   a.ResourceID,
+			Name:         a.Name,
+			Status:       a.Status,
+			ConfigJSON:   a.ConfigJSON,
+			TagsJSON:     a.TagsJSON,
+			DiscoveredAt: now,
+			LastSeenAt:   now,
+		}
+	}
+	res := s.db.WithContext(ctx).
+		Clauses(clause.OnConflict{
+			Columns: []clause.Column{{Name: "account_id"}, {Name: "resource_id"}},
+			DoUpdates: clause.AssignmentColumns([]string{
+				"name", "status", "config_json", "tags_json", "last_seen_at", "deleted_at",
+			}),
+		}).
+		CreateInBatches(records, 100)
+	if res.Error != nil {
+		return usecase.SyncResult{}, res.Error
+	}
+	return usecase.SyncResult{Upserted: len(assets)}, nil
 }
 
 func (s *GormAssetStore) Query(ctx context.Context, f usecase.AssetFilter) (usecase.AssetPage, error) {
@@ -84,7 +73,8 @@ func (s *GormAssetStore) Query(ctx context.Context, f usecase.AssetFilter) (usec
 		q = q.Where("status = ?", *f.Status)
 	}
 	if f.Keyword != nil && *f.Keyword != "" {
-		q = q.Where("name LIKE ?", "%"+*f.Keyword+"%")
+		escaped := strings.NewReplacer(`%`, `\%`, `_`, `\_`).Replace(*f.Keyword)
+		q = q.Where("name LIKE ? ESCAPE '\\\\'", "%"+escaped+"%")
 	}
 
 	page := f.Page
@@ -96,8 +86,9 @@ func (s *GormAssetStore) Query(ctx context.Context, f usecase.AssetFilter) (usec
 		pageSize = 20
 	}
 
+	countQ := q.Session(&gorm.Session{})
 	var total int64
-	if err := q.Count(&total).Error; err != nil {
+	if err := countQ.Count(&total).Error; err != nil {
 		return usecase.AssetPage{}, err
 	}
 	var models []cloudModel.CloudAsset
