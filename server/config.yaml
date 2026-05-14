@@ -33,3 +33,5 @@ casbin:
   enable: false
   model-path: config/casbin_model.conf
   policy-source: mysql
+cloud:
+  credential-encryption-key: ""   # Must be exactly 32 ASCII characters in production

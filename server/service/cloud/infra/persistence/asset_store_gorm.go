@@ -41,6 +41,11 @@ func (s *GormAssetStore) Upsert(ctx context.Context, accountID uint, provider st
 			LastSeenAt:   now,
 		}
 	}
+	// On conflict (account_id, resource_id already exists):
+	//   - discovered_at is intentionally omitted from DoUpdates to preserve the first-seen timestamp.
+	//     MySQL ON DUPLICATE KEY UPDATE leaves unlisted columns at their stored values.
+	//   - deleted_at IS included: a resource that re-appears after being soft-deleted is un-deleted
+	//     by setting deleted_at = NULL (the zero value of *time.Time in the freshly-built record).
 	res := s.db.WithContext(ctx).
 		Clauses(clause.OnConflict{
 			Columns: []clause.Column{{Name: "account_id"}, {Name: "resource_id"}},

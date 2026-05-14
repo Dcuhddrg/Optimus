@@ -3,10 +3,12 @@ package cloud
 import (
 	cloudApi "optimus/server/api/v1/cloud"
 	"optimus/server/config"
+	"optimus/server/global"
 	"optimus/server/service/cloud/infra/persistence"
 	"optimus/server/service/cloud/infra/provider/aliyun"
 	cloudUsecase "optimus/server/service/cloud/usecase"
 
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -22,6 +24,10 @@ func NewCloudModule(db *gorm.DB, cfg config.Config) *CloudModule {
 
 	encKey := []byte(cfg.Cloud.CredentialEncryptionKey)
 	if len(encKey) != 32 {
+		if logger, ok := global.OPTIMUS_LOG.(*zap.Logger); ok && logger != nil {
+			logger.Warn("cloud credential encryption key is not 32 bytes; using zero-padded fallback — set cloud.credential-encryption-key in config before storing credentials",
+				zap.Int("configured_len", len(encKey)))
+		}
 		padded := make([]byte, 32)
 		copy(padded, encKey)
 		encKey = padded
