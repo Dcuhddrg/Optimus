@@ -109,3 +109,46 @@ func TestCountOwners(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, int64(2), n)
 }
+
+func TestUpdate_UnchangedFieldsStillSucceeds(t *testing.T) {
+	db := openProjectTestDB(t)
+	seedUser(t, db, 1, "alice")
+	store := NewGormProjectStore(db)
+	p := &projectModel.Project{Name: "P", Code: "p", Status: "active", Description: "x"}
+	require.NoError(t, store.Create(context.Background(), p, 1))
+
+	// Update with same description — must NOT return ErrProjectNotFound under MySQL.
+	updated, err := store.Update(context.Background(), "p", map[string]any{"description": "x"})
+	require.NoError(t, err)
+	require.Equal(t, "x", updated.Description)
+}
+
+func TestUpdateMemberRole_SameRoleStillSucceeds(t *testing.T) {
+	db := openProjectTestDB(t)
+	seedUser(t, db, 1, "alice")
+	store := NewGormProjectStore(db)
+	p := &projectModel.Project{Name: "P", Code: "p", Status: "active"}
+	require.NoError(t, store.Create(context.Background(), p, 1))
+
+	// Owner→Owner: same role, must NOT return ErrMemberNotFound.
+	require.NoError(t, store.UpdateMemberRole(context.Background(), 1, p.ID, usecase.RoleOwner))
+}
+
+func TestDelete_RemovesOrphanUserProjects(t *testing.T) {
+	db := openProjectTestDB(t)
+	seedUser(t, db, 1, "alice")
+	seedUser(t, db, 2, "bob")
+	store := NewGormProjectStore(db)
+	p := &projectModel.Project{Name: "P", Code: "p", Status: "active"}
+	require.NoError(t, store.Create(context.Background(), p, 1))
+	require.NoError(t, store.AddOrReplaceMember(context.Background(), projectModel.UserProject{
+		UserID: 2, ProjectID: p.ID, ProjectRole: usecase.RoleMember,
+	}))
+
+	require.NoError(t, store.Delete(context.Background(), "p"))
+
+	// All user_projects rows for this project should be gone.
+	members, err := store.ListMembers(context.Background(), p.ID)
+	require.NoError(t, err)
+	require.Empty(t, members)
+}

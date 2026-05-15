@@ -64,28 +64,36 @@ func (s *GormProjectStore) List(ctx context.Context, accessibleIDs []uint) ([]pr
 }
 
 func (s *GormProjectStore) Update(ctx context.Context, code string, fields map[string]any) (projectModel.Project, error) {
-	res := s.db.WithContext(ctx).
+	var existing projectModel.Project
+	if err := s.db.WithContext(ctx).Where("code = ?", code).First(&existing).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return projectModel.Project{}, usecase.ErrProjectNotFound
+		}
+		return projectModel.Project{}, err
+	}
+	if err := s.db.WithContext(ctx).
 		Model(&projectModel.Project{}).
 		Where("code = ?", code).
-		Updates(fields)
-	if res.Error != nil {
-		return projectModel.Project{}, res.Error
-	}
-	if res.RowsAffected == 0 {
-		return projectModel.Project{}, usecase.ErrProjectNotFound
+		Updates(fields).Error; err != nil {
+		return projectModel.Project{}, err
 	}
 	return s.FindByCode(ctx, code)
 }
 
 func (s *GormProjectStore) Delete(ctx context.Context, code string) error {
-	res := s.db.WithContext(ctx).Where("code = ?", code).Delete(&projectModel.Project{})
-	if res.Error != nil {
-		return res.Error
-	}
-	if res.RowsAffected == 0 {
-		return usecase.ErrProjectNotFound
-	}
-	return nil
+	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var p projectModel.Project
+		if err := tx.Where("code = ?", code).First(&p).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return usecase.ErrProjectNotFound
+			}
+			return err
+		}
+		if err := tx.Where("project_id = ?", p.ID).Delete(&projectModel.UserProject{}).Error; err != nil {
+			return err
+		}
+		return tx.Where("code = ?", code).Delete(&projectModel.Project{}).Error
+	})
 }
 
 func (s *GormProjectStore) CountCloudAccounts(ctx context.Context, projectID uint) (int64, error) {
@@ -108,17 +116,19 @@ func (s *GormProjectStore) AddOrReplaceMember(ctx context.Context, m projectMode
 }
 
 func (s *GormProjectStore) UpdateMemberRole(ctx context.Context, userID, projectID uint, role string) error {
-	res := s.db.WithContext(ctx).
+	var existing projectModel.UserProject
+	if err := s.db.WithContext(ctx).
+		Where("user_id = ? AND project_id = ?", userID, projectID).
+		First(&existing).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return usecase.ErrMemberNotFound
+		}
+		return err
+	}
+	return s.db.WithContext(ctx).
 		Model(&projectModel.UserProject{}).
 		Where("user_id = ? AND project_id = ?", userID, projectID).
-		Update("project_role", role)
-	if res.Error != nil {
-		return res.Error
-	}
-	if res.RowsAffected == 0 {
-		return usecase.ErrMemberNotFound
-	}
-	return nil
+		Update("project_role", role).Error
 }
 
 func (s *GormProjectStore) RemoveMember(ctx context.Context, userID, projectID uint) error {
