@@ -7,6 +7,7 @@ import { AppShell } from '../layout/AppShell';
 import { LanguageProvider } from '../locale/LanguageProvider';
 import { LoginPage } from '../view/auth/LoginPage';
 import { DashboardPage } from '../view/dashboard/DashboardPage';
+import { ProjectMembersPage } from '../view/project/ProjectMembersPage';
 import { ProjectsPage } from '../view/project/ProjectsPage';
 import { ForbiddenPage } from '../view/system/ForbiddenPage';
 import { SystemAuditLogsPage } from '../view/system/SystemAuditLogsPage';
@@ -54,6 +55,10 @@ export const router = createBrowserRouter([
               {
                 path: 'projects',
                 element: <ProjectsPage />,
+              },
+              {
+                path: 'projects/:code/members',
+                element: <ProjectMembersPage />,
               },
               {
                 path: 'system',
