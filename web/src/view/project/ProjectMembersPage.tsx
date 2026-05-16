@@ -74,6 +74,9 @@ export function ProjectMembersPage() {
     }
   }
 
+  const ownerCount = members.filter((member) => member.projectRole === 'owner').length;
+  const viewerCount = members.filter((member) => member.projectRole === 'viewer').length;
+
   return (
     <section className={styles.page}>
       <header className={styles.header}>
@@ -85,6 +88,21 @@ export function ProjectMembersPage() {
       </header>
 
       {error ? <div className={styles.error}>{error}</div> : null}
+
+      <div className={styles.summary}>
+        <div>
+          <span>{t('project.members.total')}</span>
+          <strong>{members.length}</strong>
+        </div>
+        <div>
+          <span>{t('project.roles.owner')}</span>
+          <strong>{ownerCount}</strong>
+        </div>
+        <div>
+          <span>{t('project.roles.viewer')}</span>
+          <strong>{viewerCount}</strong>
+        </div>
+      </div>
 
       <form className={styles.addBar} onSubmit={(event) => void handleAdd(event)}>
         <label>
@@ -105,6 +123,12 @@ export function ProjectMembersPage() {
       </form>
 
       <div className={styles.list}>
+        <div className={styles.listHeader} aria-hidden="true">
+          <span>{t('project.members.user')}</span>
+          <span>{t('project.members.currentRole')}</span>
+          <span>{t('project.members.changeRole')}</span>
+          <span>{t('project.list.actions')}</span>
+        </div>
         {members.map((member) => (
           <article className={styles.row} key={member.userId}>
             <div className={styles.identity}>
@@ -112,14 +136,17 @@ export function ProjectMembersPage() {
               <span>{member.username} · #{member.userId}</span>
             </div>
             <span className={styles.roleBadge}>{t(`project.roles.${member.projectRole as ProjectRole}`)}</span>
-            <select
-              value={member.projectRole}
-              onChange={(event) => void handleRoleChange(member, event.target.value as ProjectRole)}
-            >
-              {roles.map((item) => (
-                <option key={item} value={item}>{t(`project.roles.${item}`)}</option>
-              ))}
-            </select>
+            <label className={styles.roleField}>
+              <span>{t('project.members.changeRole')}</span>
+              <select
+                value={member.projectRole}
+                onChange={(event) => void handleRoleChange(member, event.target.value as ProjectRole)}
+              >
+                {roles.map((item) => (
+                  <option key={item} value={item}>{t(`project.roles.${item}`)}</option>
+                ))}
+              </select>
+            </label>
             <button type="button" className={styles.danger} onClick={() => void handleRemove(member)}>
               {t('project.members.remove')}
             </button>

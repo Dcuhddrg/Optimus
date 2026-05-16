@@ -76,6 +76,14 @@
 
 - `cd web && pnpm build`
 
+开发服务器验证约束：
+
+- 当前开发服务器通过 `192.169.50.100` 供 Mac 端访问；前端运行效果验证优先使用 Docker Compose 构建后的 nginx 容器，不默认依赖 Vite dev server。
+- 当用户需要从 Mac 端访问前端页面或静态资源时，执行 `docker compose -f deploy/docker-compose/docker-compose.yml build`，再执行 `docker compose -f deploy/docker-compose/docker-compose.yml up -d`。
+- Caddy 已配置域名 `optimus.intellivis.cn`；Mac 端优先通过该域名访问，必要时再用 `http://192.169.50.100:8080/` 直连 Compose 暴露端口排查。
+- Compose 启动后静态资源应由 nginx 返回，接口通过 nginx 的 `/api/` 代理到 `optimus-server:8888`。
+- 只有在任务明确要求本地开发热更新或排查 Vite 专属问题时，才追加 `cd web && pnpm dev`。
+
 如存在以下情况，再先做条件性环境准备：
 
 - 依赖缺失
@@ -85,8 +93,8 @@
 
 如果任务涉及前端运行效果，再追加：
 
-- `cd web && pnpm dev`
-- 确认 dev server 可访问
+- 优先按“开发服务器验证约束”使用 Docker Compose 构建并启动
+- 确认 nginx 页面、静态资源和相关 API 代理可访问
 
 如果任务涉及启动、路由或接口行为，再追加：
 

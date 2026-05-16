@@ -74,6 +74,8 @@ export function ProjectsPage() {
     }
   }
 
+  const activeCount = projects.filter((project) => project.status === 'active').length;
+
   return (
     <section className={styles.page}>
       <header className={styles.header}>
@@ -90,9 +92,9 @@ export function ProjectsPage() {
         </div>
         <div>
           <span>{t('project.list.active')}</span>
-          <strong>{projects.filter((project) => project.status === 'active').length}</strong>
+          <strong>{activeCount}</strong>
         </div>
-        <div>
+        <div className={styles.currentSummary}>
           <span>{t('project.list.current')}</span>
           <strong>{currentProject?.name ?? t('project.switcher.empty')}</strong>
         </div>
@@ -101,27 +103,42 @@ export function ProjectsPage() {
       {error ? <div className={styles.error}>{error}</div> : null}
 
       <form className={styles.createBar} onSubmit={(event) => void handleCreate(event)}>
-        <input
-          value={draft.name}
-          onChange={(event) => setDraft((value) => ({ ...value, name: event.target.value }))}
-          placeholder={t('project.list.namePlaceholder')}
-          required
-        />
-        <input
-          value={draft.code}
-          onChange={(event) => setDraft((value) => ({ ...value, code: event.target.value }))}
-          placeholder={t('project.list.codePlaceholder')}
-          required
-        />
-        <input
-          value={draft.description}
-          onChange={(event) => setDraft((value) => ({ ...value, description: event.target.value }))}
-          placeholder={t('project.list.descriptionPlaceholder')}
-        />
+        <label>
+          <span>{t('project.list.name')}</span>
+          <input
+            value={draft.name}
+            onChange={(event) => setDraft((value) => ({ ...value, name: event.target.value }))}
+            placeholder={t('project.list.namePlaceholder')}
+            required
+          />
+        </label>
+        <label>
+          <span>{t('project.list.code')}</span>
+          <input
+            value={draft.code}
+            onChange={(event) => setDraft((value) => ({ ...value, code: event.target.value }))}
+            placeholder={t('project.list.codePlaceholder')}
+            required
+          />
+        </label>
+        <label>
+          <span>{t('project.list.description')}</span>
+          <input
+            value={draft.description}
+            onChange={(event) => setDraft((value) => ({ ...value, description: event.target.value }))}
+            placeholder={t('project.list.descriptionPlaceholder')}
+          />
+        </label>
         <button type="submit">{t('project.list.create')}</button>
       </form>
 
       <div className={styles.table}>
+        <div className={styles.tableHeader} aria-hidden="true">
+          <span>{t('project.list.project')}</span>
+          <span>{t('project.list.name')}</span>
+          <span>{t('project.list.description')}</span>
+          <span>{t('project.list.actions')}</span>
+        </div>
         {projects.map((project) => {
           const row = editing[project.code] ?? {
             name: project.name,
@@ -133,30 +150,36 @@ export function ProjectsPage() {
               <div className={styles.identity}>
                 <strong>{project.name}</strong>
                 <span>{project.code}</span>
-                <em>{project.status}</em>
+                <em className={project.status === 'active' ? styles.statusActive : undefined}>{project.status}</em>
               </div>
-              <input
-                value={row.name}
-                onChange={(event) =>
-                  setEditing((value) => ({
-                    ...value,
-                    [project.code]: { ...row, name: event.target.value },
-                  }))
-                }
-                aria-label={t('project.list.name')}
-              />
-              <input
-                value={row.description}
-                onChange={(event) =>
-                  setEditing((value) => ({
-                    ...value,
-                    [project.code]: { ...row, description: event.target.value },
-                  }))
-                }
-                aria-label={t('project.list.description')}
-              />
+              <label className={styles.field}>
+                <span>{t('project.list.name')}</span>
+                <input
+                  value={row.name}
+                  onChange={(event) =>
+                    setEditing((value) => ({
+                      ...value,
+                      [project.code]: { ...row, name: event.target.value },
+                    }))
+                  }
+                  aria-label={t('project.list.name')}
+                />
+              </label>
+              <label className={styles.field}>
+                <span>{t('project.list.description')}</span>
+                <input
+                  value={row.description}
+                  onChange={(event) =>
+                    setEditing((value) => ({
+                      ...value,
+                      [project.code]: { ...row, description: event.target.value },
+                    }))
+                  }
+                  aria-label={t('project.list.description')}
+                />
+              </label>
               <div className={styles.actions}>
-                <button type="button" onClick={() => void handleUpdate(project)}>
+                <button type="button" className={styles.primary} onClick={() => void handleUpdate(project)}>
                   {t('project.list.save')}
                 </button>
                 <Link to={`/projects/${project.code}/members`}>{t('project.list.members')}</Link>
