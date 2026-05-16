@@ -13,14 +13,31 @@ type fakeAccountStore struct {
 	next uint
 }
 
-func (f *fakeAccountStore) Create(_ context.Context, name, provider, accountID, credentialType, encrypted string) (AccountRow, error) {
+func (f *fakeAccountStore) Create(_ context.Context, projectID uint, name, provider, accountID, credentialType, encrypted string) (AccountRow, error) {
 	f.next++
-	row := AccountRow{ID: f.next, Name: name, Provider: provider, AccountID: accountID, CredentialType: credentialType, CredentialJSON: encrypted, Status: "active"}
+	row := AccountRow{
+		ID:             f.next,
+		ProjectID:      projectID,
+		Name:           name,
+		Provider:       provider,
+		AccountID:      accountID,
+		CredentialType: credentialType,
+		CredentialJSON: encrypted,
+		Status:         "active",
+	}
 	f.rows[f.next] = row
 	return row, nil
 }
 
-func (f *fakeAccountStore) Get(_ context.Context, id uint) (AccountRow, error) {
+func (f *fakeAccountStore) Get(_ context.Context, accessibleProjectIDs []uint, id uint) (AccountRow, error) {
+	row, ok := f.rows[id]
+	if !ok || !containsUint(accessibleProjectIDs, row.ProjectID) {
+		return AccountRow{}, ErrAccountNotFound
+	}
+	return row, nil
+}
+
+func (f *fakeAccountStore) GetForSync(_ context.Context, id uint) (AccountRow, error) {
 	row, ok := f.rows[id]
 	if !ok {
 		return AccountRow{}, ErrAccountNotFound
@@ -28,17 +45,19 @@ func (f *fakeAccountStore) Get(_ context.Context, id uint) (AccountRow, error) {
 	return row, nil
 }
 
-func (f *fakeAccountStore) List(_ context.Context) ([]AccountRow, error) {
+func (f *fakeAccountStore) List(_ context.Context, accessibleProjectIDs []uint) ([]AccountRow, error) {
 	rows := make([]AccountRow, 0, len(f.rows))
 	for _, r := range f.rows {
-		rows = append(rows, r)
+		if containsUint(accessibleProjectIDs, r.ProjectID) {
+			rows = append(rows, r)
+		}
 	}
 	return rows, nil
 }
 
-func (f *fakeAccountStore) Update(_ context.Context, id uint, name *string, encryptedCredential *string) (AccountRow, error) {
+func (f *fakeAccountStore) Update(_ context.Context, accessibleProjectIDs []uint, id uint, name *string, encryptedCredential *string) (AccountRow, error) {
 	row, ok := f.rows[id]
-	if !ok {
+	if !ok || !containsUint(accessibleProjectIDs, row.ProjectID) {
 		return AccountRow{}, ErrAccountNotFound
 	}
 	if name != nil {
@@ -51,8 +70,9 @@ func (f *fakeAccountStore) Update(_ context.Context, id uint, name *string, encr
 	return row, nil
 }
 
-func (f *fakeAccountStore) Delete(_ context.Context, id uint) error {
-	if _, ok := f.rows[id]; !ok {
+func (f *fakeAccountStore) Delete(_ context.Context, accessibleProjectIDs []uint, id uint) error {
+	row, ok := f.rows[id]
+	if !ok || !containsUint(accessibleProjectIDs, row.ProjectID) {
 		return ErrAccountNotFound
 	}
 	delete(f.rows, id)
@@ -70,6 +90,15 @@ func (f *fakeAccountStore) UpdateSyncStatus(_ context.Context, id uint, lastSync
 	return nil
 }
 
+func containsUint(set []uint, value uint) bool {
+	for _, item := range set {
+		if item == value {
+			return true
+		}
+	}
+	return false
+}
+
 func newTestAccountService() (*CloudAccountService, *fakeAccountStore) {
 	store := &fakeAccountStore{rows: make(map[uint]AccountRow)}
 	key := make([]byte, 32)
@@ -83,6 +112,16 @@ func newTestAccountService() (*CloudAccountService, *fakeAccountStore) {
 	return svc, store
 }
 
+func sampleCreateAccountRequest() CreateAccountRequest {
+	return CreateAccountRequest{
+		Name:           "prod",
+		Provider:       "aliyun",
+		AccountID:      "12345678",
+		CredentialType: "ak_sk",
+		Credential:     map[string]string{"access_key_id": "ak", "access_key_secret": "sk"},
+	}
+}
+
 func TestNewCloudAccountServiceRejectsInvalidKey(t *testing.T) {
 	_, err := NewCloudAccountService(&fakeAccountStore{rows: make(map[uint]AccountRow)}, []byte("tooshort"))
 	require.ErrorIs(t, err, ErrInvalidEncryptionKey)
@@ -90,64 +129,48 @@ func TestNewCloudAccountServiceRejectsInvalidKey(t *testing.T) {
 
 func TestCloudAccountServiceCreateMasksCredential(t *testing.T) {
 	svc, _ := newTestAccountService()
-	view, err := svc.Create(context.Background(), CreateAccountRequest{
-		Name: "prod", Provider: "aliyun", AccountID: "12345678",
-		CredentialType: "ak_sk",
-		Credential:     map[string]string{"access_key_id": "ak", "access_key_secret": "sk"},
-	})
+	view, err := svc.Create(context.Background(), 7, sampleCreateAccountRequest())
 	require.NoError(t, err)
 	require.Equal(t, "***", view.Credential)
 	require.Equal(t, "prod", view.Name)
 	require.Equal(t, "aliyun", view.Provider)
+	require.Equal(t, uint(7), view.ProjectID)
 }
 
 func TestCloudAccountServiceGetForSyncDecryptsCredential(t *testing.T) {
 	svc, _ := newTestAccountService()
-	_, err := svc.Create(context.Background(), CreateAccountRequest{
-		Name: "prod", Provider: "aliyun", AccountID: "123",
-		CredentialType: "ak_sk",
-		Credential:     map[string]string{"access_key_id": "AK", "access_key_secret": "SK"},
-	})
+	_, err := svc.Create(context.Background(), 7, sampleCreateAccountRequest())
 	require.NoError(t, err)
 
 	syncAcc, err := svc.GetForSync(context.Background(), 1)
 	require.NoError(t, err)
-	require.Equal(t, "AK", syncAcc.Credential["access_key_id"])
-	require.Equal(t, "SK", syncAcc.Credential["access_key_secret"])
+	require.Equal(t, "ak", syncAcc.Credential["access_key_id"])
+	require.Equal(t, "sk", syncAcc.Credential["access_key_secret"])
 }
 
 func TestCloudAccountServiceDeleteRemovesAccount(t *testing.T) {
 	svc, store := newTestAccountService()
-	_, err := svc.Create(context.Background(), CreateAccountRequest{
-		Name: "prod", Provider: "aliyun", AccountID: "123",
-		CredentialType: "ak_sk",
-		Credential:     map[string]string{"access_key_id": "ak", "access_key_secret": "sk"},
-	})
+	_, err := svc.Create(context.Background(), 7, sampleCreateAccountRequest())
 	require.NoError(t, err)
-	require.NoError(t, svc.Delete(context.Background(), 1))
+	require.NoError(t, svc.Delete(context.Background(), []uint{7}, 1))
 	require.Empty(t, store.rows)
 }
 
 func TestCloudAccountServiceGetNotFoundReturnsErrAccountNotFound(t *testing.T) {
 	svc, _ := newTestAccountService()
-	_, err := svc.Get(context.Background(), 9999)
+	_, err := svc.Get(context.Background(), []uint{7}, 9999)
 	require.ErrorIs(t, err, ErrAccountNotFound)
 }
 
 func TestCloudAccountServiceUpdateEmptyCredentialIsNoop(t *testing.T) {
 	svc, store := newTestAccountService()
-	_, err := svc.Create(context.Background(), CreateAccountRequest{
-		Name: "prod", Provider: "aliyun", AccountID: "123",
-		CredentialType: "ak_sk",
-		Credential:     map[string]string{"access_key_id": "AK"},
-	})
+	_, err := svc.Create(context.Background(), 7, sampleCreateAccountRequest())
 	require.NoError(t, err)
 	originalCred := store.rows[1].CredentialJSON
 
 	newName := "renamed"
-	_, err = svc.Update(context.Background(), 1, UpdateAccountRequest{Name: &newName, Credential: map[string]string{}})
+	_, err = svc.Update(context.Background(), []uint{7}, 1, UpdateAccountRequest{Name: &newName, Credential: map[string]string{}})
 	require.NoError(t, err)
-	// credential must not have changed
 	require.Equal(t, originalCred, store.rows[1].CredentialJSON)
 	require.Equal(t, "renamed", store.rows[1].Name)
 }
@@ -155,17 +178,29 @@ func TestCloudAccountServiceUpdateEmptyCredentialIsNoop(t *testing.T) {
 func TestCloudAccountServiceListMasksAllCredentials(t *testing.T) {
 	svc, _ := newTestAccountService()
 	for i := 0; i < 3; i++ {
-		_, err := svc.Create(context.Background(), CreateAccountRequest{
-			Name: "acc", Provider: "aliyun", AccountID: "id",
-			CredentialType: "ak_sk",
-			Credential:     map[string]string{"access_key_id": "AK"},
-		})
+		_, err := svc.Create(context.Background(), 7, sampleCreateAccountRequest())
 		require.NoError(t, err)
 	}
-	views, err := svc.List(context.Background())
+	views, err := svc.List(context.Background(), []uint{7})
 	require.NoError(t, err)
 	require.Len(t, views, 3)
 	for _, v := range views {
 		require.Equal(t, "***", v.Credential)
 	}
+}
+
+func TestCloudAccountServiceListFiltersByAccessibleProjects(t *testing.T) {
+	svc, _ := newTestAccountService()
+	_, err := svc.Create(context.Background(), 7, sampleCreateAccountRequest())
+	require.NoError(t, err)
+	other := sampleCreateAccountRequest()
+	other.Name = "other"
+	_, err = svc.Create(context.Background(), 8, other)
+	require.NoError(t, err)
+
+	views, err := svc.List(context.Background(), []uint{7})
+	require.NoError(t, err)
+	require.Len(t, views, 1)
+	require.Equal(t, uint(7), views[0].ProjectID)
+	require.Equal(t, "prod", views[0].Name)
 }

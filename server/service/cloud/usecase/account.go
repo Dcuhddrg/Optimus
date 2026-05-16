@@ -12,6 +12,7 @@ var ErrAccountNotFound = errors.New("cloud account not found")
 // AccountRow is the raw store-level representation (credential is encrypted).
 type AccountRow struct {
 	ID             uint
+	ProjectID      uint
 	Name           string
 	Provider       string
 	AccountID      string
@@ -24,6 +25,7 @@ type AccountRow struct {
 // AccountView is the API-safe representation (credential masked).
 type AccountView struct {
 	ID             uint       `json:"id"`
+	ProjectID      uint       `json:"projectId"`
 	Name           string     `json:"name"`
 	Provider       string     `json:"provider"`
 	AccountID      string     `json:"accountId"`
@@ -50,11 +52,12 @@ type UpdateAccountRequest struct {
 
 // AccountStore is the persistence interface for cloud accounts.
 type AccountStore interface {
-	Create(ctx context.Context, name, provider, accountID, credentialType, encryptedCredential string) (AccountRow, error)
-	Get(ctx context.Context, id uint) (AccountRow, error)
-	List(ctx context.Context) ([]AccountRow, error)
-	Update(ctx context.Context, id uint, name *string, encryptedCredential *string) (AccountRow, error)
-	Delete(ctx context.Context, id uint) error
+	Create(ctx context.Context, projectID uint, name, provider, accountID, credentialType, encryptedCredential string) (AccountRow, error)
+	Get(ctx context.Context, accessibleProjectIDs []uint, id uint) (AccountRow, error)
+	GetForSync(ctx context.Context, id uint) (AccountRow, error)
+	List(ctx context.Context, accessibleProjectIDs []uint) ([]AccountRow, error)
+	Update(ctx context.Context, accessibleProjectIDs []uint, id uint, name *string, encryptedCredential *string) (AccountRow, error)
+	Delete(ctx context.Context, accessibleProjectIDs []uint, id uint) error
 	UpdateSyncStatus(ctx context.Context, id uint, lastSyncedAt *time.Time, status string) error
 }
 
@@ -73,7 +76,7 @@ func NewCloudAccountService(store AccountStore, encKey []byte) (*CloudAccountSer
 	return &CloudAccountService{store: store, encKey: keyCopy}, nil
 }
 
-func (s *CloudAccountService) Create(ctx context.Context, req CreateAccountRequest) (AccountView, error) {
+func (s *CloudAccountService) Create(ctx context.Context, projectID uint, req CreateAccountRequest) (AccountView, error) {
 	credJSON, err := json.Marshal(req.Credential)
 	if err != nil {
 		return AccountView{}, err
@@ -82,7 +85,7 @@ func (s *CloudAccountService) Create(ctx context.Context, req CreateAccountReque
 	if err != nil {
 		return AccountView{}, err
 	}
-	row, err := s.store.Create(ctx, req.Name, req.Provider, req.AccountID, req.CredentialType, encrypted)
+	row, err := s.store.Create(ctx, projectID, req.Name, req.Provider, req.AccountID, req.CredentialType, encrypted)
 	if err != nil {
 		return AccountView{}, err
 	}
@@ -90,16 +93,16 @@ func (s *CloudAccountService) Create(ctx context.Context, req CreateAccountReque
 }
 
 // Get returns ErrAccountNotFound if no account exists with the given id.
-func (s *CloudAccountService) Get(ctx context.Context, id uint) (AccountView, error) {
-	row, err := s.store.Get(ctx, id)
+func (s *CloudAccountService) Get(ctx context.Context, accessibleProjectIDs []uint, id uint) (AccountView, error) {
+	row, err := s.store.Get(ctx, accessibleProjectIDs, id)
 	if err != nil {
 		return AccountView{}, err
 	}
 	return toAccountView(row), nil
 }
 
-func (s *CloudAccountService) List(ctx context.Context) ([]AccountView, error) {
-	rows, err := s.store.List(ctx)
+func (s *CloudAccountService) List(ctx context.Context, accessibleProjectIDs []uint) ([]AccountView, error) {
+	rows, err := s.store.List(ctx, accessibleProjectIDs)
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +113,7 @@ func (s *CloudAccountService) List(ctx context.Context) ([]AccountView, error) {
 	return views, nil
 }
 
-func (s *CloudAccountService) Update(ctx context.Context, id uint, req UpdateAccountRequest) (AccountView, error) {
+func (s *CloudAccountService) Update(ctx context.Context, accessibleProjectIDs []uint, id uint, req UpdateAccountRequest) (AccountView, error) {
 	var encCredential *string
 	if len(req.Credential) > 0 {
 		credJSON, err := json.Marshal(req.Credential)
@@ -123,15 +126,15 @@ func (s *CloudAccountService) Update(ctx context.Context, id uint, req UpdateAcc
 		}
 		encCredential = &enc
 	}
-	row, err := s.store.Update(ctx, id, req.Name, encCredential)
+	row, err := s.store.Update(ctx, accessibleProjectIDs, id, req.Name, encCredential)
 	if err != nil {
 		return AccountView{}, err
 	}
 	return toAccountView(row), nil
 }
 
-func (s *CloudAccountService) Delete(ctx context.Context, id uint) error {
-	return s.store.Delete(ctx, id)
+func (s *CloudAccountService) Delete(ctx context.Context, accessibleProjectIDs []uint, id uint) error {
+	return s.store.Delete(ctx, accessibleProjectIDs, id)
 }
 
 // UpdateSyncStatus updates last_synced_at and status after a sync attempt.
@@ -141,7 +144,7 @@ func (s *CloudAccountService) UpdateSyncStatus(ctx context.Context, id uint, las
 
 // GetForSync returns a SyncAccount with decrypted credentials for use by AssetRegistryService.
 func (s *CloudAccountService) GetForSync(ctx context.Context, id uint) (SyncAccount, error) {
-	row, err := s.store.Get(ctx, id)
+	row, err := s.store.GetForSync(ctx, id)
 	if err != nil {
 		return SyncAccount{}, err
 	}
@@ -165,6 +168,7 @@ func (s *CloudAccountService) GetForSync(ctx context.Context, id uint) (SyncAcco
 func toAccountView(row AccountRow) AccountView {
 	return AccountView{
 		ID:             row.ID,
+		ProjectID:      row.ProjectID,
 		Name:           row.Name,
 		Provider:       row.Provider,
 		AccountID:      row.AccountID,

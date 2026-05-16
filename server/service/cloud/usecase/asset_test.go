@@ -36,7 +36,7 @@ func TestAssetRegistryServiceSyncAccountUpsertsFetchedAssets(t *testing.T) {
 	accountSvc, err := NewCloudAccountService(accountStore, key)
 	require.NoError(t, err)
 
-	_, err = accountSvc.Create(context.Background(), CreateAccountRequest{
+	_, err = accountSvc.Create(context.Background(), 7, CreateAccountRequest{
 		Name: "prod", Provider: "aliyun", AccountID: "123",
 		CredentialType: "ak_sk",
 		Credential:     map[string]string{"access_key_id": "ak", "access_key_secret": "sk"},
@@ -62,7 +62,7 @@ func TestAssetRegistryServiceSyncAccountReturnsErrForUnknownProvider(t *testing.
 	accountStore := &fakeAccountStore{rows: make(map[uint]AccountRow)}
 	accountSvc, err := NewCloudAccountService(accountStore, key)
 	require.NoError(t, err)
-	_, err = accountSvc.Create(context.Background(), CreateAccountRequest{
+	_, err = accountSvc.Create(context.Background(), 7, CreateAccountRequest{
 		Name: "aws-acc", Provider: "aws", AccountID: "456",
 		CredentialType: "ak_sk",
 		Credential:     map[string]string{"access_key_id": "ak", "access_key_secret": "sk"},
@@ -80,7 +80,7 @@ func TestAssetRegistryServiceSyncAccountSetsActiveStatusOnSuccess(t *testing.T) 
 	accountSvc, err := NewCloudAccountService(accountStore, key)
 	require.NoError(t, err)
 
-	_, err = accountSvc.Create(context.Background(), CreateAccountRequest{
+	_, err = accountSvc.Create(context.Background(), 7, CreateAccountRequest{
 		Name: "prod", Provider: "aliyun", AccountID: "123",
 		CredentialType: "ak_sk",
 		Credential:     map[string]string{"access_key_id": "ak", "access_key_secret": "sk"},
@@ -105,7 +105,7 @@ func TestAssetRegistryServiceSyncAccountSetsErrorStatusOnFailure(t *testing.T) {
 	accountSvc, err := NewCloudAccountService(accountStore, key)
 	require.NoError(t, err)
 
-	_, err = accountSvc.Create(context.Background(), CreateAccountRequest{
+	_, err = accountSvc.Create(context.Background(), 7, CreateAccountRequest{
 		Name: "prod", Provider: "aws", AccountID: "123",
 		CredentialType: "ak_sk",
 		Credential:     map[string]string{"access_key_id": "ak", "access_key_secret": "sk"},
