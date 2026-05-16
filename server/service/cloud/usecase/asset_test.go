@@ -10,6 +10,7 @@ import (
 type fakeAssetStore struct {
 	upserted   []RawAsset
 	lastFilter AssetFilter
+	queried    bool
 }
 
 func (f *fakeAssetStore) Upsert(_ context.Context, accountID uint, provider string, assets []RawAsset) (SyncResult, error) {
@@ -18,6 +19,7 @@ func (f *fakeAssetStore) Upsert(_ context.Context, accountID uint, provider stri
 }
 
 func (f *fakeAssetStore) Query(_ context.Context, filter AssetFilter) (AssetPage, error) {
+	f.queried = true
 	f.lastFilter = filter
 	return AssetPage{Items: []AssetView{}, Total: 0, Page: filter.Page, PageSize: filter.PageSize}, nil
 }
@@ -50,7 +52,7 @@ func TestAssetRegistryServiceSyncAccountUpsertsFetchedAssets(t *testing.T) {
 	}})
 
 	svc := NewAssetRegistryService(accountSvc, assetStore, registry)
-	result, err := svc.SyncAccount(context.Background(), 1)
+	result, err := svc.SyncAccount(context.Background(), []uint{7}, 1)
 	require.NoError(t, err)
 	require.Equal(t, 1, result.Upserted)
 	require.Equal(t, 1, len(assetStore.upserted))
@@ -70,7 +72,7 @@ func TestAssetRegistryServiceSyncAccountReturnsErrForUnknownProvider(t *testing.
 	require.NoError(t, err)
 
 	svc := NewAssetRegistryService(accountSvc, &fakeAssetStore{}, NewSyncerRegistry())
-	_, err = svc.SyncAccount(context.Background(), 1)
+	_, err = svc.SyncAccount(context.Background(), []uint{7}, 1)
 	require.ErrorIs(t, err, ErrProviderNotRegistered)
 }
 
@@ -91,7 +93,7 @@ func TestAssetRegistryServiceSyncAccountSetsActiveStatusOnSuccess(t *testing.T) 
 	registry.Register("aliyun", fixedSyncer{assets: []RawAsset{}})
 
 	svc := NewAssetRegistryService(accountSvc, &fakeAssetStore{}, registry)
-	_, err = svc.SyncAccount(context.Background(), 1)
+	_, err = svc.SyncAccount(context.Background(), []uint{7}, 1)
 	require.NoError(t, err)
 
 	// Verify sync status was set to active
@@ -114,9 +116,41 @@ func TestAssetRegistryServiceSyncAccountSetsErrorStatusOnFailure(t *testing.T) {
 
 	// No syncer registered for "aws" → ErrProviderNotRegistered
 	svc := NewAssetRegistryService(accountSvc, &fakeAssetStore{}, NewSyncerRegistry())
-	_, err = svc.SyncAccount(context.Background(), 1)
+	_, err = svc.SyncAccount(context.Background(), []uint{7}, 1)
 	require.Error(t, err)
 
 	// Verify sync status was set to error
 	require.Equal(t, "error", accountStore.rows[1].Status)
+}
+
+func TestAssetRegistryServiceSyncAccountRejectsInaccessibleProject(t *testing.T) {
+	key := make([]byte, 32)
+	accountStore := &fakeAccountStore{rows: make(map[uint]AccountRow)}
+	accountSvc, err := NewCloudAccountService(accountStore, key)
+	require.NoError(t, err)
+
+	_, err = accountSvc.Create(context.Background(), 7, CreateAccountRequest{
+		Name: "prod", Provider: "aliyun", AccountID: "123",
+		CredentialType: "ak_sk",
+		Credential:     map[string]string{"access_key_id": "ak", "access_key_secret": "sk"},
+	})
+	require.NoError(t, err)
+
+	assetStore := &fakeAssetStore{}
+	registry := NewSyncerRegistry()
+	registry.Register("aliyun", fixedSyncer{assets: []RawAsset{{ResourceID: "i-001"}}})
+
+	svc := NewAssetRegistryService(accountSvc, assetStore, registry)
+	_, err = svc.SyncAccount(context.Background(), []uint{8}, 1)
+	require.ErrorIs(t, err, ErrAccountNotFound)
+	require.Empty(t, assetStore.upserted)
+}
+
+func TestAssetRegistryServiceQueryAssetsReturnsEmptyWhenNoAccessibleProjects(t *testing.T) {
+	svc := NewAssetRegistryService(nil, &fakeAssetStore{}, NewSyncerRegistry())
+
+	page, err := svc.QueryAssets(context.Background(), AssetFilter{})
+	require.NoError(t, err)
+	require.Empty(t, page.Items)
+	require.Zero(t, page.Total)
 }
