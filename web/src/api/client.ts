@@ -1,6 +1,8 @@
 const TOKEN_KEY = 'optimus.token';
+const PROJECT_CODE_KEY = 'optimus.currentProjectCode';
 
 let onUnauthorized: (() => void) | undefined;
+let currentProjectCode: string | null = window.localStorage.getItem(PROJECT_CODE_KEY);
 
 export function getStoredToken() {
   return window.localStorage.getItem(TOKEN_KEY);
@@ -12,6 +14,19 @@ export function setStoredToken(token: string) {
 
 export function clearStoredToken() {
   window.localStorage.removeItem(TOKEN_KEY);
+}
+
+export function getStoredProjectCode() {
+  return window.localStorage.getItem(PROJECT_CODE_KEY);
+}
+
+export function setStoredProjectCode(code: string | null) {
+  currentProjectCode = code;
+  if (code) {
+    window.localStorage.setItem(PROJECT_CODE_KEY, code);
+    return;
+  }
+  window.localStorage.removeItem(PROJECT_CODE_KEY);
 }
 
 export function setUnauthorizedHandler(handler: () => void) {
@@ -29,6 +44,9 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
   const token = getStoredToken();
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
+  }
+  if (currentProjectCode) {
+    headers.set('X-Project-Code', currentProjectCode);
   }
 
   const response = await fetch(`/api/v1${path}`, {
