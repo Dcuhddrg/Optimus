@@ -41,6 +41,9 @@ func Startup() {
 	if err := projectService.SeedProjectData(db); err != nil {
 		logDependencyInitFailure("project", "seed data", err)
 	}
+	if err := cloudService.BackfillCloudProjectScope(db); err != nil {
+		logDependencyInitFailure("cloud", "backfill project scope", err)
+	}
 
 	startAuditRetentionWorker(context.Background(), db, global.OPTIMUS_CONFIG.System.AuditLogRetentionDays)
 }

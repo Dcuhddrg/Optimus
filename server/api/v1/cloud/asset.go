@@ -14,7 +14,9 @@ func (h *AssetHandler) ListAssets(c *gin.Context) {
 		writeCloudServiceUnavailable(c, "asset registry service is not available")
 		return
 	}
+	scope := projectScope(c)
 	f := parseAssetFilter(c)
+	f.AccessibleProjectIDs = scope.AccessibleProjectIDs
 	page, err := h.service.QueryAssets(c.Request.Context(), f)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to query assets"})

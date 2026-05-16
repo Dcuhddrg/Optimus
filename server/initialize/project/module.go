@@ -11,6 +11,7 @@ import (
 
 type ProjectModule struct {
 	Handlers *projectApi.ProjectHandlers
+	Service  *projectUsecase.ProjectService
 }
 
 func NewProjectModule(db *gorm.DB, _ config.Config) *ProjectModule {
@@ -21,5 +22,6 @@ func NewProjectModule(db *gorm.DB, _ config.Config) *ProjectModule {
 	svc := projectUsecase.NewProjectService(store)
 	return &ProjectModule{
 		Handlers: projectApi.NewProjectHandlers(projectApi.ProjectHandlerDeps{Service: svc}),
+		Service:  svc,
 	}
 }

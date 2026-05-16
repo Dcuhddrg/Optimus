@@ -14,7 +14,8 @@ func (h *AccountHandler) ListAccounts(c *gin.Context) {
 		writeCloudServiceUnavailable(c, "cloud account service is not available")
 		return
 	}
-	views, err := h.accountSvc.List(c.Request.Context())
+	scope := projectScope(c)
+	views, err := h.accountSvc.List(c.Request.Context(), scope.AccessibleProjectIDs)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to list cloud accounts"})
 		return
@@ -31,7 +32,8 @@ func (h *AccountHandler) GetAccount(c *gin.Context) {
 	if !ok {
 		return
 	}
-	view, err := h.accountSvc.Get(c.Request.Context(), id)
+	scope := projectScope(c)
+	view, err := h.accountSvc.Get(c.Request.Context(), scope.AccessibleProjectIDs, id)
 	if errors.Is(err, cloudUsecase.ErrAccountNotFound) {
 		c.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
 		return
@@ -48,12 +50,17 @@ func (h *AccountHandler) CreateAccount(c *gin.Context) {
 		writeCloudServiceUnavailable(c, "cloud account service is not available")
 		return
 	}
+	scope := projectScope(c)
+	if scope.CurrentProjectID == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "X-Project-Code header is required to create a cloud account"})
+		return
+	}
 	var req cloudUsecase.CreateAccountRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid request body"})
 		return
 	}
-	view, err := h.accountSvc.Create(c.Request.Context(), req)
+	view, err := h.accountSvc.Create(c.Request.Context(), scope.CurrentProjectID, req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to create cloud account"})
 		return
@@ -75,7 +82,8 @@ func (h *AccountHandler) UpdateAccount(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid request body"})
 		return
 	}
-	view, err := h.accountSvc.Update(c.Request.Context(), id, req)
+	scope := projectScope(c)
+	view, err := h.accountSvc.Update(c.Request.Context(), scope.AccessibleProjectIDs, id, req)
 	if errors.Is(err, cloudUsecase.ErrAccountNotFound) {
 		c.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
 		return
@@ -96,7 +104,8 @@ func (h *AccountHandler) DeleteAccount(c *gin.Context) {
 	if !ok {
 		return
 	}
-	if err := h.accountSvc.Delete(c.Request.Context(), id); err != nil {
+	scope := projectScope(c)
+	if err := h.accountSvc.Delete(c.Request.Context(), scope.AccessibleProjectIDs, id); err != nil {
 		if errors.Is(err, cloudUsecase.ErrAccountNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
 			return
@@ -116,7 +125,8 @@ func (h *AccountHandler) SyncAccount(c *gin.Context) {
 	if !ok {
 		return
 	}
-	result, err := h.assetSvc.SyncAccount(c.Request.Context(), id)
+	scope := projectScope(c)
+	result, err := h.assetSvc.SyncAccount(c.Request.Context(), scope.AccessibleProjectIDs, id)
 	if errors.Is(err, cloudUsecase.ErrAccountNotFound) {
 		c.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
 		return
