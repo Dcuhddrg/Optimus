@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 
 import { useAuth } from '../../auth/AuthContext';
+import { useProject } from '../../auth/ProjectContext';
 import { useI18n } from '../../locale/useI18n';
 import styles from './SideNav.module.css';
 
@@ -17,6 +18,7 @@ function isSystemItem(item: SystemItem | null): item is SystemItem {
 export function SideNav() {
   const location = useLocation();
   const { hasMenu } = useAuth();
+  const { currentProject } = useProject();
   const { t } = useI18n();
   const onSystemPage = location.pathname.startsWith('/system');
   const [collapsed, setCollapsed] = useState(() => !onSystemPage);
@@ -24,6 +26,9 @@ export function SideNav() {
   const showRoles = hasMenu('system.roles.menu');
   const showLDAP = hasMenu('system.ldap.menu');
   const showAudit = hasMenu('system.audit.menu');
+  const showProjects = hasMenu('project.menu');
+  const showCloudAccounts = hasMenu('cloud.accounts.menu');
+  const showCloudAssets = hasMenu('cloud.assets.menu');
 
   useEffect(() => {
     if (onSystemPage) {
@@ -58,20 +63,74 @@ export function SideNav() {
       </div>
 
       <nav className={styles.nav} aria-label={t('shell.navLabel')}>
-        <NavLink
-          to="/"
-          end
-          className={({ isActive }) =>
-            [styles.navEntry, isActive ? styles.navEntryActive : '']
-              .filter(Boolean)
-              .join(' ')
-          }
-        >
-          {t('shell.dashboard')}
-        </NavLink>
+        <section className={styles.group}>
+          <p className={styles.groupLabel}>{t('shell.overview')}</p>
+          <NavLink
+            to="/"
+            end
+            className={({ isActive }) =>
+              [styles.navEntry, isActive ? styles.navEntryActive : '']
+                .filter(Boolean)
+                .join(' ')
+            }
+          >
+            {t('shell.dashboard')}
+          </NavLink>
+          {showProjects ? (
+            <NavLink
+              to="/projects"
+              className={({ isActive }) =>
+                [styles.navEntry, isActive ? styles.navEntryActive : '']
+                  .filter(Boolean)
+                  .join(' ')
+              }
+            >
+              {t('shell.projects')}
+            </NavLink>
+          ) : null}
+        </section>
+
+        <section className={styles.group}>
+          <p className={styles.groupLabel}>{t('shell.currentProject')}</p>
+          <div className={styles.projectContext}>
+            {currentProject ? (
+              <>
+                <strong>{currentProject.name}</strong>
+                <span>{currentProject.code}</span>
+              </>
+            ) : (
+              <span>{t('shell.noProjectSelected')}</span>
+            )}
+          </div>
+          {showCloudAccounts ? (
+            <NavLink
+              to="/cloud/accounts"
+              className={({ isActive }) =>
+                [styles.navEntry, isActive ? styles.navEntryActive : '']
+                  .filter(Boolean)
+                  .join(' ')
+              }
+            >
+              {t('shell.cloudAccounts')}
+            </NavLink>
+          ) : null}
+          {showCloudAssets ? (
+            <NavLink
+              to="/cloud/assets"
+              className={({ isActive }) =>
+                [styles.navEntry, isActive ? styles.navEntryActive : '']
+                  .filter(Boolean)
+                  .join(' ')
+              }
+            >
+              {t('shell.cloudAssets')}
+            </NavLink>
+          ) : null}
+        </section>
 
         {hasSystemItems ? (
           <section className={systemSectionClassName}>
+            <p className={styles.groupLabel}>{t('shell.system')}</p>
             <button
               type="button"
               className={[styles.navEntry, styles.sectionButton].join(' ')}
