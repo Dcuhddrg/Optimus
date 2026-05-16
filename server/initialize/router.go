@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	cloudInit "optimus/server/initialize/cloud"
+	projectInit "optimus/server/initialize/project"
 	"optimus/server/global"
 	"optimus/server/middleware"
 	"optimus/server/router"
@@ -15,6 +16,7 @@ const defaultRouterPrefix = "/api/v1"
 
 var newSystemModule = NewSystemModule
 var newCloudModule = cloudInit.NewCloudModule
+var newProjectModule = projectInit.NewProjectModule
 
 func Routers() *gin.Engine {
 	systemModule := newSystemModule(global.OPTIMUS_DB, global.OPTIMUS_CONFIG)
@@ -22,6 +24,7 @@ func Routers() *gin.Engine {
 		systemModule = NewSystemModule(nil, global.OPTIMUS_CONFIG)
 	}
 	cloudModule := newCloudModule(global.OPTIMUS_DB, global.OPTIMUS_CONFIG)
+	projectModule := newProjectModule(global.OPTIMUS_DB, global.OPTIMUS_CONFIG)
 
 	engine := gin.New()
 	// 全局中间件
@@ -35,6 +38,7 @@ func Routers() *gin.Engine {
 	routerGroup := router.RouterGroupApp
 	routerGroup.System.InitSystemRouter(publicGroup, privateGroup, systemModule.Handlers)
 	routerGroup.Cloud.InitCloudRouter(privateGroup, cloudModule.Handlers)
+	routerGroup.Project.InitProjectRouter(privateGroup, projectModule.Handlers)
 
 	return engine
 }
