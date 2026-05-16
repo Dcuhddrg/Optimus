@@ -60,6 +60,8 @@ const en = {
       empty: 'No projects',
       manage: 'Manage',
       count: 'projects',
+      search: 'Search projects',
+      noResults: 'No matching projects',
     },
     list: {
       eyebrow: 'Projects',
@@ -244,6 +246,8 @@ const zhCN: typeof en = {
       empty: '暂无项目',
       manage: '管理',
       count: '个项目',
+      search: '搜索项目',
+      noResults: '没有匹配的项目',
     },
     list: {
       eyebrow: '项目',
