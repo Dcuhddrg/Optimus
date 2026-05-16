@@ -19,8 +19,9 @@ func NewGormAccountStore(db *gorm.DB) *GormAccountStore {
 	return &GormAccountStore{db: db}
 }
 
-func (s *GormAccountStore) Create(ctx context.Context, name, provider, accountID, credentialType, encryptedCredential string) (usecase.AccountRow, error) {
+func (s *GormAccountStore) Create(ctx context.Context, projectID uint, name, provider, accountID, credentialType, encryptedCredential string) (usecase.AccountRow, error) {
 	m := cloudModel.CloudAccount{
+		ProjectID:      projectID,
 		Name:           name,
 		Provider:       provider,
 		AccountID:      accountID,
@@ -34,7 +35,23 @@ func (s *GormAccountStore) Create(ctx context.Context, name, provider, accountID
 	return toAccountRow(m), nil
 }
 
-func (s *GormAccountStore) Get(ctx context.Context, id uint) (usecase.AccountRow, error) {
+func (s *GormAccountStore) Get(ctx context.Context, accessibleProjectIDs []uint, id uint) (usecase.AccountRow, error) {
+	if len(accessibleProjectIDs) == 0 {
+		return usecase.AccountRow{}, usecase.ErrAccountNotFound
+	}
+	var m cloudModel.CloudAccount
+	if err := s.db.WithContext(ctx).
+		Where("id = ? AND project_id IN ?", id, accessibleProjectIDs).
+		First(&m).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return usecase.AccountRow{}, usecase.ErrAccountNotFound
+		}
+		return usecase.AccountRow{}, err
+	}
+	return toAccountRow(m), nil
+}
+
+func (s *GormAccountStore) GetForSync(ctx context.Context, id uint) (usecase.AccountRow, error) {
 	var m cloudModel.CloudAccount
 	if err := s.db.WithContext(ctx).First(&m, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -45,9 +62,15 @@ func (s *GormAccountStore) Get(ctx context.Context, id uint) (usecase.AccountRow
 	return toAccountRow(m), nil
 }
 
-func (s *GormAccountStore) List(ctx context.Context) ([]usecase.AccountRow, error) {
+func (s *GormAccountStore) List(ctx context.Context, accessibleProjectIDs []uint) ([]usecase.AccountRow, error) {
+	if len(accessibleProjectIDs) == 0 {
+		return []usecase.AccountRow{}, nil
+	}
 	var models []cloudModel.CloudAccount
-	if err := s.db.WithContext(ctx).Find(&models).Error; err != nil {
+	if err := s.db.WithContext(ctx).
+		Where("project_id IN ?", accessibleProjectIDs).
+		Order("created_at DESC").
+		Find(&models).Error; err != nil {
 		return nil, err
 	}
 	rows := make([]usecase.AccountRow, len(models))
@@ -57,9 +80,14 @@ func (s *GormAccountStore) List(ctx context.Context) ([]usecase.AccountRow, erro
 	return rows, nil
 }
 
-func (s *GormAccountStore) Update(ctx context.Context, id uint, name *string, encryptedCredential *string) (usecase.AccountRow, error) {
+func (s *GormAccountStore) Update(ctx context.Context, accessibleProjectIDs []uint, id uint, name *string, encryptedCredential *string) (usecase.AccountRow, error) {
+	if len(accessibleProjectIDs) == 0 {
+		return usecase.AccountRow{}, usecase.ErrAccountNotFound
+	}
 	var m cloudModel.CloudAccount
-	if err := s.db.WithContext(ctx).First(&m, id).Error; err != nil {
+	if err := s.db.WithContext(ctx).
+		Where("id = ? AND project_id IN ?", id, accessibleProjectIDs).
+		First(&m).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return usecase.AccountRow{}, usecase.ErrAccountNotFound
 		}
@@ -83,8 +111,13 @@ func (s *GormAccountStore) Update(ctx context.Context, id uint, name *string, en
 	return toAccountRow(m), nil
 }
 
-func (s *GormAccountStore) Delete(ctx context.Context, id uint) error {
-	res := s.db.WithContext(ctx).Delete(&cloudModel.CloudAccount{}, id)
+func (s *GormAccountStore) Delete(ctx context.Context, accessibleProjectIDs []uint, id uint) error {
+	if len(accessibleProjectIDs) == 0 {
+		return usecase.ErrAccountNotFound
+	}
+	res := s.db.WithContext(ctx).
+		Where("id = ? AND project_id IN ?", id, accessibleProjectIDs).
+		Delete(&cloudModel.CloudAccount{})
 	if res.Error != nil {
 		return res.Error
 	}
@@ -112,6 +145,7 @@ func (s *GormAccountStore) UpdateSyncStatus(ctx context.Context, id uint, lastSy
 func toAccountRow(m cloudModel.CloudAccount) usecase.AccountRow {
 	return usecase.AccountRow{
 		ID:             m.ID,
+		ProjectID:      m.ProjectID,
 		Name:           m.Name,
 		Provider:       m.Provider,
 		AccountID:      m.AccountID,
