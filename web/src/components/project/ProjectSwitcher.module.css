@@ -3,6 +3,7 @@
   align-items: center;
   gap: 8px;
   min-height: 44px;
+  min-width: 0;
   max-width: 100%;
   padding: 4px;
   border: 1px solid var(--shell-border);
@@ -20,7 +21,9 @@
 }
 
 .select {
+  flex: 1 1 12rem;
   min-height: 36px;
+  min-width: 0;
   max-width: min(32vw, 280px);
   border: 0;
   border-radius: 999px;
@@ -44,6 +47,7 @@
 .manage {
   display: inline-flex;
   align-items: center;
+  flex: 0 0 auto;
   min-height: 36px;
   padding: 0 12px;
   border-radius: 999px;
@@ -77,5 +81,9 @@
   .select {
     flex: 1 1 12rem;
     max-width: 100%;
+  }
+
+  .manage {
+    margin-left: auto;
   }
 }
