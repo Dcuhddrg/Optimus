@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
 import {
@@ -7,8 +7,10 @@ import {
   removeProjectMember,
   updateProjectMemberRole,
 } from '../../api/project';
+import { listUsers } from '../../api/system';
 import { useI18n } from '../../locale/useI18n';
 import type { ProjectMember, ProjectRole } from '../../types/project';
+import type { SystemUser } from '../../types/system';
 import styles from './ProjectMembersPage.module.css';
 
 const roles: ProjectRole[] = ['owner', 'member', 'viewer'];
@@ -17,7 +19,10 @@ export function ProjectMembersPage() {
   const { code = '' } = useParams();
   const { t } = useI18n();
   const [members, setMembers] = useState<ProjectMember[]>([]);
-  const [userId, setUserId] = useState('');
+  const [users, setUsers] = useState<SystemUser[]>([]);
+  const [usersUnavailable, setUsersUnavailable] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+  const [userSearch, setUserSearch] = useState('');
   const [role, setRole] = useState<ProjectRole>('member');
   const [error, setError] = useState<string | null>(null);
 
@@ -29,21 +34,56 @@ export function ProjectMembersPage() {
     setMembers(result.items);
   }
 
+  async function loadUsers() {
+    try {
+      const result = await listUsers();
+      setUsers(result.items);
+      setUsersUnavailable(false);
+    } catch {
+      setUsers([]);
+      setUsersUnavailable(true);
+    }
+  }
+
   useEffect(() => {
     void load().catch((err) => setError(err instanceof Error ? err.message : t('project.members.loadFailed')));
+    void loadUsers();
   }, [code]);
+
+  const eligibleUsers = useMemo(() => {
+    const memberIds = new Set(members.map((member) => member.userId));
+    const query = userSearch.trim().toLowerCase();
+    return users.filter((user) => {
+      if (memberIds.has(user.id)) {
+        return false;
+      }
+      if (!query) {
+        return true;
+      }
+      return (
+        user.username.toLowerCase().includes(query) ||
+        (user.displayName ?? '').toLowerCase().includes(query)
+      );
+    });
+  }, [users, members, userSearch]);
+
+  useEffect(() => {
+    if (selectedUserId !== null && !eligibleUsers.some((user) => user.id === selectedUserId)) {
+      setSelectedUserId(null);
+    }
+  }, [eligibleUsers, selectedUserId]);
 
   async function handleAdd(event: FormEvent) {
     event.preventDefault();
-    const parsedUserID = Number(userId);
-    if (!Number.isInteger(parsedUserID) || parsedUserID <= 0) {
-      setError(t('project.members.invalidUser'));
+    if (selectedUserId === null) {
+      setError(t('project.members.selectUserRequired'));
       return;
     }
     setError(null);
     try {
-      await addProjectMember(code, { userId: parsedUserID, projectRole: role });
-      setUserId('');
+      await addProjectMember(code, { userId: selectedUserId, projectRole: role });
+      setSelectedUserId(null);
+      setUserSearch('');
       setRole('member');
       await load();
     } catch (err) {
@@ -105,21 +145,41 @@ export function ProjectMembersPage() {
       </div>
 
       <form className={styles.addBar} onSubmit={(event) => void handleAdd(event)}>
-        <label>
-          <span>{t('project.members.userIdLabel')}</span>
+        <label className={styles.userPicker}>
+          <span>{t('project.members.selectUser')}</span>
           <input
-            value={userId}
-            onChange={(event) => setUserId(event.target.value)}
-            inputMode="numeric"
-            placeholder={t('project.members.userIdPlaceholder')}
+            value={userSearch}
+            onChange={(event) => setUserSearch(event.target.value)}
+            placeholder={t('project.members.searchUser')}
+            disabled={usersUnavailable}
           />
+          <select
+            value={selectedUserId ?? ''}
+            onChange={(event) =>
+              setSelectedUserId(event.target.value ? Number(event.target.value) : null)
+            }
+            disabled={usersUnavailable || eligibleUsers.length === 0}
+          >
+            <option value="">
+              {usersUnavailable
+                ? t('project.members.usersUnavailable')
+                : eligibleUsers.length === 0
+                  ? t('project.members.noEligibleUsers')
+                  : t('project.members.selectUserPlaceholder')}
+            </option>
+            {eligibleUsers.map((user) => (
+              <option key={user.id} value={user.id}>
+                {user.displayName ? `${user.displayName} · ${user.username}` : user.username} · #{user.id}
+              </option>
+            ))}
+          </select>
         </label>
         <select value={role} onChange={(event) => setRole(event.target.value as ProjectRole)}>
           {roles.map((item) => (
             <option key={item} value={item}>{t(`project.roles.${item}`)}</option>
           ))}
         </select>
-        <button type="submit">{t('project.members.add')}</button>
+        <button type="submit" disabled={selectedUserId === null}>{t('project.members.add')}</button>
       </form>
 
       <div className={styles.list}>
