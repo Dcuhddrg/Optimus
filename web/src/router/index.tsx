@@ -1,11 +1,14 @@
 import { createBrowserRouter, Outlet } from 'react-router-dom';
 
 import { AuthProvider } from '../auth/AuthContext';
+import { ProjectProvider } from '../auth/ProjectContext';
 import { RequireAuth } from '../auth/RequireAuth';
 import { AppShell } from '../layout/AppShell';
 import { LanguageProvider } from '../locale/LanguageProvider';
 import { LoginPage } from '../view/auth/LoginPage';
 import { DashboardPage } from '../view/dashboard/DashboardPage';
+import { ProjectMembersPage } from '../view/project/ProjectMembersPage';
+import { ProjectsPage } from '../view/project/ProjectsPage';
 import { ForbiddenPage } from '../view/system/ForbiddenPage';
 import { SystemAuditLogsPage } from '../view/system/SystemAuditLogsPage';
 import { SystemLdapPage } from '../view/system/SystemLdapPage';
@@ -35,7 +38,11 @@ export const router = createBrowserRouter([
         element: <RequireAuth />,
         children: [
           {
-            element: <AppShell />,
+            element: (
+              <ProjectProvider>
+                <AppShell />
+              </ProjectProvider>
+            ),
             children: [
               {
                 index: true,
@@ -44,6 +51,14 @@ export const router = createBrowserRouter([
               {
                 path: 'forbidden',
                 element: <ForbiddenPage />,
+              },
+              {
+                path: 'projects',
+                element: <ProjectsPage />,
+              },
+              {
+                path: 'projects/:code/members',
+                element: <ProjectMembersPage />,
               },
               {
                 path: 'system',

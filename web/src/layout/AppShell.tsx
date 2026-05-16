@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { LanguageSwitcher } from '../components/locale/LanguageSwitcher';
 import { SideNav } from '../components/nav/SideNav';
+import { ProjectSwitcher } from '../components/project/ProjectSwitcher';
 import { useI18n } from '../locale/useI18n';
 import styles from './AppShell.module.css';
 
@@ -20,6 +21,7 @@ export function AppShell() {
             <h1 className={styles.title}>{t('shell.topbarTitle')}</h1>
           </div>
           <div className={styles.topbarActions}>
+            <ProjectSwitcher />
             <LanguageSwitcher />
             <div className={styles.session}>
               <span className={styles.badge}>{current?.user.displayName || current?.user.username}</span>
