@@ -1,6 +1,7 @@
 import { createBrowserRouter, Outlet } from 'react-router-dom';
 
 import { AuthProvider } from '../auth/AuthContext';
+import { ProjectProvider } from '../auth/ProjectContext';
 import { RequireAuth } from '../auth/RequireAuth';
 import { AppShell } from '../layout/AppShell';
 import { LanguageProvider } from '../locale/LanguageProvider';
@@ -35,7 +36,11 @@ export const router = createBrowserRouter([
         element: <RequireAuth />,
         children: [
           {
-            element: <AppShell />,
+            element: (
+              <ProjectProvider>
+                <AppShell />
+              </ProjectProvider>
+            ),
             children: [
               {
                 index: true,
