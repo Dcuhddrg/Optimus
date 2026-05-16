@@ -177,6 +177,27 @@
   outline-offset: 1px;
 }
 
+.fieldInvalid input {
+  border-color: rgba(154, 52, 18, 0.55);
+  background: rgba(255, 247, 237, 0.6);
+}
+
+.fieldInvalid input:focus {
+  border-color: rgba(154, 52, 18, 0.75);
+  outline-color: rgba(154, 52, 18, 0.18);
+}
+
+.fieldHint {
+  color: #9a3412;
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+.createBar button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .actions {
   display: flex;
   align-items: center;

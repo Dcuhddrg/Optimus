@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { createProject, deleteProject, listProjects, updateProject } from '../../api/project';
@@ -14,6 +14,7 @@ interface Draft {
 }
 
 const emptyDraft: Draft = { name: '', code: '', description: '' };
+const CODE_REGEX = /^[a-z][a-z0-9-]{1,62}$/;
 
 export function ProjectsPage() {
   const { t } = useI18n();
@@ -22,6 +23,15 @@ export function ProjectsPage() {
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [editing, setEditing] = useState<Record<string, Draft>>({});
   const [error, setError] = useState<string | null>(null);
+
+  const codeError = useMemo(() => {
+    if (!draft.code) {
+      return null;
+    }
+    return CODE_REGEX.test(draft.code) ? null : t('project.list.codeInvalid');
+  }, [draft.code, t]);
+
+  const canSubmit = draft.name.trim().length > 0 && draft.code.length > 0 && codeError === null;
 
   async function load() {
     const result = await listProjects();
@@ -34,6 +44,10 @@ export function ProjectsPage() {
 
   async function handleCreate(event: FormEvent) {
     event.preventDefault();
+    if (codeError !== null) {
+      setError(codeError);
+      return;
+    }
     setError(null);
     try {
       await createProject(draft);
@@ -112,14 +126,21 @@ export function ProjectsPage() {
             required
           />
         </label>
-        <label>
+        <label className={codeError ? styles.fieldInvalid : undefined}>
           <span>{t('project.list.code')}</span>
           <input
             value={draft.code}
             onChange={(event) => setDraft((value) => ({ ...value, code: event.target.value }))}
             placeholder={t('project.list.codePlaceholder')}
+            aria-invalid={codeError !== null}
+            aria-describedby={codeError ? 'project-code-error' : undefined}
             required
           />
+          {codeError ? (
+            <small id="project-code-error" className={styles.fieldHint}>
+              {codeError}
+            </small>
+          ) : null}
         </label>
         <label>
           <span>{t('project.list.description')}</span>
@@ -129,7 +150,7 @@ export function ProjectsPage() {
             placeholder={t('project.list.descriptionPlaceholder')}
           />
         </label>
-        <button type="submit">{t('project.list.create')}</button>
+        <button type="submit" disabled={!canSubmit}>{t('project.list.create')}</button>
       </form>
 
       <div className={styles.table}>
