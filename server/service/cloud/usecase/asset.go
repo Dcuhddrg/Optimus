@@ -8,14 +8,15 @@ import (
 
 // AssetFilter holds optional query parameters for listing cloud assets.
 type AssetFilter struct {
-	AccountID    *uint
-	Provider     *string
-	Region       *string
-	ResourceType *string
-	Status       *string
-	Keyword      *string
-	Page         int
-	PageSize     int
+	AccessibleProjectIDs []uint
+	AccountID            *uint
+	Provider             *string
+	Region               *string
+	ResourceType         *string
+	Status               *string
+	Keyword              *string
+	Page                 int
+	PageSize             int
 }
 
 // AssetPage is the paginated response for cloud asset queries.
@@ -68,7 +69,11 @@ func NewAssetRegistryService(accounts *CloudAccountService, store AssetStore, re
 }
 
 // SyncAccount fetches all assets for the given account and upserts them into the registry.
-func (s *AssetRegistryService) SyncAccount(ctx context.Context, accountID uint) (SyncResult, error) {
+func (s *AssetRegistryService) SyncAccount(ctx context.Context, accessibleProjectIDs []uint, accountID uint) (SyncResult, error) {
+	if _, err := s.accounts.Get(ctx, accessibleProjectIDs, accountID); err != nil {
+		return SyncResult{}, err
+	}
+
 	syncAcc, err := s.accounts.GetForSync(ctx, accountID)
 	if err != nil {
 		statusErr := s.accounts.UpdateSyncStatus(ctx, accountID, nil, "error")
@@ -98,5 +103,8 @@ func (s *AssetRegistryService) SyncAccount(ctx context.Context, accountID uint) 
 
 // QueryAssets returns a paginated list of cloud assets matching the filter.
 func (s *AssetRegistryService) QueryAssets(ctx context.Context, f AssetFilter) (AssetPage, error) {
+	if len(f.AccessibleProjectIDs) == 0 {
+		return AssetPage{Items: []AssetView{}, Page: f.Page, PageSize: f.PageSize}, nil
+	}
 	return s.store.Query(ctx, f)
 }

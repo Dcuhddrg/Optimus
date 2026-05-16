@@ -8,6 +8,7 @@ import (
 
 type CloudAccount struct {
 	ID             uint           `gorm:"primaryKey" json:"id"`
+	ProjectID      uint           `gorm:"not null;default:0;index" json:"projectId"`
 	Name           string         `gorm:"size:128;not null" json:"name"`
 	Provider       string         `gorm:"size:32;not null;index" json:"provider"`
 	AccountID      string         `gorm:"size:64;not null" json:"accountId"`

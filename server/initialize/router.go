@@ -3,9 +3,9 @@ package initialize
 import (
 	"strings"
 
+	"optimus/server/global"
 	cloudInit "optimus/server/initialize/cloud"
 	projectInit "optimus/server/initialize/project"
-	"optimus/server/global"
 	"optimus/server/middleware"
 	"optimus/server/router"
 
@@ -34,6 +34,9 @@ func Routers() *gin.Engine {
 	// 私有路由
 	privateGroup := engine.Group(routerPrefix())
 	privateGroup.Use(middleware.JWTAuth(), middleware.CasbinHandler(systemModule.Capabilities.RBAC))
+	if projectModule != nil && projectModule.Service != nil {
+		privateGroup.Use(middleware.ProjectScope(projectModule.Service))
+	}
 
 	routerGroup := router.RouterGroupApp
 	routerGroup.System.InitSystemRouter(publicGroup, privateGroup, systemModule.Handlers)

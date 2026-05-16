@@ -61,25 +61,33 @@ func (s *GormAssetStore) Upsert(ctx context.Context, accountID uint, provider st
 }
 
 func (s *GormAssetStore) Query(ctx context.Context, f usecase.AssetFilter) (usecase.AssetPage, error) {
-	q := s.db.WithContext(ctx).Model(&cloudModel.CloudAsset{})
+	if len(f.AccessibleProjectIDs) == 0 {
+		return usecase.AssetPage{Items: []usecase.AssetView{}}, nil
+	}
+
+	q := s.db.WithContext(ctx).
+		Model(&cloudModel.CloudAsset{}).
+		Joins("JOIN cloud_accounts ON cloud_accounts.id = cloud_assets.account_id").
+		Where("cloud_accounts.project_id IN ?", f.AccessibleProjectIDs).
+		Where("cloud_accounts.deleted_at IS NULL")
 	if f.AccountID != nil {
-		q = q.Where("account_id = ?", *f.AccountID)
+		q = q.Where("cloud_assets.account_id = ?", *f.AccountID)
 	}
 	if f.Provider != nil {
-		q = q.Where("provider = ?", *f.Provider)
+		q = q.Where("cloud_assets.provider = ?", *f.Provider)
 	}
 	if f.Region != nil {
-		q = q.Where("region = ?", *f.Region)
+		q = q.Where("cloud_assets.region = ?", *f.Region)
 	}
 	if f.ResourceType != nil {
-		q = q.Where("resource_type = ?", *f.ResourceType)
+		q = q.Where("cloud_assets.resource_type = ?", *f.ResourceType)
 	}
 	if f.Status != nil {
-		q = q.Where("status = ?", *f.Status)
+		q = q.Where("cloud_assets.status = ?", *f.Status)
 	}
 	if f.Keyword != nil && *f.Keyword != "" {
 		escaped := strings.NewReplacer(`%`, `\%`, `_`, `\_`).Replace(*f.Keyword)
-		q = q.Where("name LIKE ? ESCAPE '\\\\'", "%"+escaped+"%")
+		q = q.Where("cloud_assets.name LIKE ? ESCAPE '\\\\'", "%"+escaped+"%")
 	}
 
 	page := f.Page
@@ -97,7 +105,7 @@ func (s *GormAssetStore) Query(ctx context.Context, f usecase.AssetFilter) (usec
 		return usecase.AssetPage{}, err
 	}
 	var models []cloudModel.CloudAsset
-	if err := q.Order("created_at DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&models).Error; err != nil {
+	if err := q.Order("cloud_assets.created_at DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&models).Error; err != nil {
 		return usecase.AssetPage{}, err
 	}
 	items := make([]usecase.AssetView, len(models))

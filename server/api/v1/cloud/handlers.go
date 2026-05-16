@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	cloudUsecase "optimus/server/service/cloud/usecase"
+	"optimus/server/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -50,4 +51,16 @@ func parseCloudUintParam(c *gin.Context, name string) (uint, bool) {
 		return 0, false
 	}
 	return uint(n), true
+}
+
+func projectScope(c *gin.Context) utils.ProjectScope {
+	raw, exists := c.Get(utils.ProjectScopeContextKey)
+	if !exists {
+		return utils.ProjectScope{}
+	}
+	scope, ok := raw.(utils.ProjectScope)
+	if !ok {
+		return utils.ProjectScope{}
+	}
+	return scope
 }
