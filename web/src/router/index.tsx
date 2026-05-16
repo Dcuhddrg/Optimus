@@ -7,6 +7,7 @@ import { AppShell } from '../layout/AppShell';
 import { LanguageProvider } from '../locale/LanguageProvider';
 import { LoginPage } from '../view/auth/LoginPage';
 import { DashboardPage } from '../view/dashboard/DashboardPage';
+import { ProjectsPage } from '../view/project/ProjectsPage';
 import { ForbiddenPage } from '../view/system/ForbiddenPage';
 import { SystemAuditLogsPage } from '../view/system/SystemAuditLogsPage';
 import { SystemLdapPage } from '../view/system/SystemLdapPage';
@@ -49,6 +50,10 @@ export const router = createBrowserRouter([
               {
                 path: 'forbidden',
                 element: <ForbiddenPage />,
+              },
+              {
+                path: 'projects',
+                element: <ProjectsPage />,
               },
               {
                 path: 'system',
