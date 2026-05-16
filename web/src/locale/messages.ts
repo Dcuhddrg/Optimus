@@ -45,6 +45,15 @@ const en = {
     auditLogs: 'Audit Logs',
     signOut: 'Sign out',
   },
+  project: {
+    switcher: {
+      label: 'Project switcher',
+      current: 'Project',
+      loading: 'Loading projects',
+      empty: 'No projects',
+      manage: 'Manage',
+    },
+  },
   dashboard: {
     eyebrow: 'Dashboard',
     title: 'Platform overview is under construction',
@@ -156,6 +165,15 @@ const zhCN: typeof en = {
     ldap: 'LDAP',
     auditLogs: '审计日志',
     signOut: '退出登录',
+  },
+  project: {
+    switcher: {
+      label: '项目切换器',
+      current: '项目',
+      loading: '加载项目中',
+      empty: '暂无项目',
+      manage: '管理',
+    },
   },
   dashboard: {
     eyebrow: '仪表盘',
