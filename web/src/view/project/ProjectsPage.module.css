@@ -16,6 +16,37 @@
   color: var(--text-primary);
 }
 
+.summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.summary div {
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--shell-border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.52);
+}
+
+.summary span {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--shell-muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.summary strong {
+  display: block;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .error {
   padding: 12px 14px;
   border: 1px solid rgba(154, 52, 18, 0.22);
@@ -60,8 +91,18 @@
 }
 
 .identity span,
+.identity em,
 .empty {
   color: var(--shell-muted);
+}
+
+.identity em {
+  width: fit-content;
+  border-radius: 999px;
+  padding: 2px 8px;
+  background: rgba(255, 255, 255, 0.66);
+  font-size: 0.76rem;
+  font-style: normal;
 }
 
 .createBar input,
@@ -125,6 +166,10 @@
 }
 
 @media (max-width: 760px) {
+  .summary {
+    grid-template-columns: 1fr;
+  }
+
   .createBar,
   .row {
     grid-template-columns: 1fr;

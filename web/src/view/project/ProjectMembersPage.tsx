@@ -87,12 +87,15 @@ export function ProjectMembersPage() {
       {error ? <div className={styles.error}>{error}</div> : null}
 
       <form className={styles.addBar} onSubmit={(event) => void handleAdd(event)}>
-        <input
-          value={userId}
-          onChange={(event) => setUserId(event.target.value)}
-          inputMode="numeric"
-          placeholder={t('project.members.userIdPlaceholder')}
-        />
+        <label>
+          <span>{t('project.members.userIdLabel')}</span>
+          <input
+            value={userId}
+            onChange={(event) => setUserId(event.target.value)}
+            inputMode="numeric"
+            placeholder={t('project.members.userIdPlaceholder')}
+          />
+        </label>
         <select value={role} onChange={(event) => setRole(event.target.value as ProjectRole)}>
           {roles.map((item) => (
             <option key={item} value={item}>{t(`project.roles.${item}`)}</option>
@@ -108,6 +111,7 @@ export function ProjectMembersPage() {
               <strong>{member.displayName || member.username}</strong>
               <span>{member.username} · #{member.userId}</span>
             </div>
+            <span className={styles.roleBadge}>{t(`project.roles.${member.projectRole as ProjectRole}`)}</span>
             <select
               value={member.projectRole}
               onChange={(event) => void handleRoleChange(member, event.target.value as ProjectRole)}

@@ -17,7 +17,7 @@ const emptyDraft: Draft = { name: '', code: '', description: '' };
 
 export function ProjectsPage() {
   const { t } = useI18n();
-  const { reloadProjects } = useProject();
+  const { currentProject, reloadProjects } = useProject();
   const [projects, setProjects] = useState<Project[]>([]);
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [editing, setEditing] = useState<Record<string, Draft>>({});
@@ -83,6 +83,21 @@ export function ProjectsPage() {
         </div>
       </header>
 
+      <div className={styles.summary}>
+        <div>
+          <span>{t('project.list.total')}</span>
+          <strong>{projects.length}</strong>
+        </div>
+        <div>
+          <span>{t('project.list.active')}</span>
+          <strong>{projects.filter((project) => project.status === 'active').length}</strong>
+        </div>
+        <div>
+          <span>{t('project.list.current')}</span>
+          <strong>{currentProject?.name ?? t('project.switcher.empty')}</strong>
+        </div>
+      </div>
+
       {error ? <div className={styles.error}>{error}</div> : null}
 
       <form className={styles.createBar} onSubmit={(event) => void handleCreate(event)}>
@@ -118,6 +133,7 @@ export function ProjectsPage() {
               <div className={styles.identity}>
                 <strong>{project.name}</strong>
                 <span>{project.code}</span>
+                <em>{project.status}</em>
               </div>
               <input
                 value={row.name}

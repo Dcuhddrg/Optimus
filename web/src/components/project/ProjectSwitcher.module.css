@@ -1,8 +1,8 @@
 .switcher {
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-height: 44px;
+  gap: 10px;
+  min-height: 54px;
   min-width: 0;
   max-width: 100%;
   padding: 4px;
@@ -12,12 +12,44 @@
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
-.label {
+.context {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas:
+    "label code"
+    "name name";
+  gap: 2px 8px;
+  min-width: 9rem;
+  max-width: 16rem;
   padding-left: 12px;
+}
+
+.label,
+.code,
+.count {
   color: var(--shell-muted);
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 700;
   white-space: nowrap;
+}
+
+.label {
+  grid-area: label;
+}
+
+.context strong {
+  grid-area: name;
+  min-width: 0;
+  color: var(--text-primary);
+  font-size: 0.92rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.code {
+  grid-area: code;
+  justify-self: end;
 }
 
 .select {
@@ -62,6 +94,10 @@
   background: rgba(255, 255, 255, 0.62);
 }
 
+.count {
+  padding-right: 6px;
+}
+
 .error {
   max-width: 16rem;
   color: #9a3412;
@@ -76,6 +112,11 @@
     width: 100%;
     flex-wrap: wrap;
     border-radius: 18px;
+  }
+
+  .context {
+    flex: 1 1 100%;
+    max-width: 100%;
   }
 
   .select {

@@ -10,7 +10,11 @@ export function ProjectSwitcher() {
 
   return (
     <div className={styles.switcher} aria-label={t('project.switcher.label')}>
-      <span className={styles.label}>{t('project.switcher.current')}</span>
+      <div className={styles.context}>
+        <span className={styles.label}>{t('project.switcher.current')}</span>
+        <strong>{currentProject?.name ?? t('project.switcher.empty')}</strong>
+        {currentProject ? <span className={styles.code}>{currentProject.code}</span> : null}
+      </div>
       <select
         className={styles.select}
         value={currentProject?.code ?? ''}
@@ -30,6 +34,9 @@ export function ProjectSwitcher() {
       <Link className={styles.manage} to="/projects">
         {t('project.switcher.manage')}
       </Link>
+      <span className={styles.count}>
+        {projects.length} {t('project.switcher.count')}
+      </span>
       {error ? <span className={styles.error}>{error}</span> : null}
     </div>
   );
