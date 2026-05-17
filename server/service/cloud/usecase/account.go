@@ -4,10 +4,81 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"regexp"
+	"strings"
 	"time"
 )
 
-var ErrAccountNotFound = errors.New("cloud account not found")
+var (
+	ErrAccountNotFound  = errors.New("cloud account not found")
+	ErrInvalidTagKey    = errors.New("tag key must match ^[a-z][a-z0-9_-]{0,62}$")
+	ErrInvalidTagValue  = errors.New("tag value must be 1-128 chars")
+	ErrTooManyTags      = errors.New("a cloud account cannot have more than 32 tags")
+	ErrInvalidTagFilter = errors.New("invalid tag filter; expected key=value, key=*, or __none__:key")
+)
+
+const MaxAccountTags = 32
+
+var tagKeyRegex = regexp.MustCompile(`^[a-z][a-z0-9_-]{0,62}$`)
+
+// ValidateTags normalizes and validates a tag map. Returns a cleaned copy.
+func ValidateTags(tags map[string]string) (map[string]string, error) {
+	if tags == nil {
+		return map[string]string{}, nil
+	}
+	if len(tags) > MaxAccountTags {
+		return nil, ErrTooManyTags
+	}
+	out := make(map[string]string, len(tags))
+	for k, v := range tags {
+		if !tagKeyRegex.MatchString(k) {
+			return nil, ErrInvalidTagKey
+		}
+		trimmed := strings.TrimSpace(v)
+		if trimmed == "" || len(trimmed) > 128 {
+			return nil, ErrInvalidTagValue
+		}
+		out[k] = trimmed
+	}
+	return out, nil
+}
+
+// TagFilter is a single tag filter clause used in list queries.
+type TagFilter struct {
+	Key    string
+	Value  string
+	Exists bool
+}
+
+// ParseTagFilter parses one tag filter token. Accepted forms:
+//   - key=value    => Exists=true, Value=value
+//   - key=*        => Exists=true, Value=""
+//   - __none__:key => Exists=false
+func ParseTagFilter(token string) (TagFilter, error) {
+	if strings.HasPrefix(token, "__none__:") {
+		key := strings.TrimPrefix(token, "__none__:")
+		if !tagKeyRegex.MatchString(key) {
+			return TagFilter{}, ErrInvalidTagKey
+		}
+		return TagFilter{Key: key, Exists: false}, nil
+	}
+	idx := strings.Index(token, "=")
+	if idx <= 0 || idx == len(token)-1 {
+		return TagFilter{}, ErrInvalidTagFilter
+	}
+	key := token[:idx]
+	value := token[idx+1:]
+	if !tagKeyRegex.MatchString(key) {
+		return TagFilter{}, ErrInvalidTagKey
+	}
+	if value == "*" {
+		return TagFilter{Key: key, Value: "", Exists: true}, nil
+	}
+	if len(value) > 128 {
+		return TagFilter{}, ErrInvalidTagValue
+	}
+	return TagFilter{Key: key, Value: value, Exists: true}, nil
+}
 
 // AccountRow is the raw store-level representation (credential is encrypted).
 type AccountRow struct {
@@ -18,21 +89,23 @@ type AccountRow struct {
 	AccountID      string
 	CredentialType string
 	CredentialJSON string
+	Tags           map[string]string
 	Status         string
 	LastSyncedAt   *time.Time
 }
 
 // AccountView is the API-safe representation (credential masked).
 type AccountView struct {
-	ID             uint       `json:"id"`
-	ProjectID      uint       `json:"projectId"`
-	Name           string     `json:"name"`
-	Provider       string     `json:"provider"`
-	AccountID      string     `json:"accountId"`
-	CredentialType string     `json:"credentialType"`
-	Credential     string     `json:"credential"`
-	Status         string     `json:"status"`
-	LastSyncedAt   *time.Time `json:"lastSyncedAt"`
+	ID             uint              `json:"id"`
+	ProjectID      uint              `json:"projectId"`
+	Name           string            `json:"name"`
+	Provider       string            `json:"provider"`
+	AccountID      string            `json:"accountId"`
+	CredentialType string            `json:"credentialType"`
+	Credential     string            `json:"credential"`
+	Tags           map[string]string `json:"tags"`
+	Status         string            `json:"status"`
+	LastSyncedAt   *time.Time        `json:"lastSyncedAt"`
 }
 
 // CreateAccountRequest is the body for POST /cloud/accounts.
@@ -42,6 +115,12 @@ type CreateAccountRequest struct {
 	AccountID      string            `json:"accountId" binding:"required"`
 	CredentialType string            `json:"credentialType" binding:"required"`
 	Credential     map[string]string `json:"credential" binding:"required"`
+	Tags           map[string]string `json:"tags"`
+}
+
+// UpdateAccountTagsRequest is the body for PUT /cloud/accounts/:id/tags.
+type UpdateAccountTagsRequest struct {
+	Tags map[string]string `json:"tags" binding:"required"`
 }
 
 // UpdateAccountRequest is the body for PUT /cloud/accounts/:id.
@@ -166,6 +245,10 @@ func (s *CloudAccountService) GetForSync(ctx context.Context, id uint) (SyncAcco
 }
 
 func toAccountView(row AccountRow) AccountView {
+	tags := row.Tags
+	if tags == nil {
+		tags = map[string]string{}
+	}
 	return AccountView{
 		ID:             row.ID,
 		ProjectID:      row.ProjectID,
@@ -174,6 +257,7 @@ func toAccountView(row AccountRow) AccountView {
 		AccountID:      row.AccountID,
 		CredentialType: row.CredentialType,
 		Credential:     "***",
+		Tags:           tags,
 		Status:         row.Status,
 		LastSyncedAt:   row.LastSyncedAt,
 	}

@@ -14,6 +14,7 @@ type CloudAccount struct {
 	AccountID      string         `gorm:"size:64;not null" json:"accountId"`
 	CredentialType string         `gorm:"size:32;not null" json:"credentialType"`
 	CredentialJSON string         `gorm:"type:text" json:"-"`
+	TagsJSON       string         `gorm:"type:text;not null;default:'{}'" json:"-"`
 	Status         string         `gorm:"size:16;not null;index;default:'active'" json:"status"`
 	LastSyncedAt   *time.Time     `json:"lastSyncedAt"`
 	DeletedAt      gorm.DeletedAt `gorm:"index" json:"-"`
