@@ -1,0 +1,67 @@
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(110, 93, 81, 0.1);
+  color: var(--text-secondary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.key,
+.eq {
+  color: var(--shell-muted);
+}
+
+.eq {
+  opacity: 0.6;
+}
+
+.envProd {
+  background: rgba(179, 71, 61, 0.12);
+  color: #9a3412;
+}
+
+.envProd .key {
+  color: #9a3412;
+}
+
+.envDev {
+  background: rgba(47, 95, 89, 0.14);
+  color: #2f5f59;
+}
+
+.envDev .key {
+  color: #2f5f59;
+}
+
+.envQa {
+  background: rgba(183, 121, 75, 0.18);
+  color: #8a5530;
+}
+
+.envQa .key {
+  color: #8a5530;
+}
+
+.envOrphan {
+  background: rgba(110, 93, 81, 0.2);
+  color: #6e5d51;
+}
+
+.remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: 0;
+  border-radius: 4px;
+  background: rgba(110, 93, 81, 0.18);
+  color: var(--shell-muted);
+  cursor: pointer;
+  font-size: 0.7rem;
+}
