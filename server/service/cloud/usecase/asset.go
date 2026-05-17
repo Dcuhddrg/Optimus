@@ -15,6 +15,7 @@ type AssetFilter struct {
 	ResourceType         *string
 	Status               *string
 	Keyword              *string
+	Tags                 []TagFilter
 	Page                 int
 	PageSize             int
 }

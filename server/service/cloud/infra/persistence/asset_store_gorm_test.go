@@ -106,6 +106,40 @@ func TestGormAssetStoreQueryFiltersByAccessibleProjects(t *testing.T) {
 	require.Equal(t, "visible", page.Items[0].Name)
 }
 
+func TestGormAssetStoreQueryFiltersByAccountTag(t *testing.T) {
+	db := openCloudTestDB(t)
+	accountStore := NewGormAccountStore(db)
+	assetStore := NewGormAssetStore(db)
+
+	prodAccount, err := accountStore.Create(context.Background(), 1, testAccountRow("prod-acc", "aliyun", "p1"))
+	require.NoError(t, err)
+	_, err = accountStore.UpdateTags(context.Background(), []uint{1}, prodAccount.ID, map[string]string{"environment": "prod"})
+	require.NoError(t, err)
+
+	devAccount, err := accountStore.Create(context.Background(), 1, testAccountRow("dev-acc", "aliyun", "d1"))
+	require.NoError(t, err)
+	_, err = accountStore.UpdateTags(context.Background(), []uint{1}, devAccount.ID, map[string]string{"environment": "dev"})
+	require.NoError(t, err)
+
+	_, err = assetStore.Upsert(context.Background(), prodAccount.ID, "aliyun", []usecase.RawAsset{
+		{ResourceType: "ecs", ResourceID: "i-1", Name: "prod-vm"},
+	})
+	require.NoError(t, err)
+	_, err = assetStore.Upsert(context.Background(), devAccount.ID, "aliyun", []usecase.RawAsset{
+		{ResourceType: "ecs", ResourceID: "i-2", Name: "dev-vm"},
+	})
+	require.NoError(t, err)
+
+	page, err := assetStore.Query(context.Background(), usecase.AssetFilter{
+		AccessibleProjectIDs: []uint{1},
+		Tags:                 []usecase.TagFilter{{Key: "environment", Value: "prod", Exists: true}},
+	})
+	require.NoError(t, err)
+	require.Equal(t, int64(1), page.Total)
+	require.Len(t, page.Items, 1)
+	require.Equal(t, "prod-vm", page.Items[0].Name)
+}
+
 func testAccountRow(name, provider, accountID string) usecase.AccountRow {
 	return usecase.AccountRow{
 		Name:           name,

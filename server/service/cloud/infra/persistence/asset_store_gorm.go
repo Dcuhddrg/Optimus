@@ -89,6 +89,11 @@ func (s *GormAssetStore) Query(ctx context.Context, f usecase.AssetFilter) (usec
 		escaped := strings.NewReplacer(`%`, `\%`, `_`, `\_`).Replace(*f.Keyword)
 		q = q.Where("cloud_assets.name LIKE ? ESCAPE '\\\\'", "%"+escaped+"%")
 	}
+	for _, filter := range f.Tags {
+		expr, args := tagFilterToSQL(filter)
+		expr = strings.Replace(expr, "tags_json", "cloud_accounts.tags_json", 1)
+		q = q.Where(expr, args...)
+	}
 
 	page := f.Page
 	if page < 1 {
