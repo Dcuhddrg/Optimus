@@ -28,6 +28,7 @@
 
 **修改：**
 - `web/src/api/cloud.ts` — `listCloudAssets` 接收完整过滤参数（不仅是 tagFilters）
+- `web/src/types/cloud.ts` — 新增 `CloudAssetFilters`
 - `web/src/view/cloud/CloudAssetsPage.tsx` — 加列、加过滤栏、加分页、加云原生 tag 列
 - `web/src/view/cloud/CloudAssetsPage.module.css` — 调表格列宽 + 软删除样式
 - `web/src/locale/messages.ts` — 新增 i18n keys
@@ -67,9 +68,9 @@ deletedBadge: '已下线',
 deletedTitle: '该资产已从云上消失，软删除保留供历史查询。',
 ```
 
-- [ ] **Step 1.2: 在 CloudAssetsPage 表格里加 4 列**
+- [ ] **Step 1.2: 在 CloudAssetsPage 表格里加 region/status/lastSeen 列**
 
-把现有 `tableHeader` 改成 7 列（保留前 4 列，加 region/status/lastSeen 列，把 inheritedTags 改名为更短的"账号 tag" 用 `t('cloud.assets.inheritedTags')` 不变；再加 `nativeTags` 一列由 Task 4 接管，本 task 先占位）：
+把现有 `tableHeader` 改成 8 列（保留现有 name/resourceId/type/account/inheritedTags，并插入 region/status/lastSeen；`nativeTags` 列由 Task 4 追加）：
 
 ```tsx
 <div className={styles.tableHeader} aria-hidden="true">
@@ -336,10 +337,6 @@ export function CloudAssetsPage() {
     () => Array.from(new Set(accountsList.map((a) => a.provider))).sort(),
     [accountsList],
   );
-  const resourceTypes = useMemo(
-    () => Array.from(new Set(assets.map((a) => a.resourceType))).filter(Boolean).sort(),
-    [assets],
-  );
 
   async function load() {
     try {
@@ -397,10 +394,11 @@ export function CloudAssetsPage() {
     onChange={(e) => updateBasic('region', e)}
     placeholder={t('cloud.assets.regionPlaceholder')}
   />
-  <select value={basic.resourceType} onChange={(e) => updateBasic('resourceType', e)}>
-    <option value="">{t('cloud.assets.allTypes')}</option>
-    {resourceTypes.map((tp) => <option key={tp} value={tp}>{tp}</option>)}
-  </select>
+  <input
+    value={basic.resourceType}
+    onChange={(e) => updateBasic('resourceType', e)}
+    placeholder={t('cloud.assets.resourceTypePlaceholder')}
+  />
   <input
     value={basic.status}
     onChange={(e) => updateBasic('status', e)}
@@ -420,8 +418,8 @@ EN `cloud.assets` 追加：
 ```ts
 allAccounts: 'All accounts',
 allProviders: 'All providers',
-allTypes: 'All types',
 regionPlaceholder: 'Region',
+resourceTypePlaceholder: 'Resource type',
 statusPlaceholder: 'Status',
 keywordPlaceholder: 'Search by name',
 ```
@@ -430,8 +428,8 @@ ZH 追加：
 ```ts
 allAccounts: '所有账号',
 allProviders: '所有厂商',
-allTypes: '所有类型',
 regionPlaceholder: '区域',
+resourceTypePlaceholder: '资源类型',
 statusPlaceholder: '状态',
 keywordPlaceholder: '搜索名称',
 ```
@@ -561,7 +559,7 @@ function handleTagFiltersChange(next: string[]) {
 ```tsx
 <div className={styles.pagination}>
   <span className={styles.paginationSummary}>
-    {t('cloud.assets.totalCount', String(total))}
+    {t('cloud.assets.totalLabel')} {total} {t('cloud.assets.entriesLabel')}
   </span>
   <div className={styles.paginationControls}>
     <button
@@ -593,15 +591,14 @@ function handleTagFiltersChange(next: string[]) {
 </div>
 ```
 
-> Note: `useI18n` 的 `t()` 是否支持参数化（`t('cloud.assets.totalCount', String(total))`）取决于实现。**实施者打开 `web/src/locale/useI18n.ts` 检查**：
-> - 若支持参数：直接用
-> - 若不支持：把 `totalCount` 拆成两段 `total: '共'` + `entries: '条'`，组合显示成 `{t('total')} {total} {t('entries')}`
+> Note: 当前 `useI18n().t` 签名是 `(key: MessageKey) => string`，不支持插值参数。因此总数字案必须用拆分 key 组合显示，不要写 `t('cloud.assets.totalCount', String(total))`。
 
 - [ ] **Step 3.3: i18n keys**
 
 EN `cloud.assets`：
 ```ts
-totalCount: 'Total {0}',
+totalLabel: 'Total',
+entriesLabel: 'entries',
 prevPage: '‹',
 nextPage: '›',
 perPage: 'per page',
@@ -609,13 +606,12 @@ perPage: 'per page',
 
 ZH：
 ```ts
-totalCount: '共 {0} 条',
+totalLabel: '共',
+entriesLabel: '条',
 prevPage: '‹',
 nextPage: '›',
 perPage: '每页',
 ```
-
-如果 `t()` 不支持 `{0}` 占位，按 Step 3.2 备注用拆分 keys。
 
 - [ ] **Step 3.4: CSS 分页样式**
 
@@ -822,7 +818,7 @@ EOF
 
 **Placeholder scan：**
 - Step 1.2 末尾 "实施者检查 types/cloud.ts 后按实际类型对齐" — 这不是 placeholder，是显式 invariant：实际类型由现有代码决定，实施者读 1 行确认即可
-- Step 3.2 末尾 "若不支持参数化" 是 conditional fallback，给了具体替代实现，不是 placeholder
+- Step 3.2 明确按当前 `t()` 无参数化能力使用拆分 key，不保留 conditional placeholder
 
 **Type consistency：**
 - `CloudAssetFilters` 在 Task 2 定义，Task 3 复用并新增 page/pageSize
