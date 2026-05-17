@@ -131,11 +131,12 @@ type UpdateAccountRequest struct {
 
 // AccountStore is the persistence interface for cloud accounts.
 type AccountStore interface {
-	Create(ctx context.Context, projectID uint, name, provider, accountID, credentialType, encryptedCredential string) (AccountRow, error)
+	Create(ctx context.Context, projectID uint, row AccountRow) (AccountRow, error)
 	Get(ctx context.Context, accessibleProjectIDs []uint, id uint) (AccountRow, error)
 	GetForSync(ctx context.Context, id uint) (AccountRow, error)
-	List(ctx context.Context, accessibleProjectIDs []uint) ([]AccountRow, error)
+	List(ctx context.Context, accessibleProjectIDs []uint, tagFilters []TagFilter) ([]AccountRow, error)
 	Update(ctx context.Context, accessibleProjectIDs []uint, id uint, name *string, encryptedCredential *string) (AccountRow, error)
+	UpdateTags(ctx context.Context, accessibleProjectIDs []uint, id uint, tags map[string]string) (AccountRow, error)
 	Delete(ctx context.Context, accessibleProjectIDs []uint, id uint) error
 	UpdateSyncStatus(ctx context.Context, id uint, lastSyncedAt *time.Time, status string) error
 }
@@ -164,11 +165,24 @@ func (s *CloudAccountService) Create(ctx context.Context, projectID uint, req Cr
 	if err != nil {
 		return AccountView{}, err
 	}
-	row, err := s.store.Create(ctx, projectID, req.Name, req.Provider, req.AccountID, req.CredentialType, encrypted)
+	cleanedTags, err := ValidateTags(req.Tags)
 	if err != nil {
 		return AccountView{}, err
 	}
-	return toAccountView(row), nil
+	row := AccountRow{
+		ProjectID:      projectID,
+		Name:           req.Name,
+		Provider:       req.Provider,
+		AccountID:      req.AccountID,
+		CredentialType: req.CredentialType,
+		CredentialJSON: encrypted,
+		Tags:           cleanedTags,
+	}
+	saved, err := s.store.Create(ctx, projectID, row)
+	if err != nil {
+		return AccountView{}, err
+	}
+	return toAccountView(saved), nil
 }
 
 // Get returns ErrAccountNotFound if no account exists with the given id.
@@ -180,8 +194,8 @@ func (s *CloudAccountService) Get(ctx context.Context, accessibleProjectIDs []ui
 	return toAccountView(row), nil
 }
 
-func (s *CloudAccountService) List(ctx context.Context, accessibleProjectIDs []uint) ([]AccountView, error) {
-	rows, err := s.store.List(ctx, accessibleProjectIDs)
+func (s *CloudAccountService) List(ctx context.Context, accessibleProjectIDs []uint, tagFilters []TagFilter) ([]AccountView, error) {
+	rows, err := s.store.List(ctx, accessibleProjectIDs, tagFilters)
 	if err != nil {
 		return nil, err
 	}
@@ -206,6 +220,18 @@ func (s *CloudAccountService) Update(ctx context.Context, accessibleProjectIDs [
 		encCredential = &enc
 	}
 	row, err := s.store.Update(ctx, accessibleProjectIDs, id, req.Name, encCredential)
+	if err != nil {
+		return AccountView{}, err
+	}
+	return toAccountView(row), nil
+}
+
+func (s *CloudAccountService) UpdateTags(ctx context.Context, accessibleProjectIDs []uint, id uint, req UpdateAccountTagsRequest) (AccountView, error) {
+	cleaned, err := ValidateTags(req.Tags)
+	if err != nil {
+		return AccountView{}, err
+	}
+	row, err := s.store.UpdateTags(ctx, accessibleProjectIDs, id, cleaned)
 	if err != nil {
 		return AccountView{}, err
 	}
