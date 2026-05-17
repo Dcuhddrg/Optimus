@@ -36,11 +36,49 @@
   gap: 6px;
 }
 
+.filterRow {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(8rem, 1fr));
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--shell-border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.filterRow select,
+.filterRow input {
+  min-height: 34px;
+  min-width: 0;
+  padding: 0 10px;
+  border: 1px solid var(--shell-border);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--text-primary);
+  font-size: 0.84rem;
+}
+
+.filterRow select:focus,
+.filterRow input:focus {
+  border-color: rgba(47, 95, 89, 0.34);
+  outline: 2px solid rgba(47, 95, 89, 0.12);
+  outline-offset: 1px;
+}
+
 .tableHeader,
 .row {
   display: grid;
-  grid-template-columns: minmax(8rem, 1fr) minmax(9rem, 1.2fr) minmax(7rem, 1fr) minmax(7rem, 1fr) minmax(12rem, 2fr);
-  gap: 12px;
+  grid-template-columns:
+    minmax(7rem, 1.1fr)
+    minmax(8rem, 1.1fr)
+    minmax(5rem, 0.7fr)
+    minmax(5rem, 0.7fr)
+    minmax(4.5rem, 0.5fr)
+    minmax(6rem, 0.9fr)
+    minmax(7rem, 0.85fr)
+    minmax(9rem, 1.3fr)
+    minmax(9rem, 1.3fr);
+  gap: 8px;
   align-items: center;
   padding: 10px 12px;
 }
@@ -58,6 +96,16 @@
   background: rgba(255, 255, 255, 0.56);
 }
 
+.rowDeleted {
+  opacity: 0.55;
+  background: rgba(255, 255, 255, 0.42);
+}
+
+.rowDeleted strong {
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
 .row strong,
 .row span,
 .row code {
@@ -71,6 +119,32 @@
   color: var(--shell-muted);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.82rem;
+}
+
+.deletedBadge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(110, 93, 81, 0.16);
+  color: var(--shell-muted);
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+.status {
+  color: var(--shell-muted);
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.timestamp {
+  color: var(--shell-muted);
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .tags {
@@ -91,6 +165,58 @@
 .empty {
   color: var(--shell-muted);
   text-align: center;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 4px 0;
+  color: var(--shell-muted);
+  font-size: 0.84rem;
+}
+
+.paginationControls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.paginationControls button {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--shell-border);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--shell-control-active-bg);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.paginationControls button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.paginationControls select {
+  min-height: 32px;
+  margin-left: 8px;
+  padding: 0 8px;
+  border: 1px solid var(--shell-border);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.paginationPosition {
+  color: var(--text-primary);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 900px) {
+  .filterRow {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 @media (max-width: 1120px) {
@@ -114,5 +240,19 @@
 
   .tags {
     grid-column: auto;
+  }
+
+  .filterRow {
+    grid-template-columns: 1fr;
+  }
+
+  .pagination {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .paginationControls {
+    flex-wrap: wrap;
   }
 }

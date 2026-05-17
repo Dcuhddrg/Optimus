@@ -46,3 +46,15 @@ export interface CloudAssetPage {
   page: number;
   pageSize: number;
 }
+
+export interface CloudAssetFilters {
+  accountId?: number;
+  provider?: string;
+  region?: string;
+  resourceType?: string;
+  status?: string;
+  keyword?: string;
+  page?: number;
+  pageSize?: number;
+  tag?: string[];
+}

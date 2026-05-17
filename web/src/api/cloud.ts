@@ -1,6 +1,7 @@
 import { apiRequest } from './client';
 import type {
   CloudAccount,
+  CloudAssetFilters,
   CloudAssetPage,
   CreateCloudAccountPayload,
   UpdateCloudAccountTagsPayload,
@@ -12,6 +13,25 @@ function buildTagQuery(tags: string[]): string {
     return '';
   }
   return `?${tags.map((tag) => `tag=${encodeURIComponent(tag)}`).join('&')}`;
+}
+
+function buildAssetQuery(filters: CloudAssetFilters): string {
+  const params = new URLSearchParams();
+  if (filters.accountId !== undefined) params.set('accountId', String(filters.accountId));
+  if (filters.provider) params.set('provider', filters.provider);
+  if (filters.region) params.set('region', filters.region);
+  if (filters.resourceType) params.set('resourceType', filters.resourceType);
+  if (filters.status) params.set('status', filters.status);
+  if (filters.keyword) params.set('keyword', filters.keyword);
+  if (filters.page !== undefined) params.set('page', String(filters.page));
+  if (filters.pageSize !== undefined) params.set('pageSize', String(filters.pageSize));
+  if (filters.tag) {
+    for (const tag of filters.tag) {
+      params.append('tag', tag);
+    }
+  }
+  const qs = params.toString();
+  return qs ? `?${qs}` : '';
 }
 
 export function listCloudAccounts(tagFilters: string[] = []) {
@@ -42,6 +62,6 @@ export function updateCloudAccountTags(id: number, payload: UpdateCloudAccountTa
   });
 }
 
-export function listCloudAssets(tagFilters: string[] = []) {
-  return apiRequest<CloudAssetPage>(`/cloud/assets${buildTagQuery(tagFilters)}`);
+export function listCloudAssets(filters: CloudAssetFilters = {}) {
+  return apiRequest<CloudAssetPage>(`/cloud/assets${buildAssetQuery(filters)}`);
 }
