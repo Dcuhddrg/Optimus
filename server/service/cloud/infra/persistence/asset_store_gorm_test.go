@@ -14,7 +14,7 @@ func TestGormAssetStoreUpsertCreatesNewAsset(t *testing.T) {
 	accountStore := NewGormAccountStore(db)
 	store := NewGormAssetStore(db)
 
-	account, err := accountStore.Create(context.Background(), 7, "prod", "aliyun", "123", "ak_sk", "enc")
+	account, err := accountStore.Create(context.Background(), 7, testAccountRow("prod", "aliyun", "123"))
 	require.NoError(t, err)
 
 	result, err := store.Upsert(context.Background(), account.ID, "aliyun", []usecase.RawAsset{
@@ -34,7 +34,7 @@ func TestGormAssetStoreUpsertUpdatesExistingAsset(t *testing.T) {
 	accountStore := NewGormAccountStore(db)
 	store := NewGormAssetStore(db)
 
-	account, err := accountStore.Create(context.Background(), 7, "prod", "aliyun", "123", "ak_sk", "enc")
+	account, err := accountStore.Create(context.Background(), 7, testAccountRow("prod", "aliyun", "123"))
 	require.NoError(t, err)
 
 	_, err = store.Upsert(context.Background(), account.ID, "aliyun", []usecase.RawAsset{
@@ -59,9 +59,9 @@ func TestGormAssetStoreQueryFiltersByProvider(t *testing.T) {
 	accountStore := NewGormAccountStore(db)
 	store := NewGormAssetStore(db)
 
-	aliyunAccount, err := accountStore.Create(context.Background(), 7, "aliyun", "aliyun", "123", "ak_sk", "enc")
+	aliyunAccount, err := accountStore.Create(context.Background(), 7, testAccountRow("aliyun", "aliyun", "123"))
 	require.NoError(t, err)
-	awsAccount, err := accountStore.Create(context.Background(), 7, "aws", "aws", "456", "ak_sk", "enc")
+	awsAccount, err := accountStore.Create(context.Background(), 7, testAccountRow("aws", "aws", "456"))
 	require.NoError(t, err)
 
 	_, err = store.Upsert(context.Background(), aliyunAccount.ID, "aliyun", []usecase.RawAsset{
@@ -85,9 +85,9 @@ func TestGormAssetStoreQueryFiltersByAccessibleProjects(t *testing.T) {
 	accountStore := NewGormAccountStore(db)
 	store := NewGormAssetStore(db)
 
-	account1, err := accountStore.Create(context.Background(), 7, "prod", "aliyun", "123", "ak_sk", "enc")
+	account1, err := accountStore.Create(context.Background(), 7, testAccountRow("prod", "aliyun", "123"))
 	require.NoError(t, err)
-	account2, err := accountStore.Create(context.Background(), 8, "other", "aliyun", "456", "ak_sk", "enc")
+	account2, err := accountStore.Create(context.Background(), 8, testAccountRow("other", "aliyun", "456"))
 	require.NoError(t, err)
 
 	_, err = store.Upsert(context.Background(), account1.ID, "aliyun", []usecase.RawAsset{
@@ -104,4 +104,14 @@ func TestGormAssetStoreQueryFiltersByAccessibleProjects(t *testing.T) {
 	require.Equal(t, int64(1), page.Total)
 	require.Len(t, page.Items, 1)
 	require.Equal(t, "visible", page.Items[0].Name)
+}
+
+func testAccountRow(name, provider, accountID string) usecase.AccountRow {
+	return usecase.AccountRow{
+		Name:           name,
+		Provider:       provider,
+		AccountID:      accountID,
+		CredentialType: "ak_sk",
+		CredentialJSON: "enc",
+	}
 }
