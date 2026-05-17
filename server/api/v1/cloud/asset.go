@@ -15,7 +15,11 @@ func (h *AssetHandler) ListAssets(c *gin.Context) {
 		return
 	}
 	scope := projectScope(c)
-	f := parseAssetFilter(c)
+	f, err := parseAssetFilter(c)
+	if err != nil {
+		writeCloudError(c, err, "invalid asset filter")
+		return
+	}
 	f.AccessibleProjectIDs = scope.AccessibleProjectIDs
 	page, err := h.service.QueryAssets(c.Request.Context(), f)
 	if err != nil {
@@ -25,7 +29,7 @@ func (h *AssetHandler) ListAssets(c *gin.Context) {
 	c.JSON(http.StatusOK, page)
 }
 
-func parseAssetFilter(c *gin.Context) cloudUsecase.AssetFilter {
+func parseAssetFilter(c *gin.Context) (cloudUsecase.AssetFilter, error) {
 	f := cloudUsecase.AssetFilter{Page: 1, PageSize: 20}
 
 	if v := c.Query("page"); v != "" {
@@ -59,5 +63,10 @@ func parseAssetFilter(c *gin.Context) cloudUsecase.AssetFilter {
 	if v := c.Query("keyword"); v != "" {
 		f.Keyword = &v
 	}
-	return f
+	tagFilters, err := parseTagFilters(c)
+	if err != nil {
+		return cloudUsecase.AssetFilter{}, err
+	}
+	f.Tags = tagFilters
+	return f, nil
 }

@@ -1,6 +1,7 @@
 package cloud
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -42,6 +43,38 @@ func NewCloudHandlers(deps CloudHandlerDeps) *CloudHandlers {
 
 func writeCloudServiceUnavailable(c *gin.Context, message string) {
 	c.JSON(http.StatusServiceUnavailable, gin.H{"message": message})
+}
+
+func writeCloudError(c *gin.Context, err error, fallback string) {
+	switch {
+	case errors.Is(err, cloudUsecase.ErrAccountNotFound):
+		c.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
+	case errors.Is(err, cloudUsecase.ErrProviderNotRegistered):
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"message": err.Error()})
+	case errors.Is(err, cloudUsecase.ErrInvalidTagKey),
+		errors.Is(err, cloudUsecase.ErrInvalidTagValue),
+		errors.Is(err, cloudUsecase.ErrTooManyTags),
+		errors.Is(err, cloudUsecase.ErrInvalidTagFilter):
+		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+	default:
+		c.JSON(http.StatusInternalServerError, gin.H{"message": fallback})
+	}
+}
+
+func parseTagFilters(c *gin.Context) ([]cloudUsecase.TagFilter, error) {
+	tokens := c.QueryArray("tag")
+	if len(tokens) == 0 {
+		return nil, nil
+	}
+	out := make([]cloudUsecase.TagFilter, 0, len(tokens))
+	for _, token := range tokens {
+		filter, err := cloudUsecase.ParseTagFilter(token)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, filter)
+	}
+	return out, nil
 }
 
 func parseCloudUintParam(c *gin.Context, name string) (uint, bool) {

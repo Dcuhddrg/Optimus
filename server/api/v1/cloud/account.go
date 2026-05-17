@@ -1,7 +1,6 @@
 package cloud
 
 import (
-	"errors"
 	"net/http"
 
 	cloudUsecase "optimus/server/service/cloud/usecase"
@@ -15,9 +14,14 @@ func (h *AccountHandler) ListAccounts(c *gin.Context) {
 		return
 	}
 	scope := projectScope(c)
-	views, err := h.accountSvc.List(c.Request.Context(), scope.AccessibleProjectIDs)
+	tagFilters, err := parseTagFilters(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to list cloud accounts"})
+		writeCloudError(c, err, "invalid tag filter")
+		return
+	}
+	views, err := h.accountSvc.List(c.Request.Context(), scope.AccessibleProjectIDs, tagFilters)
+	if err != nil {
+		writeCloudError(c, err, "failed to list cloud accounts")
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"items": views, "total": len(views)})
@@ -34,12 +38,8 @@ func (h *AccountHandler) GetAccount(c *gin.Context) {
 	}
 	scope := projectScope(c)
 	view, err := h.accountSvc.Get(c.Request.Context(), scope.AccessibleProjectIDs, id)
-	if errors.Is(err, cloudUsecase.ErrAccountNotFound) {
-		c.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
-		return
-	}
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to get cloud account"})
+		writeCloudError(c, err, "failed to get cloud account")
 		return
 	}
 	c.JSON(http.StatusOK, view)
@@ -62,7 +62,7 @@ func (h *AccountHandler) CreateAccount(c *gin.Context) {
 	}
 	view, err := h.accountSvc.Create(c.Request.Context(), scope.CurrentProjectID, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to create cloud account"})
+		writeCloudError(c, err, "failed to create cloud account")
 		return
 	}
 	c.JSON(http.StatusCreated, view)
@@ -84,12 +84,31 @@ func (h *AccountHandler) UpdateAccount(c *gin.Context) {
 	}
 	scope := projectScope(c)
 	view, err := h.accountSvc.Update(c.Request.Context(), scope.AccessibleProjectIDs, id, req)
-	if errors.Is(err, cloudUsecase.ErrAccountNotFound) {
-		c.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
+	if err != nil {
+		writeCloudError(c, err, "failed to update cloud account")
 		return
 	}
+	c.JSON(http.StatusOK, view)
+}
+
+func (h *AccountHandler) UpdateAccountTags(c *gin.Context) {
+	if h.accountSvc == nil {
+		writeCloudServiceUnavailable(c, "cloud account service is not available")
+		return
+	}
+	id, ok := parseCloudUintParam(c, "id")
+	if !ok {
+		return
+	}
+	var req cloudUsecase.UpdateAccountTagsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid tags payload"})
+		return
+	}
+	scope := projectScope(c)
+	view, err := h.accountSvc.UpdateTags(c.Request.Context(), scope.AccessibleProjectIDs, id, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to update cloud account"})
+		writeCloudError(c, err, "failed to update cloud account tags")
 		return
 	}
 	c.JSON(http.StatusOK, view)
@@ -106,11 +125,7 @@ func (h *AccountHandler) DeleteAccount(c *gin.Context) {
 	}
 	scope := projectScope(c)
 	if err := h.accountSvc.Delete(c.Request.Context(), scope.AccessibleProjectIDs, id); err != nil {
-		if errors.Is(err, cloudUsecase.ErrAccountNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
-			return
-		}
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to delete cloud account"})
+		writeCloudError(c, err, "failed to delete cloud account")
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "cloud account deleted"})
@@ -127,16 +142,8 @@ func (h *AccountHandler) SyncAccount(c *gin.Context) {
 	}
 	scope := projectScope(c)
 	result, err := h.assetSvc.SyncAccount(c.Request.Context(), scope.AccessibleProjectIDs, id)
-	if errors.Is(err, cloudUsecase.ErrAccountNotFound) {
-		c.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
-		return
-	}
-	if errors.Is(err, cloudUsecase.ErrProviderNotRegistered) {
-		c.JSON(http.StatusUnprocessableEntity, gin.H{"message": err.Error()})
-		return
-	}
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "sync failed"})
+		writeCloudError(c, err, "sync failed")
 		return
 	}
 	c.JSON(http.StatusOK, result)

@@ -17,6 +17,7 @@ func (r *RouterGroup) InitCloudRouter(privateGroup *gin.RouterGroup, handlers *c
 	privateGroup.GET("/cloud/accounts/:id", handlers.Account.GetAccount)
 	privateGroup.POST("/cloud/accounts", handlers.Account.CreateAccount)
 	privateGroup.PUT("/cloud/accounts/:id", handlers.Account.UpdateAccount)
+	privateGroup.PUT("/cloud/accounts/:id/tags", handlers.Account.UpdateAccountTags)
 	privateGroup.DELETE("/cloud/accounts/:id", handlers.Account.DeleteAccount)
 	privateGroup.POST("/cloud/accounts/:id/sync", handlers.Account.SyncAccount)
 

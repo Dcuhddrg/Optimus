@@ -95,6 +95,7 @@ func DefaultCloudPermissions() []systemModel.SystemPermission {
 		{Code: "cloud.accounts.update", Name: "Update cloud accounts", Type: "api", Method: "PUT", Path: "/api/v1/cloud/accounts/:id", Sort: 1003},
 		{Code: "cloud.accounts.delete", Name: "Delete cloud accounts", Type: "api", Method: "DELETE", Path: "/api/v1/cloud/accounts/:id", Sort: 1004},
 		{Code: "cloud.accounts.sync", Name: "Sync cloud accounts", Type: "api", Method: "POST", Path: "/api/v1/cloud/accounts/:id/sync", Sort: 1005},
+		{Code: "cloud.accounts.tags.update", Name: "Update cloud account tags", Type: "api", Method: "PUT", Path: "/api/v1/cloud/accounts/:id/tags", Sort: 1006},
 		{Code: "cloud.assets.view", Name: "View cloud assets", Type: "api", Method: "GET", Path: "/api/v1/cloud/assets", Sort: 1100},
 	}
 }

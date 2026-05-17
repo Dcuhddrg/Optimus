@@ -20,17 +20,13 @@ type testAccountStore struct {
 	next uint
 }
 
-func (s *testAccountStore) Create(_ context.Context, projectID uint, name, provider, accountID, credentialType, encryptedCredential string) (cloudUsecase.AccountRow, error) {
+func (s *testAccountStore) Create(_ context.Context, projectID uint, row cloudUsecase.AccountRow) (cloudUsecase.AccountRow, error) {
 	s.next++
-	row := cloudUsecase.AccountRow{
-		ID:             s.next,
-		ProjectID:      projectID,
-		Name:           name,
-		Provider:       provider,
-		AccountID:      accountID,
-		CredentialType: credentialType,
-		CredentialJSON: encryptedCredential,
-		Status:         "active",
+	row.ID = s.next
+	row.ProjectID = projectID
+	row.Status = "active"
+	if row.Tags == nil {
+		row.Tags = map[string]string{}
 	}
 	s.rows[row.ID] = row
 	return row, nil
@@ -48,12 +44,22 @@ func (s *testAccountStore) GetForSync(_ context.Context, id uint) (cloudUsecase.
 	return s.Get(context.Background(), nil, id)
 }
 
-func (s *testAccountStore) List(context.Context, []uint) ([]cloudUsecase.AccountRow, error) {
+func (s *testAccountStore) List(context.Context, []uint, []cloudUsecase.TagFilter) ([]cloudUsecase.AccountRow, error) {
 	return nil, nil
 }
 
 func (s *testAccountStore) Update(context.Context, []uint, uint, *string, *string) (cloudUsecase.AccountRow, error) {
 	return cloudUsecase.AccountRow{}, nil
+}
+
+func (s *testAccountStore) UpdateTags(_ context.Context, _ []uint, id uint, tags map[string]string) (cloudUsecase.AccountRow, error) {
+	row, ok := s.rows[id]
+	if !ok {
+		return cloudUsecase.AccountRow{}, cloudUsecase.ErrAccountNotFound
+	}
+	row.Tags = tags
+	s.rows[id] = row
+	return row, nil
 }
 
 func (s *testAccountStore) Delete(context.Context, []uint, uint) error {
