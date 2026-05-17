@@ -103,9 +103,16 @@ export function SideNav() {
             )}
           </div>
           {showCloudAccounts ? (
-            <span className={styles.navEntryDisabled}>
-              {t('shell.cloudAccounts')} · {t('shell.comingSoon')}
-            </span>
+            <NavLink
+              to="/cloud/accounts"
+              className={({ isActive }) =>
+                [styles.navEntry, isActive ? styles.navEntryActive : '']
+                  .filter(Boolean)
+                  .join(' ')
+              }
+            >
+              {t('shell.cloudAccounts')}
+            </NavLink>
           ) : null}
           {showCloudAssets ? (
             <span className={styles.navEntryDisabled}>
