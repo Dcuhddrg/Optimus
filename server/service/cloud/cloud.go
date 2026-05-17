@@ -86,9 +86,11 @@ func ensureDefaultProject(db *gorm.DB) (projectModel.Project, error) {
 	return project, nil
 }
 
-// DefaultCloudPermissions returns all cloud API permissions.
+// DefaultCloudPermissions returns all cloud menu and API permissions.
 func DefaultCloudPermissions() []systemModel.SystemPermission {
 	return []systemModel.SystemPermission{
+		{Code: "cloud.accounts.menu", Name: "Cloud Accounts", Type: "menu", Path: "/cloud/accounts", Sort: 31},
+		{Code: "cloud.assets.menu", Name: "Cloud Assets", Type: "menu", Path: "/cloud/assets", Sort: 32},
 		{Code: "cloud.accounts.view", Name: "View cloud accounts", Type: "api", Method: "GET", Path: "/api/v1/cloud/accounts", Sort: 1000},
 		{Code: "cloud.accounts.detail", Name: "View cloud account detail", Type: "api", Method: "GET", Path: "/api/v1/cloud/accounts/:id", Sort: 1001},
 		{Code: "cloud.accounts.create", Name: "Create cloud accounts", Type: "api", Method: "POST", Path: "/api/v1/cloud/accounts", Sort: 1002},
