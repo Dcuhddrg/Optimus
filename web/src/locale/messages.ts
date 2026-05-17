@@ -153,6 +153,11 @@ const en = {
       tooMany: 'Cannot add more than 32 tags',
       saveFailed: 'Failed to save tags',
       hint: 'Tip: use `environment` to classify by deployment environment',
+      environmentLabel: 'environment',
+      all: 'All',
+      untagged: 'No environment',
+      filterPlaceholder: 'filter by tag, e.g. environment=prod team=sre',
+      addFilter: 'Add filter',
     },
   },
   dashboard: {
@@ -375,6 +380,11 @@ const zhCN: typeof en = {
       tooMany: '最多 32 个 tag',
       saveFailed: '保存 tag 失败',
       hint: '建议使用 `environment` 作为环境分类的 key',
+      environmentLabel: '环境',
+      all: '全部',
+      untagged: '无环境',
+      filterPlaceholder: '按 tag 过滤，如 environment=prod team=sre',
+      addFilter: '加入',
     },
   },
   dashboard: {

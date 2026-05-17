@@ -1,0 +1,86 @@
+.filter {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--shell-border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.46);
+}
+
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.label {
+  margin-right: 4px;
+  color: var(--shell-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 32px;
+  border: 1px solid var(--shell-border);
+  border-radius: 8px;
+  padding: 5px 10px;
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--shell-muted);
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.chip strong {
+  color: var(--text-primary);
+}
+
+.chipActive {
+  border-color: rgba(47, 95, 89, 0.3);
+  background: rgba(47, 95, 89, 0.1);
+  color: var(--shell-control-active-bg);
+}
+
+.inputRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.inputRow input {
+  flex: 1 1 14rem;
+  min-height: 32px;
+  min-width: 0;
+  border: 1px solid var(--shell-border);
+  border-radius: 6px;
+  padding: 0 10px;
+  background: rgba(255, 255, 255, 0.74);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.84rem;
+}
+
+.inputRow button {
+  min-height: 32px;
+  border: 0;
+  border-radius: 6px;
+  padding: 0 12px;
+  background: var(--shell-control-active-bg);
+  color: var(--shell-control-active-fg);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.activeToken {
+  border: 1px dashed var(--shell-border) !important;
+  background: rgba(255, 255, 255, 0.78) !important;
+  color: var(--shell-muted) !important;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.78rem;
+}

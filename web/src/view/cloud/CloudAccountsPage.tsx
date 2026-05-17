@@ -9,6 +9,7 @@ import {
 } from '../../api/cloud';
 import { TagChip } from '../../components/tag/TagChip';
 import { TagEditor } from '../../components/tag/TagEditor';
+import { TagFilter } from '../../components/tag/TagFilter';
 import { useI18n } from '../../locale/useI18n';
 import type { CloudAccount } from '../../types/cloud';
 import styles from './CloudAccountsPage.module.css';
@@ -29,10 +30,11 @@ export function CloudAccountsPage() {
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<number | null>(null);
   const [editingTagsId, setEditingTagsId] = useState<number | null>(null);
+  const [tagFilters, setTagFilters] = useState<string[]>([]);
 
   async function load() {
     try {
-      const result = await listCloudAccounts();
+      const result = await listCloudAccounts(tagFilters);
       setAccounts(result.items);
       setError(null);
     } catch (err) {
@@ -42,7 +44,7 @@ export function CloudAccountsPage() {
 
   useEffect(() => {
     void load();
-  }, []);
+  }, [tagFilters]);
 
   async function handleCreate(event: FormEvent) {
     event.preventDefault();
@@ -111,6 +113,8 @@ export function CloudAccountsPage() {
       </header>
 
       {error ? <div className={styles.error}>{error}</div> : null}
+
+      <TagFilter active={tagFilters} onChange={setTagFilters} totalCount={accounts.length} />
 
       <form className={styles.createBar} onSubmit={(event) => void handleCreate(event)}>
         <label>
