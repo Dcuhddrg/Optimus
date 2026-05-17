@@ -115,9 +115,16 @@ export function SideNav() {
             </NavLink>
           ) : null}
           {showCloudAssets ? (
-            <span className={styles.navEntryDisabled}>
-              {t('shell.cloudAssets')} · {t('shell.comingSoon')}
-            </span>
+            <NavLink
+              to="/cloud/assets"
+              className={({ isActive }) =>
+                [styles.navEntry, isActive ? styles.navEntryActive : '']
+                  .filter(Boolean)
+                  .join(' ')
+              }
+            >
+              {t('shell.cloudAssets')}
+            </NavLink>
           ) : null}
         </section>
 

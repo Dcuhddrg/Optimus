@@ -7,6 +7,7 @@ import { AppShell } from '../layout/AppShell';
 import { LanguageProvider } from '../locale/LanguageProvider';
 import { LoginPage } from '../view/auth/LoginPage';
 import { CloudAccountsPage } from '../view/cloud/CloudAccountsPage';
+import { CloudAssetsPage } from '../view/cloud/CloudAssetsPage';
 import { DashboardPage } from '../view/dashboard/DashboardPage';
 import { ProjectMembersPage } from '../view/project/ProjectMembersPage';
 import { ProjectsPage } from '../view/project/ProjectsPage';
@@ -64,6 +65,10 @@ export const router = createBrowserRouter([
               {
                 path: 'cloud/accounts',
                 element: <CloudAccountsPage />,
+              },
+              {
+                path: 'cloud/assets',
+                element: <CloudAssetsPage />,
               },
               {
                 path: 'system',

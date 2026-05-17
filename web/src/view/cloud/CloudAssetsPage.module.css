@@ -1,0 +1,118 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.title {
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.sub {
+  margin: 6px 0 0;
+  color: var(--shell-muted);
+  font-size: 0.92rem;
+}
+
+.error {
+  padding: 12px 14px;
+  border: 1px solid rgba(154, 52, 18, 0.22);
+  border-radius: 8px;
+  background: rgba(255, 247, 237, 0.82);
+  color: #9a3412;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tableHeader,
+.row {
+  display: grid;
+  grid-template-columns: minmax(8rem, 1fr) minmax(9rem, 1.2fr) minmax(7rem, 1fr) minmax(7rem, 1fr) minmax(12rem, 2fr);
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+}
+
+.tableHeader {
+  color: var(--shell-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.row {
+  border: 1px solid var(--shell-border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.56);
+}
+
+.row strong,
+.row span,
+.row code {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row code {
+  color: var(--shell-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.82rem;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.untagged {
+  border: 1px dashed var(--shell-border);
+  border-radius: 6px;
+  padding: 2px 9px;
+  color: var(--shell-muted);
+  font-size: 0.78rem;
+  font-style: italic;
+}
+
+.empty {
+  color: var(--shell-muted);
+  text-align: center;
+}
+
+@media (max-width: 1120px) {
+  .tableHeader {
+    display: none;
+  }
+
+  .row {
+    grid-template-columns: minmax(10rem, 1fr) minmax(10rem, 1fr);
+  }
+
+  .tags {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 680px) {
+  .row {
+    grid-template-columns: 1fr;
+  }
+
+  .tags {
+    grid-column: auto;
+  }
+}
