@@ -67,11 +67,7 @@ export function ProjectSwitcher() {
 
   return (
     <div ref={containerRef} className={styles.switcher} aria-label={t('project.switcher.label')}>
-      <div className={styles.context}>
-        <span className={styles.label}>{t('project.switcher.current')}</span>
-        {triggerSub ? <span className={styles.code}>{triggerSub}</span> : null}
-        <strong>{triggerLabel}</strong>
-      </div>
+      <span className={styles.label} aria-hidden="true">{t('project.switcher.current')}</span>
       <button
         type="button"
         className={styles.trigger}
@@ -83,6 +79,7 @@ export function ProjectSwitcher() {
         <span className={styles.triggerName}>
           {loading && projects.length === 0 ? t('project.switcher.loading') : triggerLabel}
         </span>
+        {triggerSub ? <span className={styles.triggerCode}>{triggerSub}</span> : null}
         <span className={styles.chevron} aria-hidden="true">{open ? '▴' : '▾'}</span>
       </button>
       <span className={styles.count}>
