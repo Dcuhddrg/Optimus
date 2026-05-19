@@ -62,7 +62,21 @@ export function SideNav() {
 
         <section className={styles.group}>
           <p className={styles.groupLabel}>{t('shell.opsCenter')}</p>
-          <span className={styles.navEntryDisabled}>{t('shell.comingSoon')}</span>
+          <span className={styles.navEntryDisabled} title={t('shell.comingSoon')}>
+            {t('shell.servicePortal')}
+          </span>
+          <span className={styles.navEntryDisabled} title={t('shell.comingSoon')}>
+            {t('shell.tickets')}
+          </span>
+          <span className={styles.navEntryDisabled} title={t('shell.comingSoon')}>
+            {t('shell.tasks')}
+          </span>
+          <span className={styles.navEntryDisabled} title={t('shell.comingSoon')}>
+            {t('shell.myDuty')}
+          </span>
+          <span className={styles.navEntryDisabled} title={t('shell.comingSoon')}>
+            {t('shell.bigScreen')}
+          </span>
         </section>
 
         {hasCloudItems ? (
