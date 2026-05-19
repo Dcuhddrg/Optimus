@@ -45,20 +45,17 @@ export function SideNav() {
       </div>
 
       <nav className={styles.nav} aria-label={t('shell.navLabel')}>
-        <section className={styles.group}>
-          <p className={styles.groupLabel}>{t('shell.overview')}</p>
-          <NavLink
-            to="/"
-            end
-            className={({ isActive }) =>
-              [styles.navEntry, isActive ? styles.navEntryActive : '']
-                .filter(Boolean)
-                .join(' ')
-            }
-          >
-            {t('shell.dashboard')}
-          </NavLink>
-        </section>
+        <NavLink
+          to="/"
+          end
+          className={({ isActive }) =>
+            [styles.navEntry, isActive ? styles.navEntryActive : '']
+              .filter(Boolean)
+              .join(' ')
+          }
+        >
+          {t('shell.overview')}
+        </NavLink>
 
         <section className={styles.group}>
           <p className={styles.groupLabel}>{t('shell.opsCenter')}</p>
