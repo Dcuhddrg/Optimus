@@ -6,12 +6,12 @@ import { useProject } from '../../auth/ProjectContext';
 import { useI18n } from '../../locale/useI18n';
 import styles from './SideNav.module.css';
 
-type SystemItem = {
+type NavItem = {
   to: string;
   label: string;
 };
 
-function isSystemItem(item: SystemItem | null): item is SystemItem {
+function isNavItem(item: NavItem | null): item is NavItem {
   return item !== null;
 }
 
@@ -20,8 +20,9 @@ export function SideNav() {
   const { hasMenu } = useAuth();
   const { currentProject } = useProject();
   const { t } = useI18n();
-  const onSystemPage = location.pathname.startsWith('/system');
-  const [collapsed, setCollapsed] = useState(() => !onSystemPage);
+  const onPlatformPage =
+    location.pathname.startsWith('/system') || location.pathname.startsWith('/projects');
+  const [collapsed, setCollapsed] = useState(() => !onPlatformPage);
   const showUsers = hasMenu('system.users.menu');
   const showRoles = hasMenu('system.roles.menu');
   const showLDAP = hasMenu('system.ldap.menu');
@@ -31,26 +32,28 @@ export function SideNav() {
   const showCloudAssets = hasMenu('cloud.assets.menu');
 
   useEffect(() => {
-    if (onSystemPage) {
+    if (onPlatformPage) {
       setCollapsed(false);
     }
-  }, [location.pathname, onSystemPage]);
+  }, [location.pathname, onPlatformPage]);
 
   const expanded = !collapsed;
-  const systemItems = [
+  const platformItems = [
+    showProjects ? { to: '/projects', label: t('shell.projects') } : null,
     showUsers ? { to: '/system/users', label: t('shell.users') } : null,
     showRoles ? { to: '/system/roles', label: t('shell.roles') } : null,
     showLDAP ? { to: '/system/ldap', label: t('shell.ldap') } : null,
     showAudit ? { to: '/system/audit-logs', label: t('shell.auditLogs') } : null,
-  ].filter(isSystemItem);
-  const hasSystemItems = systemItems.length > 0;
-  const systemSectionClassName = [
+  ].filter(isNavItem);
+  const hasPlatformItems = platformItems.length > 0;
+  const platformSectionClassName = [
     styles.section,
     expanded ? styles.sectionOpen : '',
-    onSystemPage ? styles.sectionActive : '',
+    onPlatformPage ? styles.sectionActive : '',
   ]
     .filter(Boolean)
     .join(' ');
+  const hasCloudItems = showCloudAccounts || showCloudAssets;
 
   return (
     <aside className={styles.sidebar}>
@@ -76,66 +79,56 @@ export function SideNav() {
           >
             {t('shell.dashboard')}
           </NavLink>
-          {showProjects ? (
-            <NavLink
-              to="/projects"
-              className={({ isActive }) =>
-                [styles.navEntry, isActive ? styles.navEntryActive : '']
-                  .filter(Boolean)
-                  .join(' ')
-              }
-            >
-              {t('shell.projects')}
-            </NavLink>
-          ) : null}
         </section>
 
-        <section className={styles.group}>
-          <p className={styles.groupLabel}>{t('shell.currentProject')}</p>
-          <div className={styles.projectContext}>
-            {currentProject ? (
-              <>
-                <strong>{currentProject.name}</strong>
-                <span>{currentProject.code}</span>
-              </>
-            ) : (
-              <span>{t('shell.noProjectSelected')}</span>
-            )}
-          </div>
-          {showCloudAccounts ? (
-            <NavLink
-              to="/cloud/accounts"
-              className={({ isActive }) =>
-                [styles.navEntry, isActive ? styles.navEntryActive : '']
-                  .filter(Boolean)
-                  .join(' ')
-              }
-            >
-              {t('shell.cloudAccounts')}
-            </NavLink>
-          ) : null}
-          {showCloudAssets ? (
-            <NavLink
-              to="/cloud/assets"
-              className={({ isActive }) =>
-                [styles.navEntry, isActive ? styles.navEntryActive : '']
-                  .filter(Boolean)
-                  .join(' ')
-              }
-            >
-              {t('shell.cloudAssets')}
-            </NavLink>
-          ) : null}
-        </section>
+        {hasCloudItems ? (
+          <section className={styles.group}>
+            <p className={styles.groupLabel}>{t('shell.cloud')}</p>
+            <div className={styles.projectContext}>
+              {currentProject ? (
+                <>
+                  <strong>{currentProject.name}</strong>
+                  <span>{currentProject.code}</span>
+                </>
+              ) : (
+                <span>{t('shell.noProjectSelected')}</span>
+              )}
+            </div>
+            {showCloudAccounts ? (
+              <NavLink
+                to="/cloud/accounts"
+                className={({ isActive }) =>
+                  [styles.navEntry, isActive ? styles.navEntryActive : '']
+                    .filter(Boolean)
+                    .join(' ')
+                }
+              >
+                {t('shell.cloudAccounts')}
+              </NavLink>
+            ) : null}
+            {showCloudAssets ? (
+              <NavLink
+                to="/cloud/assets"
+                className={({ isActive }) =>
+                  [styles.navEntry, isActive ? styles.navEntryActive : '']
+                    .filter(Boolean)
+                    .join(' ')
+                }
+              >
+                {t('shell.cloudAssets')}
+              </NavLink>
+            ) : null}
+          </section>
+        ) : null}
 
-        {hasSystemItems ? (
-          <section className={systemSectionClassName}>
-            <p className={styles.groupLabel}>{t('shell.system')}</p>
+        {hasPlatformItems ? (
+          <section className={platformSectionClassName}>
+            <p className={styles.groupLabel}>{t('shell.platformSettings')}</p>
             <button
               type="button"
               className={[styles.navEntry, styles.sectionButton].join(' ')}
               onClick={() => {
-                if (onSystemPage) {
+                if (onPlatformPage) {
                   setCollapsed(false);
                   return;
                 }
@@ -153,11 +146,11 @@ export function SideNav() {
                   .join(' ')}
                 aria-hidden="true"
               />
-              {t('shell.system')}
+              {t('shell.platformSettings')}
             </button>
             {expanded ? (
               <div className={styles.sectionChildren}>
-                {systemItems.map((item) => (
+                {platformItems.map((item) => (
                   <NavLink
                     key={item.to}
                     to={item.to}
