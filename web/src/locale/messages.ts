@@ -36,6 +36,7 @@ const en = {
     brandTitle: 'Optimus',
     navLabel: 'Primary navigation',
     moduleNav: 'Module navigation',
+    platformNav: 'Platform navigation',
     overview: 'Overview',
     projects: 'Projects',
     currentProject: 'Current project',
@@ -126,6 +127,12 @@ const en = {
     },
   },
   cloud: {
+    module: {
+      eyebrow: 'Cloud',
+      title: 'Cloud Management',
+      sub: 'Connect cloud accounts and explore the resources they expose for the current project.',
+      tabsLabel: 'Cloud sub-views',
+    },
     accounts: {
       eyebrow: 'Cloud accounts',
       title: 'Cloud accounts',
@@ -299,6 +306,7 @@ const zhCN: typeof en = {
     brandTitle: 'Optimus',
     navLabel: '主导航',
     moduleNav: '模块导航',
+    platformNav: '平台导航',
     overview: '概览',
     projects: '项目',
     currentProject: '当前项目',
@@ -389,6 +397,12 @@ const zhCN: typeof en = {
     },
   },
   cloud: {
+    module: {
+      eyebrow: '云',
+      title: '云管理',
+      sub: '为当前项目接入云厂商账号，并查看账号下同步的资源。',
+      tabsLabel: '云管理子页',
+    },
     accounts: {
       eyebrow: '云账号',
       title: '云账号',

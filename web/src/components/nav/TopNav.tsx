@@ -48,7 +48,7 @@ export function TopNav() {
   }
 
   return (
-    <nav className={styles.topNav} aria-label={t('shell.moduleNav')}>
+    <nav className={styles.topNav} aria-label={t('shell.platformNav')}>
       <div className={styles.item} ref={containerRef}>
         <button
           type="button"
@@ -60,7 +60,7 @@ export function TopNav() {
           aria-expanded={open}
         >
           <span className={styles.tabMark} aria-hidden="true" />
-          <span className={styles.tabLabel}>{t('shell.cloud')}</span>
+          <span className={styles.tabLabel}>{t('shell.platformNav')}</span>
           <span
             className={[styles.chevron, open ? styles.chevronOpen : ''].filter(Boolean).join(' ')}
             aria-hidden="true"
@@ -70,32 +70,17 @@ export function TopNav() {
         </button>
         {open ? (
           <div className={styles.dropdown} role="menu">
-            {showCloudAccounts ? (
-              <NavLink
-                to="/cloud/accounts"
-                className={({ isActive }) =>
-                  [styles.dropdownItem, isActive ? styles.dropdownItemActive : '']
-                    .filter(Boolean)
-                    .join(' ')
-                }
-                role="menuitem"
-              >
-                {t('shell.cloudAccounts')}
-              </NavLink>
-            ) : null}
-            {showCloudAssets ? (
-              <NavLink
-                to="/cloud/assets"
-                className={({ isActive }) =>
-                  [styles.dropdownItem, isActive ? styles.dropdownItemActive : '']
-                    .filter(Boolean)
-                    .join(' ')
-                }
-                role="menuitem"
-              >
-                {t('shell.cloudAssets')}
-              </NavLink>
-            ) : null}
+            <NavLink
+              to="/cloud"
+              className={({ isActive }) =>
+                [styles.dropdownItem, isActive ? styles.dropdownItemActive : '']
+                  .filter(Boolean)
+                  .join(' ')
+              }
+              role="menuitem"
+            >
+              {t('shell.cloud')}
+            </NavLink>
           </div>
         ) : null}
       </div>

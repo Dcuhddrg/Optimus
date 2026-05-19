@@ -90,14 +90,6 @@ export function CloudAssetsPage() {
 
   return (
     <section className={styles.page}>
-      <header className={styles.header}>
-        <div>
-          <p className="page-eyebrow">{t('cloud.assets.eyebrow')}</p>
-          <h1 className={styles.title}>{t('cloud.assets.title')}</h1>
-          <p className={styles.sub}>{t('cloud.assets.sub')}</p>
-        </div>
-      </header>
-
       {error ? <div className={styles.error}>{error}</div> : null}
 
       <TagFilter active={tagFilters} onChange={handleTagFiltersChange} totalCount={total} />
