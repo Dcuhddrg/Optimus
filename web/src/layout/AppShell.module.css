@@ -22,33 +22,11 @@ Shell invariants:
 }
 
 .topbar {
-  display: grid;
-  grid-template-columns: minmax(14rem, 1fr) minmax(0, auto);
-  align-items: start;
-  gap: 20px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 56px;
   padding: 0 28px;
-}
-
-.topbarCopy {
-  flex: 1 1 18rem;
-  min-width: 0;
-}
-
-.eyebrow {
-  margin: 0 0 6px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--shell-muted);
-}
-
-.title {
-  margin: 0;
-  font-size: clamp(1.72rem, 1.2rem + 1vw, 2.1rem);
-  line-height: 1.08;
-  letter-spacing: -0.03em;
-  color: var(--text-primary);
 }
 
 .topbarActions {
@@ -140,8 +118,6 @@ Shell invariants:
   }
 
   .topbar {
-    grid-template-columns: 1fr;
-    gap: 16px;
     padding: 0 20px;
   }
 

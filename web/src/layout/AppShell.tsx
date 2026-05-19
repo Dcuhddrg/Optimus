@@ -16,10 +16,6 @@ export function AppShell() {
       <SideNav />
       <div className={styles.content}>
         <header className={styles.topbar}>
-          <div className={styles.topbarCopy}>
-            <p className={styles.eyebrow}>{t('shell.topbarEyebrow')}</p>
-            <h1 className={styles.title}>{t('shell.topbarTitle')}</h1>
-          </div>
           <div className={styles.topbarActions}>
             <ProjectSwitcher />
             <LanguageSwitcher />

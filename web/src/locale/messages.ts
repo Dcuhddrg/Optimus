@@ -34,8 +34,6 @@ const en = {
   shell: {
     brandEyebrow: 'Platform',
     brandTitle: 'Optimus',
-    topbarEyebrow: 'Optimus Ops',
-    topbarTitle: 'Operations workspace',
     navLabel: 'Primary navigation',
     overview: 'Overview',
     dashboard: 'Dashboard',
@@ -299,8 +297,6 @@ const zhCN: typeof en = {
   shell: {
     brandEyebrow: '平台',
     brandTitle: 'Optimus',
-    topbarEyebrow: 'Optimus Ops',
-    topbarTitle: '运维工作区',
     navLabel: '主导航',
     overview: '概览',
     dashboard: '仪表盘',
