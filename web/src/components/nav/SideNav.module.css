@@ -116,10 +116,11 @@
 }
 
 .navEntryDisabled {
-  padding: 0 14px;
+  padding: 0 14px 0 24px;
   color: #a58d72;
   background: rgba(255, 252, 247, 0.32);
   font-size: 0.92rem;
+  font-style: italic;
 }
 
 .section {

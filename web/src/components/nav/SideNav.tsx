@@ -60,6 +60,11 @@ export function SideNav() {
           </NavLink>
         </section>
 
+        <section className={styles.group}>
+          <p className={styles.groupLabel}>{t('shell.opsCenter')}</p>
+          <span className={styles.navEntryDisabled}>{t('shell.comingSoon')}</span>
+        </section>
+
         {hasCloudItems ? (
           <section className={styles.group}>
             <p className={styles.groupLabel}>{t('shell.cloud')}</p>
