@@ -50,22 +50,24 @@
 .nav {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 26px;
 }
 
 .group {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .groupLabel {
-  margin: 0 0 2px;
-  padding: 0 12px;
-  color: #9b8266;
-  font-size: 0.72rem;
+  margin: 0 4px 10px;
+  padding: 0 8px 8px;
+  color: #5c4734;
+  font-size: 0.78rem;
   font-weight: 800;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
+  border-bottom: 1px solid rgba(143, 102, 68, 0.2);
 }
 
 .navEntry,
@@ -79,7 +81,7 @@
 
 .navEntry {
   width: 100%;
-  padding: 0 14px;
+  padding: 0 14px 0 24px;
   border: 0;
   background: transparent;
   color: #5c4734;
