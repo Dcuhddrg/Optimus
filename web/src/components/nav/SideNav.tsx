@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 
 import { useAuth } from '../../auth/AuthContext';
-import { useProject } from '../../auth/ProjectContext';
 import { useI18n } from '../../locale/useI18n';
 import styles from './SideNav.module.css';
 
@@ -18,7 +17,6 @@ function isNavItem(item: NavItem | null): item is NavItem {
 export function SideNav() {
   const location = useLocation();
   const { hasMenu } = useAuth();
-  const { currentProject } = useProject();
   const { t } = useI18n();
   const onPlatformPage =
     location.pathname.startsWith('/system') || location.pathname.startsWith('/projects');
@@ -84,16 +82,6 @@ export function SideNav() {
         {hasCloudItems ? (
           <section className={styles.group}>
             <p className={styles.groupLabel}>{t('shell.cloud')}</p>
-            <div className={styles.projectContext}>
-              {currentProject ? (
-                <>
-                  <strong>{currentProject.name}</strong>
-                  <span>{currentProject.code}</span>
-                </>
-              ) : (
-                <span>{t('shell.noProjectSelected')}</span>
-              )}
-            </div>
             {showCloudAccounts ? (
               <NavLink
                 to="/cloud/accounts"
