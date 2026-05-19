@@ -24,14 +24,15 @@ Shell invariants:
 .topbar {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
   min-height: 56px;
   padding: 0 28px;
+  gap: 16px;
 }
 
 .topbarActions {
   display: flex;
   align-items: center;
+  margin-left: auto;
   max-width: 100%;
   min-width: 0;
   gap: 10px;

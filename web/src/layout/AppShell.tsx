@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { LanguageSwitcher } from '../components/locale/LanguageSwitcher';
 import { SideNav } from '../components/nav/SideNav';
+import { TopNav } from '../components/nav/TopNav';
 import { ProjectSwitcher } from '../components/project/ProjectSwitcher';
 import { useI18n } from '../locale/useI18n';
 import styles from './AppShell.module.css';
@@ -16,6 +17,7 @@ export function AppShell() {
       <SideNav />
       <div className={styles.content}>
         <header className={styles.topbar}>
+          <TopNav />
           <div className={styles.topbarActions}>
             <ProjectSwitcher />
             <LanguageSwitcher />

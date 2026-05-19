@@ -21,8 +21,6 @@ export function SideNav() {
   const showLDAP = hasMenu('system.ldap.menu');
   const showAudit = hasMenu('system.audit.menu');
   const showProjects = hasMenu('project.menu');
-  const showCloudAccounts = hasMenu('cloud.accounts.menu');
-  const showCloudAssets = hasMenu('cloud.assets.menu');
 
   const platformItems = [
     showProjects ? { to: '/projects', label: t('shell.projects') } : null,
@@ -32,7 +30,6 @@ export function SideNav() {
     showAudit ? { to: '/system/audit-logs', label: t('shell.auditLogs') } : null,
   ].filter(isNavItem);
   const hasPlatformItems = platformItems.length > 0;
-  const hasCloudItems = showCloudAccounts || showCloudAssets;
 
   return (
     <aside className={styles.sidebar}>
@@ -75,36 +72,6 @@ export function SideNav() {
             {t('shell.bigScreen')}
           </span>
         </section>
-
-        {hasCloudItems ? (
-          <section className={styles.group}>
-            <p className={styles.groupLabel}>{t('shell.cloud')}</p>
-            {showCloudAccounts ? (
-              <NavLink
-                to="/cloud/accounts"
-                className={({ isActive }) =>
-                  [styles.navEntry, isActive ? styles.navEntryActive : '']
-                    .filter(Boolean)
-                    .join(' ')
-                }
-              >
-                {t('shell.cloudAccounts')}
-              </NavLink>
-            ) : null}
-            {showCloudAssets ? (
-              <NavLink
-                to="/cloud/assets"
-                className={({ isActive }) =>
-                  [styles.navEntry, isActive ? styles.navEntryActive : '']
-                    .filter(Boolean)
-                    .join(' ')
-                }
-              >
-                {t('shell.cloudAssets')}
-              </NavLink>
-            ) : null}
-          </section>
-        ) : null}
 
         {hasPlatformItems ? (
           <section className={styles.group}>
