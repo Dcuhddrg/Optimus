@@ -26,12 +26,6 @@
   padding-left: 12px;
 }
 
-.triggerCode {
-  color: var(--shell-muted);
-  font-size: 0.78rem;
-  font-weight: 600;
-  white-space: nowrap;
-}
 
 .trigger {
   display: inline-flex;

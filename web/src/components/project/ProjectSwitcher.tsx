@@ -75,11 +75,13 @@ export function ProjectSwitcher() {
         disabled={disabled}
         aria-haspopup="listbox"
         aria-expanded={open}
+        title={triggerLabel}
       >
         <span className={styles.triggerName}>
-          {loading && projects.length === 0 ? t('project.switcher.loading') : triggerLabel}
+          {loading && projects.length === 0
+            ? t('project.switcher.loading')
+            : triggerSub || triggerLabel}
         </span>
-        {triggerSub ? <span className={styles.triggerCode}>{triggerSub}</span> : null}
         <span className={styles.chevron} aria-hidden="true">{open ? '▴' : '▾'}</span>
       </button>
       <span className={styles.count}>
