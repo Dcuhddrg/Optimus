@@ -1,6 +1,7 @@
 # Project Rules
 
 > 本文件是 Claude Code 与 Codex 在当前仓库中的共用行为契约。处理任务前先阅读，并按此约束接任务、执行、验证和汇报。
+> 本仓库在相关任务中使用 Superpowers 工作流，但默认不要求更宽泛的 OMX runtime modes。
 
 ---
 
@@ -52,11 +53,51 @@
 - 非平凡任务优先从 brainstorming 开始，先澄清目标、边界与设计取舍
 - brainstorming 形成并确认规格后进入 writing-plans，沉淀为可执行计划
 - 完成规划后，实施可根据任务形态选择 subagent-driven-development 或 executing-plans
-- 设计文档写入 `docs/superpowers/specs/`
-- 实施计划写入 `docs/superpowers/plans/`
+- 设计文档写入 `docs/superpowers/specs/`，实施计划写入 `docs/superpowers/plans/`
+- **当前活跃**：只保留进行中阶段的 specs / plans（当前为 Phase 1 Cloud + SP 系列）
+- **已完成归档**：阶段交付完成后，把对应的 spec 与 plan 移到 `docs/superpowers/archive/specs/` 与 `docs/superpowers/archive/plans/`，保留历史但不再出现在 active 目录中干扰扫描
 - 不跳过设计直接写代码，除非任务明确是单文件小改动
 
 ---
+
+## CODE DISCOVERY
+
+本仓库已建立 codebase-memory 知识图谱，项目名 `home-lilin-trae-project-Optimus`（路径 `/home/lilin/trae-project/Optimus`）。**任何代码探索任务必须优先走 codebase-memory-mcp 工具**，仅在非代码场景才回退到 Grep/Glob/Read。
+
+### 默认走图谱的场景
+
+- 找函数、类、路由、handler 在哪：`search_graph(label, name_pattern)`
+- 谁调用 X / X 调用了什么 / 完整调用链：`trace_path(function_name, direction=inbound|outbound|both, depth)`
+- 读源码（替代 `cat` / `Read` 源文件）：`get_code_snippet(qualified_name)`
+- 看项目骨架、目录结构、技术栈：`get_architecture(aspects)`
+- 跨服务依赖、HTTP / async 调用关系：`query_graph(<Cypher>)`
+- 评估本地改动影响面：`detect_changes()` 把 git diff 映射到受影响的符号
+- 文本搜索（带图谱权重）：`search_code(pattern)`，优于纯 `grep`
+- 死代码 / 高扇出 / 高扇入 / 重构候选：`search_graph` 配合 `max_degree` / `min_degree` 参数
+- 不熟悉图谱时先看 `get_graph_schema()` 了解节点和边类型
+
+### 回退到 Grep/Glob/Read 的场景
+
+仅限以下场景走文本工具：
+
+- `.md` / `.yml` / `.yaml` / `.json` / `.toml` / `.env*` 等非代码文件
+- 配置值、注释、字符串字面量、错误信息文案的查找
+- `.claude/`、`docs/`、`deploy/` 等非源码目录的内容确认
+- 图谱明确未覆盖的新文件（先用 `detect_changes` 判断）
+
+### 索引一致性
+
+- 拉取主干、做大重构、批量新增文件后，先 `detect_changes()` 看是否漂移
+- 索引明显落后时执行 `index_repository`，必要时清理后重建
+- 任务开始前若不确定状态，先 `index_status(project="home-lilin-trae-project-Optimus")` 确认 `ready`
+
+### 子代理继承
+
+派发 subagent 时必须在 prompt 里写明：**代码发现先用 codebase-memory-mcp，文本/配置才回退 Grep/Read**。否则子代理会沿用默认 grep 习惯，浪费 token 且结果不结构化。
+
+### Token 取向
+
+图谱查询单次约 500 tokens，等价的 `grep -r` 经常 50k+。能用 `search_graph` / `trace_path` 解决的，不要先撒大网。
 
 ## VERIFICATION
 
