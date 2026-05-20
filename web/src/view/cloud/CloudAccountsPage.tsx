@@ -104,6 +104,14 @@ export function CloudAccountsPage() {
 
   return (
     <section className={styles.page}>
+      <header className={styles.header}>
+        <div>
+          <p className="page-eyebrow">{t('cloud.accounts.eyebrow')}</p>
+          <h1 className={styles.title}>{t('cloud.accounts.title')}</h1>
+          <p className={styles.sub}>{t('cloud.accounts.sub')}</p>
+        </div>
+      </header>
+
       {error ? <div className={styles.error}>{error}</div> : null}
 
       <TagFilter active={tagFilters} onChange={setTagFilters} totalCount={accounts.length} />

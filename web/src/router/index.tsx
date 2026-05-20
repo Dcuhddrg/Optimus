@@ -8,7 +8,6 @@ import { LanguageProvider } from '../locale/LanguageProvider';
 import { LoginPage } from '../view/auth/LoginPage';
 import { CloudAccountsPage } from '../view/cloud/CloudAccountsPage';
 import { CloudAssetsPage } from '../view/cloud/CloudAssetsPage';
-import { CloudLayout } from '../view/cloud/CloudLayout';
 import { DashboardPage } from '../view/dashboard/DashboardPage';
 import { ProjectMembersPage } from '../view/project/ProjectMembersPage';
 import { ProjectsPage } from '../view/project/ProjectsPage';
@@ -65,21 +64,15 @@ export const router = createBrowserRouter([
               },
               {
                 path: 'cloud',
-                element: <CloudLayout />,
-                children: [
-                  {
-                    index: true,
-                    element: <Navigate to="/cloud/accounts" replace />,
-                  },
-                  {
-                    path: 'accounts',
-                    element: <CloudAccountsPage />,
-                  },
-                  {
-                    path: 'assets',
-                    element: <CloudAssetsPage />,
-                  },
-                ],
+                element: <Navigate to="/cloud/accounts" replace />,
+              },
+              {
+                path: 'cloud/accounts',
+                element: <CloudAccountsPage />,
+              },
+              {
+                path: 'cloud/assets',
+                element: <CloudAssetsPage />,
               },
               {
                 path: 'system',

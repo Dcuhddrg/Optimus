@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 
 import { useAuth } from '../../auth/AuthContext';
 import { useI18n } from '../../locale/useI18n';
@@ -14,22 +14,10 @@ function isNavItem(item: NavItem | null): item is NavItem {
 }
 
 export function SideNav() {
+  const location = useLocation();
   const { hasMenu } = useAuth();
   const { t } = useI18n();
-  const showUsers = hasMenu('system.users.menu');
-  const showRoles = hasMenu('system.roles.menu');
-  const showLDAP = hasMenu('system.ldap.menu');
-  const showAudit = hasMenu('system.audit.menu');
-  const showProjects = hasMenu('project.menu');
-
-  const platformItems = [
-    showProjects ? { to: '/projects', label: t('shell.projects') } : null,
-    showUsers ? { to: '/system/users', label: t('shell.users') } : null,
-    showRoles ? { to: '/system/roles', label: t('shell.roles') } : null,
-    showLDAP ? { to: '/system/ldap', label: t('shell.ldap') } : null,
-    showAudit ? { to: '/system/audit-logs', label: t('shell.auditLogs') } : null,
-  ].filter(isNavItem);
-  const hasPlatformItems = platformItems.length > 0;
+  const isCloudBoard = location.pathname.startsWith('/cloud');
 
   return (
     <aside className={styles.sidebar}>
@@ -41,6 +29,63 @@ export function SideNav() {
         </div>
       </div>
 
+      {isCloudBoard ? <CloudBoardNav /> : <WorkspaceNav />}
+    </aside>
+  );
+
+  function CloudBoardNav() {
+    const showCloudAccounts = hasMenu('cloud.accounts.menu');
+    const showCloudAssets = hasMenu('cloud.assets.menu');
+
+    return (
+      <nav className={styles.nav} aria-label={t('shell.navLabel')}>
+        <section className={styles.group}>
+          <p className={styles.groupLabel}>{t('shell.cloud')}</p>
+          {showCloudAccounts ? (
+            <NavLink
+              to="/cloud/accounts"
+              className={({ isActive }) =>
+                [styles.navEntry, isActive ? styles.navEntryActive : '']
+                  .filter(Boolean)
+                  .join(' ')
+              }
+            >
+              {t('shell.cloudAccounts')}
+            </NavLink>
+          ) : null}
+          {showCloudAssets ? (
+            <NavLink
+              to="/cloud/assets"
+              className={({ isActive }) =>
+                [styles.navEntry, isActive ? styles.navEntryActive : '']
+                  .filter(Boolean)
+                  .join(' ')
+              }
+            >
+              {t('shell.cloudAssets')}
+            </NavLink>
+          ) : null}
+        </section>
+      </nav>
+    );
+  }
+
+  function WorkspaceNav() {
+    const showUsers = hasMenu('system.users.menu');
+    const showRoles = hasMenu('system.roles.menu');
+    const showLDAP = hasMenu('system.ldap.menu');
+    const showAudit = hasMenu('system.audit.menu');
+    const showProjects = hasMenu('project.menu');
+    const platformItems = [
+      showProjects ? { to: '/projects', label: t('shell.projects') } : null,
+      showUsers ? { to: '/system/users', label: t('shell.users') } : null,
+      showRoles ? { to: '/system/roles', label: t('shell.roles') } : null,
+      showLDAP ? { to: '/system/ldap', label: t('shell.ldap') } : null,
+      showAudit ? { to: '/system/audit-logs', label: t('shell.auditLogs') } : null,
+    ].filter(isNavItem);
+    const hasPlatformItems = platformItems.length > 0;
+
+    return (
       <nav className={styles.nav} aria-label={t('shell.navLabel')}>
         <NavLink
           to="/"
@@ -92,6 +137,6 @@ export function SideNav() {
           </section>
         ) : null}
       </nav>
-    </aside>
-  );
+    );
+  }
 }

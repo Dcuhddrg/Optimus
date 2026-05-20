@@ -11,28 +11,28 @@
 .tab {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  min-height: 38px;
+  gap: 10px;
+  min-height: 40px;
   padding: 0 16px 0 14px;
-  border: 1px solid transparent;
+  border: 1px solid rgba(111, 81, 49, 0.14);
   border-radius: 999px;
-  background: transparent;
-  color: var(--text-secondary);
+  background: rgba(255, 252, 247, 0.6);
+  color: var(--text-primary);
   font: inherit;
   font-size: 0.92rem;
   font-weight: 700;
   letter-spacing: 0.02em;
-  text-decoration: none;
   cursor: pointer;
   transition:
     background-color 0.18s ease,
     border-color 0.18s ease,
-    color 0.18s ease;
+    box-shadow 0.18s ease;
 }
 
 .tab:hover {
-  background: rgba(255, 251, 246, 0.55);
-  color: var(--text-primary);
+  background: rgba(255, 251, 246, 0.85);
+  border-color: rgba(111, 81, 49, 0.22);
+  box-shadow: 0 6px 14px rgba(126, 86, 53, 0.07);
 }
 
 .tab:focus-visible {
@@ -42,37 +42,45 @@
 
 .tabMark {
   display: inline-block;
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 999px;
   background: linear-gradient(135deg, #c99663, #8f6644);
-  opacity: 0.5;
-  transition: opacity 0.18s ease, transform 0.18s ease;
-}
-
-.tab:hover .tabMark {
-  opacity: 0.85;
-}
-
-.tabActive {
-  background: rgba(255, 251, 246, 0.88);
-  border-color: rgba(111, 81, 49, 0.14);
-  color: var(--shell-control-active-bg);
-  box-shadow:
-    0 6px 14px rgba(126, 86, 53, 0.06),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.5);
-}
-
-.tabActive .tabMark {
-  opacity: 1;
-  transform: scale(1.18);
+  box-shadow: 0 0 0 3px rgba(199, 150, 99, 0.18);
 }
 
 .tabLabel {
+  color: var(--shell-muted);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
   white-space: nowrap;
 }
 
+.tabBoard {
+  position: relative;
+  padding-left: 12px;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.tabBoard::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 1px;
+  height: 14px;
+  margin-top: -7px;
+  background: rgba(111, 81, 49, 0.2);
+}
+
 .chevron {
+  margin-left: 2px;
   font-size: 0.7rem;
   color: var(--shell-muted);
   transition: transform 0.18s ease;
@@ -83,61 +91,149 @@
   color: var(--shell-control-active-bg);
 }
 
-.dropdown {
+.panel {
   position: absolute;
-  top: calc(100% + 8px);
+  top: calc(100% + 10px);
   left: 0;
-  min-width: 180px;
-  padding: 6px;
+  min-width: 360px;
+  padding: 12px;
   border: 1px solid var(--shell-border);
-  border-radius: 14px;
+  border-radius: 18px;
   background:
-    linear-gradient(180deg, rgba(255, 253, 249, 0.96), rgba(255, 249, 242, 0.94)),
+    linear-gradient(180deg, rgba(255, 253, 249, 0.97), rgba(252, 245, 236, 0.94)),
     var(--shell-surface-strong);
   box-shadow:
-    0 22px 46px rgba(89, 66, 46, 0.12),
+    0 26px 50px rgba(89, 66, 46, 0.14),
     inset 0 1px 0 rgba(255, 255, 255, 0.6);
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
   z-index: 60;
-  animation: dropdownIn 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: panelIn 0.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-@keyframes dropdownIn {
+@keyframes panelIn {
   from {
     opacity: 0;
-    transform: translateY(-4px);
+    transform: translateY(-6px) scale(0.99);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
 }
 
-.dropdownItem {
+.panelHint {
+  margin: 4px 8px 10px;
+  color: var(--shell-muted);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.boards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+
+.boardCard {
+  position: relative;
   display: flex;
   align-items: center;
-  min-height: 36px;
-  padding: 0 14px;
-  border-radius: 9px;
+  gap: 14px;
+  padding: 12px 14px;
+  border: 1px solid transparent;
+  border-radius: 14px;
   background: transparent;
   color: var(--text-primary);
-  font-weight: 500;
-  font-size: 0.9rem;
-  text-decoration: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
   transition:
-    background-color 0.15s ease,
-    color 0.15s ease;
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
 }
 
-.dropdownItem:hover {
-  background: rgba(243, 229, 214, 0.5);
+.boardCard:hover {
+  background: rgba(255, 251, 246, 0.68);
+  border-color: rgba(111, 81, 49, 0.12);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(126, 86, 53, 0.08);
+}
+
+.boardCard:focus-visible {
+  outline: 2px solid var(--shell-control-focus);
+  outline-offset: 2px;
+}
+
+.boardCardActive {
+  background: rgba(255, 251, 246, 0.88);
+  border-color: rgba(47, 95, 89, 0.28);
+  box-shadow:
+    0 10px 22px rgba(47, 95, 89, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.boardCardActive:hover {
+  transform: none;
+}
+
+.boardGlyph {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #c99663, #8f6644);
+  color: #fffaf3;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  box-shadow:
+    0 8px 16px rgba(126, 86, 53, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.boardCardActive .boardGlyph {
+  background: linear-gradient(135deg, var(--shell-control-active-bg), #1f4640);
+  box-shadow:
+    0 10px 20px rgba(47, 95, 89, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.boardText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.boardName {
   color: var(--text-primary);
+  font-size: 0.98rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
 }
 
-.dropdownItemActive {
-  background: rgba(243, 229, 214, 0.72);
-  color: var(--shell-control-active-bg);
-  font-weight: 600;
+.boardSub {
+  color: var(--shell-muted);
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.boardActiveDot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--shell-control-active-bg);
+  box-shadow: 0 0 0 4px rgba(47, 95, 89, 0.18);
 }

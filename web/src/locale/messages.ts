@@ -37,6 +37,9 @@ const en = {
     navLabel: 'Primary navigation',
     moduleNav: 'Module navigation',
     platformNav: 'Platform navigation',
+    boardWorkspace: 'Workspace',
+    boardWorkspaceSub: 'Overview · Ops · Settings',
+    boardCloudSub: 'Cloud accounts · Cloud assets',
     overview: 'Overview',
     projects: 'Projects',
     currentProject: 'Current project',
@@ -127,12 +130,6 @@ const en = {
     },
   },
   cloud: {
-    module: {
-      eyebrow: 'Cloud',
-      title: 'Cloud Management',
-      sub: 'Connect cloud accounts and explore the resources they expose for the current project.',
-      tabsLabel: 'Cloud sub-views',
-    },
     accounts: {
       eyebrow: 'Cloud accounts',
       title: 'Cloud accounts',
@@ -307,6 +304,9 @@ const zhCN: typeof en = {
     navLabel: '主导航',
     moduleNav: '模块导航',
     platformNav: '平台导航',
+    boardWorkspace: '工作台',
+    boardWorkspaceSub: '概览 · 运维 · 平台设置',
+    boardCloudSub: '云账号 · 云资源',
     overview: '概览',
     projects: '项目',
     currentProject: '当前项目',
@@ -397,12 +397,6 @@ const zhCN: typeof en = {
     },
   },
   cloud: {
-    module: {
-      eyebrow: '云',
-      title: '云管理',
-      sub: '为当前项目接入云厂商账号，并查看账号下同步的资源。',
-      tabsLabel: '云管理子页',
-    },
     accounts: {
       eyebrow: '云账号',
       title: '云账号',
