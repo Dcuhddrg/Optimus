@@ -8,4 +8,5 @@ dist/
 # backend ignore
 .superpowers/
 .worktrees/
+.playwright-mcp/
 docs/superpowers/
