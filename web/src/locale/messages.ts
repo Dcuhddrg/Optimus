@@ -298,7 +298,37 @@ const en = {
         description: 'Submit system errors, login failures or unavailable resources.',
       },
     },
-    form: {},
+    form: {
+      title: { label: 'Title', placeholder: 'Brief title of your request' },
+      reason: { label: 'Reason', placeholder: 'Why is this needed?' },
+      projectCode: {
+        label: 'Project',
+        placeholder: 'Select project',
+        options: { web: 'Web platform', data: 'Data platform', mobile: 'Mobile platform' },
+      },
+      role: {
+        label: 'Role',
+        placeholder: 'Select role',
+        options: { developer: 'Developer', ops: 'Ops', admin: 'Administrator', viewer: 'Viewer' },
+      },
+      effectiveAt: { label: 'Effective date', placeholder: '' },
+      instanceSpec: {
+        label: 'Target spec',
+        placeholder: 'e.g. 4C8G',
+      },
+      quotaGb: { label: 'New quota (GB)', placeholder: 'Number of GB' },
+      reasonAttachment: {
+        label: 'Attachment description',
+        placeholder: 'File name, link or external ticket reference',
+      },
+      duration: {
+        label: 'Duration',
+        placeholder: 'Select duration',
+        options: { temporary: 'Temporary (≤7 days)', longTerm: 'Long-term' },
+      },
+      changeWindow: { label: 'Change window', placeholder: 'YYYY-MM-DD' },
+      contactPhone: { label: 'Contact phone', placeholder: 'Optional' },
+    },
     ticket: {
       list: {
         eyebrow: 'Service portal',
@@ -702,7 +732,37 @@ const zhCN: typeof en = {
         description: '提交系统异常、登录失败、资源不可用等技术支持。',
       },
     },
-    form: {},
+    form: {
+      title: { label: '标题', placeholder: '请用一句话概括申请' },
+      reason: { label: '申请原因', placeholder: '请说明为什么需要此项服务' },
+      projectCode: {
+        label: '所属项目',
+        placeholder: '请选择项目',
+        options: { web: 'Web 平台', data: '数据平台', mobile: '移动端平台' },
+      },
+      role: {
+        label: '角色',
+        placeholder: '请选择角色',
+        options: { developer: '研发', ops: '运维', admin: '管理员', viewer: '只读' },
+      },
+      effectiveAt: { label: '生效时间', placeholder: '' },
+      instanceSpec: {
+        label: '目标规格',
+        placeholder: '例如 4C8G',
+      },
+      quotaGb: { label: '新配额 (GB)', placeholder: '请输入 GB 数' },
+      reasonAttachment: {
+        label: '附件说明',
+        placeholder: '可填文件名、链接或外部工单引用',
+      },
+      duration: {
+        label: '时长',
+        placeholder: '请选择时长',
+        options: { temporary: '临时（≤7 天）', longTerm: '长期' },
+      },
+      changeWindow: { label: '变更窗口', placeholder: 'YYYY-MM-DD' },
+      contactPhone: { label: '联系电话', placeholder: '选填' },
+    },
     ticket: {
       list: {
         eyebrow: '服务门户',
