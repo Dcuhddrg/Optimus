@@ -101,9 +101,16 @@ export function SideNav() {
 
         <section className={styles.group}>
           <p className={styles.groupLabel}>{t('shell.opsCenter')}</p>
-          <span className={styles.navEntryDisabled} title={t('shell.comingSoon')}>
+          <NavLink
+            to="/service-portal"
+            className={({ isActive }) =>
+              [styles.navEntry, isActive ? styles.navEntryActive : '']
+                .filter(Boolean)
+                .join(' ')
+            }
+          >
             {t('shell.servicePortal')}
-          </span>
+          </NavLink>
           <span className={styles.navEntryDisabled} title={t('shell.comingSoon')}>
             {t('shell.tickets')}
           </span>

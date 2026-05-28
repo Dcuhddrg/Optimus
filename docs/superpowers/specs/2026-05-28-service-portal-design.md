@@ -13,7 +13,7 @@
 
 **非目标**：
 
-- 不动后端；不引入新依赖（不引 MSW / zod / antd 等）
+- 不动后端；不引入新依赖（运行时与测试依赖都不新增；不引 MSW / zod / antd / vitest / testing-library 等）
 - 不做审批流配置 / 多级审批 / SLA / 通知
 - 不做「任务 / 我的值班 / 大屏」三个 SideNav 占位
 - 不做端到端测试
@@ -32,7 +32,7 @@
 | 状态机 | 提交 5s → `审批中`，30s → `处理中`，60s → `已完成`；纯前端 setTimeout，刷新即停摆 |
 | 工单详情 | 独立路由 `/service-portal/tickets/:id` |
 | 工单列表 | 独立路由 `/service-portal/tickets`；搜索匹配 `title + id`（模糊）；过滤为状态多选 chips |
-| 前端架构 | 方案 1：Hooks + Module，无新依赖 |
+| 前端架构 | 方案 1：模块级 TicketStore + Hooks wrapper，无新依赖 |
 
 ## 3. 路由与导航
 
@@ -155,17 +155,17 @@ web/src/view/service/
 └── data/
     ├── serviceCatalog.ts           ← 13 条目录 + 5 个分类常量
     ├── serviceFormSchemas.ts       ← 表单 schema 字典 + __generic
-    ├── ticketStore.ts              ← useTicketStore() hook + localStorage 同步
+    ├── ticketStore.ts              ← 模块级 ticketStore + useTicketStore() wrapper + localStorage 持久化
     ├── ticketMockEngine.ts         ← setTimeout 状态机
-    └── *.test.ts                   ← 单测
+    └── ticketTypes.ts              ← Ticket / TicketStatus 等共享类型
 ```
 
 ### 职责边界
 
 - **ServicePortalPage**：组合 `<CategoryTabs>` + `<ServiceCard>` grid + `<MyTicketsAside>`；不持有数据逻辑
 - **RequestDrawer**：portal 渲染到 `document.body`；管动画、遮罩、关闭交互（按钮 / ESC / 遮罩点击）；内部委托 `<RequestForm>` 渲染
-- **RequestForm**：按 `RequestFormField[]` 动态渲染 → useState 收值 → 校验 → 调 `useTicketStore().createTicket()` → 成功直接关 Drawer（不弹 toast，详见 §8.1）；写入失败时 Drawer 顶部 banner（详见 §8.2）
-- **useTicketStore**：唯一的工单读 / 写入口
+- **RequestForm**：按 `RequestFormField[]` 动态渲染 → useState 收值 → 校验 → 调 `useTicketStore().createTicket()`；持久化成功则关 Drawer（不弹 toast，详见 §8.1）；持久化失败时 Drawer 顶部 banner（详见 §8.2）
+- **ticketStore / useTicketStore**：`ticketStore` 是唯一的工单读 / 写入口；`useTicketStore()` 只负责把模块级 store 暴露给 React 组件订阅
 
 ### 复用现有
 
@@ -187,8 +187,10 @@ RequestForm
         └─→ useTicketStore().createTicket({serviceId, title, formValues})
                 ├─ 生成 id（'TKT-' + 年 + 4 位流水）
                 ├─ status = 'submitted'，timeline 写一条 submitted 事件
-                ├─ 不可变 push 到列表头部 → React state
-                ├─ useEffect 同步整个列表 → localStorage
+                ├─ 生成 nextTickets（新工单不可变插入列表头部）
+                ├─ 同步尝试 localStorage.setItem(nextTickets)
+                ├─ 更新模块级内存 state + notify subscribers
+                ├─ 返回 { ticket, storageStatus: 'persisted' | 'memory-only' }
                 └─ ticketMockEngine.schedule(ticket.id)
                                               setTimeout 链：
                                               5s  → advance('approving')
@@ -198,16 +200,22 @@ RequestForm
 
 ### 6.2 读取路径
 
-`useTicketStore()` 在 hook 首次挂载时从 localStorage 反序列化一次，之后只读 React state。允许多页面 mount 同一 hook 各持一份内存副本（在同一 tab 内路由切换不会真重新挂载根，问题可忽略；如出现再升级为模块级单例）。
+`ticketStore` 是模块级单例：
+
+- 模块首次加载时从 localStorage 反序列化一次，得到内存 `tickets`
+- store 内部维护 `listeners: Set<() => void>`，每次变更后通知订阅者
+- `useTicketStore()` 使用 React 18 内置 `useSyncExternalStore` 订阅模块级 store，不持有独立 ticket state
+- `ServicePortalPage`、`MyTicketsAside`、`TicketListPage`、`TicketDetailPage` 同时挂载时共享同一份内存状态
+- `ticketMockEngine` 不依赖 React hook，只调用模块级 `ticketStore.advance(ticketId, expectedFrom, nextStatus)`
 
 ### 6.3 状态机（ticketMockEngine.ts）
 
 - 模块级 `Map<ticketId, number[]>`：记录每条工单未触发的 timeout id
-- `schedule(ticketId)`：注册 5s / 30s / 60s 三个 setTimeout，每次触发调 `store.advance(ticketId, nextStatus)`
+- `schedule(ticketId)`：注册 5s / 30s / 60s 三个 setTimeout，每次触发调 `ticketStore.advance(ticketId, expectedFrom, nextStatus)`
 - `cancel(ticketId)`：清掉对应 timer（本期不暴露 UI，留 API）
 - **页面卸载不清 timer**，路由切换时定时器继续跑
 - **页面刷新后状态原地停摆**（不做"按时间差补推"）；下次进入页面看到的就是 localStorage 里写入的最后状态
-- `store.advance` 检查 `currentStatus === expectedFrom`，否则 no-op
+- `ticketStore.advance` 检查 `currentStatus === expectedFrom`，否则 no-op
 
 ### 6.4 通用申请
 
@@ -248,14 +256,15 @@ localStorage **不按用户分**，浏览器内一份全局 mock 数据。换号
 
 - 客户端校验：必填项 / maxLength → 字段下方红字
 - 提交按钮 onClick 后立即设 disabled（即使内部 `createTicket` 同步完成，也防止 ~16ms 内重复点击）
-- 提交成功：直接关 Drawer；视觉反馈靠"工单列表头部多出新行"完成 —— **不引入 toast 组件**（项目当前没有 toast 实现，且不在本期范围内新建）
+- `createTicket()` 返回 `storageStatus === 'persisted'`：直接关 Drawer；视觉反馈靠"工单列表头部多出新行"完成 —— **不引入 toast 组件**（项目当前没有 toast 实现，且不在本期范围内新建）
+- `createTicket()` 返回 `storageStatus === 'memory-only'`：不关 Drawer，顶部展示 inline banner；表单保持已提交态，提交按钮保持 disabled，避免用户重复创建同一张工单
 
 ### 8.2 localStorage 异常
 
 | 场景 | 处理 |
 | --- | --- |
 | `JSON.parse` 抛错 | 当空列表，console.warn，**不主动清旧数据** |
-| `setItem` 抛 QuotaExceededError | catch，**在 Drawer 顶部展示 inline banner**「本地存储已满，工单仅留在内存，刷新即丢」；新工单仍 push 到内存 state、Drawer 不关，用户自行决定刷新 |
+| `setItem` 抛错（含 QuotaExceededError、浏览器禁用 / 只读 localStorage） | catch，`createTicket()` 返回 `storageStatus: 'memory-only'`；**在 Drawer 顶部展示 inline banner**「本地存储不可用，工单仅留在内存，刷新即丢」；新工单仍 push 到内存 state、Drawer 不关，提交按钮保持 disabled |
 | key 不存在 | 正常初始化空列表 |
 
 ### 8.3 路由
@@ -270,39 +279,14 @@ localStorage **不按用户分**，浏览器内一份全局 mock 数据。换号
 
 ## 9. 测试策略
 
-### 9.1 单测（vitest）
+### 9.1 自动验证（不新增测试依赖）
 
-`data/ticketStore.test.ts`：
+本仓库当前 `web/package.json` 没有前端测试框架。本期遵守"不引入新依赖"，因此自动化验证限定为现有命令：
 
-- `createTicket()` 返回的 ticket 含 id、status='submitted'、timeline 长度 1
-- `createTicket()` 写入 localStorage（mock setItem）
-- hook 首次挂载从预置 localStorage 读出数据
-- `advance()` 状态守卫：`submitted` 收到 `processing` → no-op
-- `JSON.parse` 抛错 fallback 到空列表
+- `cd web && npm run build`：覆盖 TypeScript 编译与 Vite 构建，验证路由、组件、类型、i18n key 类型约束
+- 静态自检：实现时用项目现有搜索工具确认 `dashboard.servicePortal.*` 迁移后无残留引用
 
-`data/ticketMockEngine.test.ts`：
-
-- `vi.useFakeTimers()` + `schedule()` → 推进 5s/30s/60s 验证三次 advance 顺序与状态
-- `cancel()` 后推进时间不再 advance
-
-`data/serviceFormSchemas.test.ts`：
-
-- 每条 catalog 都有对应 schema 或 fallback 到 `__generic`
-- 同一表单内字段 `name` 唯一
-
-### 9.2 组件测试（@testing-library/react）
-
-`RequestForm.test.tsx`：
-
-- 渲染指定 schema → 必填字段正确标记
-- 必填空时点提交 → 错误提示渲染，`createTicket` 未调
-- 字段填齐 → 提交 → `createTicket` 被调一次，参数含表单值
-
-`TicketStatusBadge.test.tsx`：5 个状态各自渲染正确 label。
-
-`RequestDrawer.test.tsx`：关闭按钮 / ESC / 遮罩点击均触发 onClose；portal 渲染到 `document.body`。
-
-### 9.3 手动验证清单
+### 9.2 手动验证清单
 
 1. dev server，登录后进 `/service-portal`：13 张卡分 5 类，tab 切换不抖
 2. 点任一卡 → Drawer 滑出 → 填表 → 提交：Drawer 自动关、侧栏顶部多出新工单（「已提交」）
@@ -313,12 +297,13 @@ localStorage **不按用户分**，浏览器内一份全局 mock 数据。换号
 7. SideNav「工单」直链同样到列表页
 8. 刷新首页：localStorage 工单还在，状态固定在刷新前那一档（不再续推）
 9. 手输不存在的 `/service-portal/tickets/TKT-X-9999`：空状态而非崩溃
-10. 浏览器禁用 localStorage / 只读 → 提交时 Drawer 顶部出现红色 banner「本地存储已满…」，页面不崩
+10. 浏览器禁用 localStorage / 只读 → 提交时 Drawer 顶部出现红色 banner「本地存储不可用…」，页面不崩
 11. 切换登录账号后回到服务门户：仍能看到之前账号提交的工单（mock 不按用户隔离，§6.5）
 
-### 9.4 不测的（明确范围外）
+### 9.3 不测的（明确范围外）
 
 - E2E / 视觉回归 / 接口契约（无后端）
+- Vitest / Testing Library 单测与组件测试（当前项目无测试栈，本期不新增测试依赖）
 
 ## 10. 未来工作（不在本期）
 
@@ -326,3 +311,4 @@ localStorage **不按用户分**，浏览器内一份全局 mock 数据。换号
 - 审批流配置 / 多级审批 / SLA / 邮件通知
 - `ops.tickets.menu` 等权限码接入 SideNav
 - 「任务 / 我的值班 / 大屏」三个 SideNav 占位
+- 如项目后续统一引入前端测试栈，再补 `ticketStore`、`ticketMockEngine`、`RequestForm`、`RequestDrawer`、`TicketStatusBadge` 的 Vitest / Testing Library 覆盖

@@ -56,6 +56,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setCurrent(result);
         }
       })
+      .catch(() => {
+        if (!cancelled) {
+          clearStoredToken();
+          setToken(null);
+          setCurrent(null);
+          navigate('/login', { replace: true });
+        }
+      })
       .finally(() => {
         if (!cancelled) {
           setLoading(false);
