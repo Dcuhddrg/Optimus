@@ -249,6 +249,54 @@ const en = {
         title: 'Account role grant',
         description: 'Request a new role or elevated permission on an existing system account.',
       },
+      accountNew: {
+        title: 'New system account',
+        description: 'Provision a system account for a new employee with baseline permissions.',
+      },
+      accountOffboarding: {
+        title: 'Offboarding cleanup',
+        description: 'Disable the account, revoke permissions and hand over assets when an employee leaves.',
+      },
+      cloudComputeResize: {
+        title: 'Resize compute',
+        description: 'Resize compute instance up or down, with cost review.',
+      },
+      cloudStorageQuota: {
+        title: 'Storage quota expansion',
+        description: 'Request additional block or object storage quota.',
+      },
+      cloudNewInstance: {
+        title: 'New compute instance',
+        description: 'Provision a new compute instance and bind it to a project.',
+      },
+      cloudRelease: {
+        title: 'Resource release',
+        description: 'Release idle resources and finalise the cost accounting.',
+      },
+      networkVpnAccess: {
+        title: 'VPN access',
+        description: 'Request remote VPN access or a temporary access policy.',
+      },
+      networkAcl: {
+        title: 'Firewall policy change',
+        description: 'Add or modify security-group / ACL policies.',
+      },
+      networkBastion: {
+        title: 'Bastion allowlist',
+        description: 'Request bastion allowlist or temporary SSH access.',
+      },
+      envDeployWindow: {
+        title: 'Deployment window',
+        description: 'Request a production or staging deployment window and change review.',
+      },
+      supportWorkplace: {
+        title: 'Workplace support',
+        description: 'Submit office network, device or peripheral issues.',
+      },
+      supportIncident: {
+        title: 'Incident / outage',
+        description: 'Submit system errors, login failures or unavailable resources.',
+      },
     },
     form: {},
     ticket: {
@@ -604,6 +652,54 @@ const zhCN: typeof en = {
       accountRoleGrant: {
         title: '账号角色变更',
         description: '为已有系统账号申请新角色或更高权限。',
+      },
+      accountNew: {
+        title: '新建系统账号',
+        description: '为新员工申请系统账号并初始化基础权限。',
+      },
+      accountOffboarding: {
+        title: '离职账号回收',
+        description: '在员工离职前后申请账号停用、权限回收与资产移交。',
+      },
+      cloudComputeResize: {
+        title: '云主机规格调整',
+        description: '申请主机规格升降配，含成本评估。',
+      },
+      cloudStorageQuota: {
+        title: '存储配额扩容',
+        description: '申请存储配额或对象存储桶配额扩容。',
+      },
+      cloudNewInstance: {
+        title: '新建云主机',
+        description: '申请新购云主机并自动归属到指定项目。',
+      },
+      cloudRelease: {
+        title: '资源释放回收',
+        description: '申请释放闲置资源并完成成本归账。',
+      },
+      networkVpnAccess: {
+        title: 'VPN 访问开通',
+        description: '申请远程 VPN 接入或临时访问策略。',
+      },
+      networkAcl: {
+        title: '防火墙策略调整',
+        description: '申请新增或修改安全组 / ACL 策略。',
+      },
+      networkBastion: {
+        title: '堡垒机白名单',
+        description: '申请堡垒机白名单或临时 SSH 访问。',
+      },
+      envDeployWindow: {
+        title: '申请发布窗口',
+        description: '申请生产或预发环境的发布窗口与变更评审。',
+      },
+      supportWorkplace: {
+        title: '办公技术支持',
+        description: '提交办公网络、设备或外设故障申请。',
+      },
+      supportIncident: {
+        title: '故障/事件上报',
+        description: '提交系统异常、登录失败、资源不可用等技术支持。',
       },
     },
     form: {},
