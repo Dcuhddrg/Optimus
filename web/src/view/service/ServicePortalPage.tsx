@@ -6,80 +6,80 @@ import styles from './ServicePortalPage.module.css';
 export function ServicePortalPage() {
   const { t } = useI18n();
   const categories = [
-    t('dashboard.servicePortal.categoryPopular'),
-    t('dashboard.servicePortal.categoryAccount'),
-    t('dashboard.servicePortal.categoryCloud'),
-    t('dashboard.servicePortal.categoryNetwork'),
-    t('dashboard.servicePortal.categorySupport'),
+    t('servicePortal.category.popular'),
+    t('servicePortal.category.account'),
+    t('servicePortal.category.cloud'),
+    t('servicePortal.category.network'),
+    t('servicePortal.category.support'),
   ];
   const services = [
     {
-      title: t('dashboard.servicePortal.accountTitle'),
-      description: t('dashboard.servicePortal.accountDescription'),
-      tags: [t('dashboard.servicePortal.tagApproval'), t('dashboard.servicePortal.tagOneToTwoDays')],
+      title: t('servicePortal.catalog.accountRoleGrant.title'),
+      description: t('servicePortal.catalog.accountRoleGrant.description'),
+      tags: [t('servicePortal.tag.approval'), t('servicePortal.tag.oneToTwoDays')],
     },
     {
-      title: t('dashboard.servicePortal.cloudTitle'),
-      description: t('dashboard.servicePortal.cloudDescription'),
-      tags: [t('dashboard.servicePortal.tagProjectScope'), t('dashboard.servicePortal.tagCostReview')],
+      title: t('servicePortal.catalog.accountRoleGrant.title'),
+      description: t('servicePortal.catalog.accountRoleGrant.description'),
+      tags: [t('servicePortal.tag.projectScope'), t('servicePortal.tag.costReview')],
     },
     {
-      title: t('dashboard.servicePortal.networkTitle'),
-      description: t('dashboard.servicePortal.networkDescription'),
-      tags: [t('dashboard.servicePortal.tagSecurityReview'), t('dashboard.servicePortal.tagFrequent')],
+      title: t('servicePortal.catalog.accountRoleGrant.title'),
+      description: t('servicePortal.catalog.accountRoleGrant.description'),
+      tags: [t('servicePortal.tag.securityReview'), t('servicePortal.tag.frequent')],
     },
     {
-      title: t('dashboard.servicePortal.supportTitle'),
-      description: t('dashboard.servicePortal.supportDescription'),
-      tags: [t('dashboard.servicePortal.tagFastResponse'), t('dashboard.servicePortal.tagTrackable')],
+      title: t('servicePortal.catalog.accountRoleGrant.title'),
+      description: t('servicePortal.catalog.accountRoleGrant.description'),
+      tags: [t('servicePortal.tag.fastResponse'), t('servicePortal.tag.trackable')],
     },
   ];
   const tickets = [
     {
-      title: t('dashboard.servicePortal.ticketProjectAccess'),
-      meta: t('dashboard.servicePortal.ticketProjectAccessMeta'),
-      status: t('dashboard.servicePortal.statusApproving'),
+      title: t('servicePortal.catalog.accountRoleGrant.title'),
+      meta: t('servicePortal.catalog.accountRoleGrant.description'),
+      status: t('servicePortal.ticket.status.approving'),
     },
     {
-      title: t('dashboard.servicePortal.ticketVpn'),
-      meta: t('dashboard.servicePortal.ticketVpnMeta'),
-      status: t('dashboard.servicePortal.statusNeedInput'),
+      title: t('servicePortal.catalog.accountRoleGrant.title'),
+      meta: t('servicePortal.catalog.accountRoleGrant.description'),
+      status: t('servicePortal.ticket.status.approving'),
       tone: 'warning',
     },
     {
-      title: t('dashboard.servicePortal.ticketCloudResize'),
-      meta: t('dashboard.servicePortal.ticketCloudResizeMeta'),
-      status: t('dashboard.servicePortal.statusProcessing'),
+      title: t('servicePortal.catalog.accountRoleGrant.title'),
+      meta: t('servicePortal.catalog.accountRoleGrant.description'),
+      status: t('servicePortal.ticket.status.processing'),
     },
   ];
 
   return (
     <div className={styles.page}>
       <PageHeader
-        eyebrow={t('dashboard.servicePortal.eyebrow')}
-        title={t('dashboard.servicePortal.title')}
-        description={t('dashboard.servicePortal.description')}
+        eyebrow={t('servicePortal.eyebrow')}
+        title={t('servicePortal.title')}
+        description={t('servicePortal.description')}
       />
 
       <section className={styles.portalPanel}>
         <div className={styles.panelHeader}>
           <div>
-            <h2>{t('dashboard.servicePortal.title')}</h2>
-            <p>{t('dashboard.servicePortal.description')}</p>
+            <h2>{t('servicePortal.title')}</h2>
+            <p>{t('servicePortal.description')}</p>
           </div>
           <div className={styles.actions}>
             <button className={styles.secondaryAction} type="button">
-              {t('dashboard.servicePortal.viewAll')}
+              {t('servicePortal.viewAll')}
             </button>
             <button className={styles.primaryAction} type="button">
-              {t('dashboard.servicePortal.createRequest')}
+              {t('servicePortal.createRequest')}
             </button>
           </div>
         </div>
 
         <div className={styles.panelBody}>
           <div className={styles.catalogArea}>
-            <div className={styles.categoryTabs} aria-label={t('dashboard.servicePortal.categoryLabel')}>
+            <div className={styles.categoryTabs} aria-label={t('servicePortal.category.label')}>
               {categories.map((category, index) => (
                 <button
                   className={index === 0 ? `${styles.categoryTab} ${styles.categoryTabActive}` : styles.categoryTab}
@@ -110,8 +110,8 @@ export function ServicePortalPage() {
           </div>
 
           <aside className={styles.ticketArea}>
-            <h3>{t('dashboard.servicePortal.myTickets')}</h3>
-            <p>{t('dashboard.servicePortal.myTicketsDescription')}</p>
+            <h3>{t('servicePortal.ticket.myAside.title')}</h3>
+            <p>{t('servicePortal.ticket.myAside.description')}</p>
             <div className={styles.ticketList}>
               {tickets.map((ticket) => (
                 <article className={styles.ticketItem} key={ticket.title}>
