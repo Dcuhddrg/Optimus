@@ -1,0 +1,91 @@
+/* RequestForm.module.css */
+.form {
+  display: grid;
+  gap: 1rem;
+}
+
+.banner {
+  padding: 0.7rem 0.9rem;
+  border: 1px solid rgba(180, 60, 60, 0.4);
+  border-radius: 0.65rem;
+  background: rgba(180, 60, 60, 0.08);
+  color: #a23838;
+  font-size: 0.82rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.label {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  color: #24201c;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.optional {
+  color: #76695d;
+  font-weight: 500;
+  font-size: 0.72rem;
+}
+
+.input,
+.textarea,
+.select {
+  font: inherit;
+  font-size: 0.86rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid rgba(86, 70, 55, 0.2);
+  border-radius: 0.55rem;
+  background: #fffdf9;
+  color: #24201c;
+}
+
+.textarea {
+  min-height: 5.5rem;
+  resize: vertical;
+}
+
+.error {
+  color: #a23838;
+  font-size: 0.74rem;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.55rem;
+  padding-top: 0.4rem;
+}
+
+.cancel,
+.submit {
+  min-height: 2.35rem;
+  padding: 0 0.95rem;
+  border: 0;
+  border-radius: 0.65rem;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 760;
+  cursor: pointer;
+}
+
+.cancel {
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(86, 70, 55, 0.2);
+  color: #24201c;
+}
+
+.submit {
+  background: #2f625c;
+  color: #fffdf9;
+}
+
+.submit[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
