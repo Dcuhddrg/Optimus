@@ -1,0 +1,38 @@
+/* TicketStatusBadge.module.css */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.5rem;
+  padding: 0 0.55rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 850;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.submitted {
+  background: rgba(118, 105, 93, 0.14);
+  color: #5a4a3a;
+}
+
+.approving {
+  background: rgba(147, 93, 45, 0.14);
+  color: #935d2d;
+}
+
+.processing {
+  background: rgba(54, 93, 126, 0.14);
+  color: #365d7e;
+}
+
+.done {
+  background: rgba(47, 98, 92, 0.16);
+  color: #2f625c;
+}
+
+.rejected {
+  background: rgba(180, 60, 60, 0.14);
+  color: #a23838;
+}
