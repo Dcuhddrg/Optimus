@@ -1,0 +1,99 @@
+/* TicketDetailPage.module.css */
+.page {
+  display: grid;
+  gap: 1.2rem;
+}
+
+.breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  color: #76695d;
+  font-size: 0.82rem;
+}
+
+.breadcrumb a {
+  color: #2f625c;
+  text-decoration: none;
+}
+
+.breadcrumb a:hover {
+  text-decoration: underline;
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 1.25rem;
+  padding: 1.1rem 1.25rem;
+  border: 1px solid rgba(86, 70, 55, 0.13);
+  border-radius: 1rem;
+  background: rgba(255, 253, 249, 0.74);
+}
+
+.field {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.fieldLabel {
+  color: #76695d;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.fieldValue {
+  color: #24201c;
+  font-size: 0.9rem;
+}
+
+.section {
+  display: grid;
+  gap: 0.6rem;
+  padding: 1.1rem 1.25rem;
+  border: 1px solid rgba(86, 70, 55, 0.13);
+  border-radius: 1rem;
+  background: rgba(255, 253, 249, 0.74);
+}
+
+.section h3 {
+  margin: 0;
+  color: #24201c;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.formValues {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+}
+
+.formValues dt {
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: #24201c;
+}
+
+.formValues dd {
+  margin: 0 0 0.4rem;
+  color: #4a4338;
+  font-size: 0.82rem;
+}
+
+.emptyState {
+  display: grid;
+  gap: 0.65rem;
+  justify-items: start;
+  padding: 1.5rem;
+  border: 1px dashed rgba(86, 70, 55, 0.25);
+  border-radius: 1rem;
+}
+
+@media (max-width: 760px) {
+  .summary {
+    grid-template-columns: 1fr;
+  }
+}

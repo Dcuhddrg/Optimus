@@ -1,0 +1,36 @@
+/* TicketTimeline.module.css */
+.timeline {
+  display: grid;
+  gap: 0.65rem;
+  padding-left: 0.5rem;
+  border-left: 2px solid rgba(86, 70, 55, 0.18);
+}
+
+.item {
+  display: grid;
+  gap: 0.2rem;
+  padding-left: 0.85rem;
+  position: relative;
+}
+
+.item::before {
+  content: '';
+  position: absolute;
+  left: -0.43rem;
+  top: 0.3rem;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 999px;
+  background: #2f625c;
+}
+
+.timestamp {
+  color: #76695d;
+  font-size: 0.74rem;
+}
+
+.text {
+  margin: 0;
+  font-size: 0.86rem;
+  color: #24201c;
+}
