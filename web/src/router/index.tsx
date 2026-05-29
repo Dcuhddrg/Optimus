@@ -12,6 +12,8 @@ import { DashboardPage } from '../view/dashboard/DashboardPage';
 import { ProjectMembersPage } from '../view/project/ProjectMembersPage';
 import { ProjectsPage } from '../view/project/ProjectsPage';
 import { ServicePortalPage } from '../view/service/ServicePortalPage';
+import { TicketDetailPage } from '../view/service/TicketDetailPage';
+import { TicketListPage } from '../view/service/TicketListPage';
 import { ForbiddenPage } from '../view/system/ForbiddenPage';
 import { SystemAuditLogsPage } from '../view/system/SystemAuditLogsPage';
 import { SystemLdapPage } from '../view/system/SystemLdapPage';
@@ -62,6 +64,14 @@ export const router = createBrowserRouter([
               {
                 path: 'service-portal',
                 element: <ServicePortalPage />,
+              },
+              {
+                path: 'service-portal/tickets',
+                element: <TicketListPage />,
+              },
+              {
+                path: 'service-portal/tickets/:id',
+                element: <TicketDetailPage />,
               },
               {
                 path: 'projects/:code/members',
