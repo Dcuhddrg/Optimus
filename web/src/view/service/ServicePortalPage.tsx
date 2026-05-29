@@ -1,57 +1,70 @@
-import { PageHeader } from '../../components/page/PageHeader';
-import { useI18n } from '../../locale/useI18n';
+// ServicePortalPage.tsx
+import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 
+import { useAuth } from '../../auth/AuthContext';
+import { useI18n } from '../../locale/useI18n';
+import type { MessageKey } from '../../locale/messages';
+import { PageHeader } from '../../components/page/PageHeader';
+import { CategoryTabs, type CategoryFilter } from './components/CategoryTabs';
+import { MyTicketsAside } from './components/MyTicketsAside';
+import { RequestDrawer } from './components/RequestDrawer';
+import { RequestForm } from './components/RequestForm';
+import { ServiceCard } from './components/ServiceCard';
+import { listByCategory } from './data/serviceCatalog';
+import { getFormSchema } from './data/serviceFormSchemas';
+import type { ServiceCatalogItem } from './ticketTypes';
 import styles from './ServicePortalPage.module.css';
+
+type DrawerSelection =
+  | { kind: 'service'; item: ServiceCatalogItem }
+  | { kind: 'generic' }
+  | null;
 
 export function ServicePortalPage() {
   const { t } = useI18n();
-  const categories = [
-    t('servicePortal.category.popular'),
-    t('servicePortal.category.account'),
-    t('servicePortal.category.cloud'),
-    t('servicePortal.category.network'),
-    t('servicePortal.category.support'),
-  ];
-  const services = [
-    {
-      title: t('servicePortal.catalog.accountRoleGrant.title'),
-      description: t('servicePortal.catalog.accountRoleGrant.description'),
-      tags: [t('servicePortal.tag.approval'), t('servicePortal.tag.oneToTwoDays')],
-    },
-    {
-      title: t('servicePortal.catalog.accountRoleGrant.title'),
-      description: t('servicePortal.catalog.accountRoleGrant.description'),
-      tags: [t('servicePortal.tag.projectScope'), t('servicePortal.tag.costReview')],
-    },
-    {
-      title: t('servicePortal.catalog.accountRoleGrant.title'),
-      description: t('servicePortal.catalog.accountRoleGrant.description'),
-      tags: [t('servicePortal.tag.securityReview'), t('servicePortal.tag.frequent')],
-    },
-    {
-      title: t('servicePortal.catalog.accountRoleGrant.title'),
-      description: t('servicePortal.catalog.accountRoleGrant.description'),
-      tags: [t('servicePortal.tag.fastResponse'), t('servicePortal.tag.trackable')],
-    },
-  ];
-  const tickets = [
-    {
-      title: t('servicePortal.catalog.accountRoleGrant.title'),
-      meta: t('servicePortal.catalog.accountRoleGrant.description'),
-      status: t('servicePortal.ticket.status.approving'),
-    },
-    {
-      title: t('servicePortal.catalog.accountRoleGrant.title'),
-      meta: t('servicePortal.catalog.accountRoleGrant.description'),
-      status: t('servicePortal.ticket.status.approving'),
-      tone: 'warning',
-    },
-    {
-      title: t('servicePortal.catalog.accountRoleGrant.title'),
-      meta: t('servicePortal.catalog.accountRoleGrant.description'),
-      status: t('servicePortal.ticket.status.processing'),
-    },
-  ];
+  const { current } = useAuth();
+  const [activeCategory, setActiveCategory] = useState<CategoryFilter>('popular');
+  const [drawer, setDrawer] = useState<DrawerSelection>(null);
+
+  const visibleItems = useMemo(() => listByCategory(activeCategory), [activeCategory]);
+
+  const applicant = {
+    name: current?.user.displayName ?? current?.user.username ?? '',
+    email: current?.user.email ?? '',
+  };
+
+  function openService(item: ServiceCatalogItem) {
+    setDrawer({ kind: 'service', item });
+  }
+
+  function openGeneric() {
+    setDrawer({ kind: 'generic' });
+  }
+
+  function closeDrawer() {
+    setDrawer(null);
+  }
+
+  const drawerProps = useMemo(() => {
+    if (!drawer) return null;
+    if (drawer.kind === 'service') {
+      const titleKey = `${drawer.item.i18nKey}.title` as MessageKey;
+      const descKey = `${drawer.item.i18nKey}.description` as MessageKey;
+      return {
+        serviceId: drawer.item.id,
+        serviceTitle: t(titleKey),
+        description: t(descKey),
+        schema: getFormSchema(drawer.item.id),
+      };
+    }
+    return {
+      serviceId: null,
+      serviceTitle: t('servicePortal.createRequest'),
+      description: undefined as string | undefined,
+      schema: getFormSchema(null),
+    };
+  }, [drawer, t]);
 
   return (
     <div className={styles.page}>
@@ -68,10 +81,10 @@ export function ServicePortalPage() {
             <p>{t('servicePortal.description')}</p>
           </div>
           <div className={styles.actions}>
-            <button className={styles.secondaryAction} type="button">
+            <Link className={styles.secondaryAction} to="/service-portal/tickets">
               {t('servicePortal.viewAll')}
-            </button>
-            <button className={styles.primaryAction} type="button">
+            </Link>
+            <button className={styles.primaryAction} type="button" onClick={openGeneric}>
               {t('servicePortal.createRequest')}
             </button>
           </div>
@@ -79,61 +92,36 @@ export function ServicePortalPage() {
 
         <div className={styles.panelBody}>
           <div className={styles.catalogArea}>
-            <div className={styles.categoryTabs} aria-label={t('servicePortal.category.label')}>
-              {categories.map((category, index) => (
-                <button
-                  className={index === 0 ? `${styles.categoryTab} ${styles.categoryTabActive}` : styles.categoryTab}
-                  type="button"
-                  key={category}
-                >
-                  {category}
-                </button>
-              ))}
-            </div>
-
+            <CategoryTabs active={activeCategory} onChange={setActiveCategory} />
             <div className={styles.serviceGrid}>
-              {services.map((service) => (
-                <article className={styles.serviceCard} key={service.title}>
-                  <span className={styles.serviceIcon} aria-hidden="true" />
-                  <h3>{service.title}</h3>
-                  <p>{service.description}</p>
-                  <div className={styles.serviceTags}>
-                    {service.tags.map((tag) => (
-                      <span className={styles.serviceTag} key={tag}>
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </article>
+              {visibleItems.map((item) => (
+                <ServiceCard key={item.id} item={item} onSelect={openService} />
               ))}
             </div>
           </div>
 
-          <aside className={styles.ticketArea}>
-            <h3>{t('servicePortal.ticket.myAside.title')}</h3>
-            <p>{t('servicePortal.ticket.myAside.description')}</p>
-            <div className={styles.ticketList}>
-              {tickets.map((ticket) => (
-                <article className={styles.ticketItem} key={ticket.title}>
-                  <div className={styles.ticketTopline}>
-                    <strong>{ticket.title}</strong>
-                    <span
-                      className={
-                        ticket.tone === 'warning'
-                          ? `${styles.ticketStatus} ${styles.ticketStatusWarning}`
-                          : styles.ticketStatus
-                      }
-                    >
-                      {ticket.status}
-                    </span>
-                  </div>
-                  <p>{ticket.meta}</p>
-                </article>
-              ))}
-            </div>
-          </aside>
+          <MyTicketsAside />
         </div>
       </section>
+
+      <RequestDrawer
+        open={drawer !== null}
+        onClose={closeDrawer}
+        eyebrow={t('servicePortal.eyebrow')}
+        title={drawerProps?.serviceTitle ?? ''}
+        description={drawerProps?.description}
+      >
+        {drawerProps ? (
+          <RequestForm
+            serviceId={drawerProps.serviceId}
+            serviceTitle={drawerProps.serviceTitle}
+            schema={drawerProps.schema}
+            applicant={applicant}
+            onSubmitted={closeDrawer}
+            onCancel={closeDrawer}
+          />
+        ) : null}
+      </RequestDrawer>
     </div>
   );
 }

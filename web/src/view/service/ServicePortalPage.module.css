@@ -26,12 +26,7 @@
 }
 
 .panelHeader h2,
-.panelHeader p,
-.ticketArea h3,
-.ticketArea p,
-.serviceCard h3,
-.serviceCard p,
-.ticketItem p {
+.panelHeader p {
   margin: 0;
 }
 
@@ -57,21 +52,16 @@
 }
 
 .primaryAction,
-.secondaryAction,
-.categoryTab {
+.secondaryAction {
   min-height: 2.35rem;
+  padding: 0 0.9rem;
   border: 0;
   border-radius: 0.72rem;
   font: inherit;
   font-size: 0.84rem;
   font-weight: 760;
-  cursor: default;
+  cursor: pointer;
   white-space: nowrap;
-}
-
-.primaryAction,
-.secondaryAction {
-  padding: 0 0.9rem;
 }
 
 .primaryAction {
@@ -80,8 +70,7 @@
   box-shadow: 0 10px 22px rgba(47, 98, 92, 0.14);
 }
 
-.secondaryAction,
-.categoryTab {
+.secondaryAction {
   border: 1px solid rgba(86, 70, 55, 0.13);
   background: rgba(255, 255, 255, 0.62);
   color: var(--service-ink);
@@ -89,7 +78,7 @@
 
 .panelBody {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(17rem, 0.34fr);
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.36fr);
 }
 
 .catalogArea {
@@ -99,171 +88,14 @@
   padding: clamp(1rem, 2.2vw, 1.25rem);
 }
 
-.categoryTabs {
-  display: flex;
-  gap: 0.55rem;
-  overflow-x: auto;
-  padding-bottom: 0.1rem;
-}
-
-.categoryTab {
-  flex: 0 0 auto;
-  padding: 0 0.78rem;
-}
-
-.categoryTabActive {
-  border-color: var(--service-ink);
-  background: var(--service-ink);
-  color: #fffdf9;
-}
-
 .serviceGrid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(13.5rem, 1fr));
   gap: 0.8rem;
-}
-
-.serviceCard {
-  display: grid;
-  align-content: start;
-  gap: 0.65rem;
-  min-height: 11rem;
-  padding: 0.95rem;
-  border: 1px solid rgba(86, 70, 55, 0.1);
-  border-radius: 1rem;
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.66), rgba(246, 238, 228, 0.44));
-}
-
-.serviceIcon {
-  width: 2.15rem;
-  height: 2.15rem;
-  border: 1px solid rgba(47, 98, 92, 0.13);
-  border-radius: 0.78rem;
-  background: var(--service-accent-soft);
-}
-
-.serviceCard h3 {
-  color: var(--service-ink);
-  font-size: 0.98rem;
-  font-weight: 700;
-  line-height: 1.3;
-}
-
-.serviceCard p,
-.ticketArea > p,
-.ticketItem p {
-  color: var(--service-muted);
-  font-size: 0.78rem;
-  line-height: 1.55;
-}
-
-.serviceTags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.38rem;
-  margin-top: 0.1rem;
-}
-
-.serviceTag {
-  display: inline-flex;
-  align-items: center;
-  min-height: 1.45rem;
-  padding: 0 0.48rem;
-  border-radius: 999px;
-  background: var(--service-accent-soft);
-  color: var(--service-accent);
-  font-size: 0.7rem;
-  font-weight: 800;
-}
-
-.ticketArea {
-  display: grid;
-  align-content: start;
-  gap: 0.85rem;
-  padding: clamp(1rem, 2.2vw, 1.25rem);
-  border-left: 1px solid var(--service-line);
-  background: rgba(246, 238, 228, 0.42);
-}
-
-.ticketArea h3 {
-  color: var(--service-ink);
-  font-size: 1rem;
-  font-weight: 700;
-}
-
-.ticketList {
-  display: grid;
-  gap: 0.62rem;
-}
-
-.ticketItem {
-  display: grid;
-  gap: 0.5rem;
-  padding: 0.82rem;
-  border: 1px solid rgba(86, 70, 55, 0.1);
-  border-radius: 0.9rem;
-  background: rgba(255, 255, 255, 0.58);
-}
-
-.ticketTopline {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.7rem;
-}
-
-.ticketTopline strong {
-  min-width: 0;
-  color: var(--service-ink);
-  font-size: 0.84rem;
-  line-height: 1.35;
-}
-
-.ticketStatus {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  min-height: 1.5rem;
-  padding: 0 0.48rem;
-  border-radius: 999px;
-  background: rgba(54, 93, 126, 0.1);
-  color: #365d7e;
-  font-size: 0.68rem;
-  font-weight: 850;
-}
-
-.ticketStatusWarning {
-  background: rgba(147, 93, 45, 0.12);
-  color: #935d2d;
 }
 
 @media (max-width: 980px) {
   .panelBody {
-    grid-template-columns: 1fr;
-  }
-
-  .ticketArea {
-    border-top: 1px solid var(--service-line);
-    border-left: 0;
-  }
-
-  .serviceGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 640px) {
-  .panelHeader {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .actions {
-    justify-content: flex-start;
-  }
-
-  .serviceGrid {
     grid-template-columns: 1fr;
   }
 }
