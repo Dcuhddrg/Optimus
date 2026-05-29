@@ -1,0 +1,83 @@
+.page {
+  display: grid;
+  gap: 1.2rem;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.search {
+  flex: 1 1 18rem;
+  min-height: 2.35rem;
+  padding: 0 0.85rem;
+  border: 1px solid rgba(86, 70, 55, 0.2);
+  border-radius: 0.65rem;
+  background: #fffdf9;
+  font: inherit;
+  color: #24201c;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.chip {
+  min-height: 1.85rem;
+  padding: 0 0.7rem;
+  border: 1px solid rgba(86, 70, 55, 0.2);
+  border-radius: 999px;
+  background: #fffdf9;
+  color: #24201c;
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.chipActive {
+  background: #24201c;
+  color: #fffdf9;
+  border-color: #24201c;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fffdf9;
+  border: 1px solid rgba(86, 70, 55, 0.13);
+  border-radius: 0.9rem;
+  overflow: hidden;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: 0.7rem 0.9rem;
+  font-size: 0.84rem;
+  border-bottom: 1px solid rgba(86, 70, 55, 0.08);
+}
+
+.table th {
+  background: rgba(246, 238, 228, 0.42);
+  font-weight: 760;
+  color: #24201c;
+}
+
+.row {
+  cursor: pointer;
+}
+
+.row:hover {
+  background: rgba(47, 98, 92, 0.04);
+}
+
+.empty {
+  padding: 1.5rem;
+  text-align: center;
+  color: #76695d;
+}
