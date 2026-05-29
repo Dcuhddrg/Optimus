@@ -1,0 +1,28 @@
+/* CategoryTabs.module.css */
+.tabs {
+  display: flex;
+  gap: 0.55rem;
+  overflow-x: auto;
+  padding-bottom: 0.1rem;
+}
+
+.tab {
+  flex: 0 0 auto;
+  min-height: 2.35rem;
+  padding: 0 0.78rem;
+  border: 1px solid rgba(86, 70, 55, 0.13);
+  border-radius: 0.72rem;
+  background: rgba(255, 255, 255, 0.62);
+  color: #24201c;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 760;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tabActive {
+  border-color: #24201c;
+  background: #24201c;
+  color: #fffdf9;
+}
