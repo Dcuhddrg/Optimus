@@ -116,7 +116,9 @@ export const ticketStore = {
       ],
     };
     const next = [...tickets.slice(0, idx), updated, ...tickets.slice(idx + 1)];
-    persist(next); // 推进失败也接受，状态机继续
+    // 故意丢弃 persist 返回的 storageStatus：advance 是定时器触发，没有用户上下文挂 banner；
+    // 失败仅记录到 console.warn，让状态机继续推进。
+    persist(next);
     tickets = next;
     notify();
   },

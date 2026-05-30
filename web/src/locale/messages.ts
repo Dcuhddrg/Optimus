@@ -225,7 +225,6 @@ const en = {
     submit: 'Submit',
     submitting: 'Submitting...',
     optional: 'Optional',
-    required: 'Required',
     validationRequired: 'This field is required',
     validationTooLong: 'Maximum {max} characters',
     storageFailed: 'Local storage unavailable. The ticket only lives in memory and will be lost on refresh.',
@@ -311,12 +310,11 @@ const en = {
         placeholder: 'Select role',
         options: { developer: 'Developer', ops: 'Ops', admin: 'Administrator', viewer: 'Viewer' },
       },
-      effectiveAt: { label: 'Effective date', placeholder: '' },
+      effectiveAt: { label: 'Effective date' },
       instanceSpec: {
         label: 'Target spec',
         placeholder: 'e.g. 4C8G',
       },
-      quotaGb: { label: 'New quota (GB)', placeholder: 'Number of GB' },
       reasonAttachment: {
         label: 'Attachment description',
         placeholder: 'File name, link or external ticket reference',
@@ -326,7 +324,6 @@ const en = {
         placeholder: 'Select duration',
         options: { temporary: 'Temporary (≤7 days)', longTerm: 'Long-term' },
       },
-      changeWindow: { label: 'Change window', placeholder: 'YYYY-MM-DD' },
       contactPhone: { label: 'Contact phone', placeholder: 'Optional' },
     },
     ticket: {
@@ -660,7 +657,6 @@ const zhCN: typeof en = {
     submit: '提交',
     submitting: '提交中...',
     optional: '选填',
-    required: '必填',
     validationRequired: '此项必填',
     validationTooLong: '不超过 {max} 个字符',
     storageFailed: '本地存储不可用。本张工单仅留在内存，刷新即丢。',
@@ -745,12 +741,11 @@ const zhCN: typeof en = {
         placeholder: '请选择角色',
         options: { developer: '研发', ops: '运维', admin: '管理员', viewer: '只读' },
       },
-      effectiveAt: { label: '生效时间', placeholder: '' },
+      effectiveAt: { label: '生效时间' },
       instanceSpec: {
         label: '目标规格',
         placeholder: '例如 4C8G',
       },
-      quotaGb: { label: '新配额 (GB)', placeholder: '请输入 GB 数' },
       reasonAttachment: {
         label: '附件说明',
         placeholder: '可填文件名、链接或外部工单引用',
@@ -760,7 +755,6 @@ const zhCN: typeof en = {
         placeholder: '请选择时长',
         options: { temporary: '临时（≤7 天）', longTerm: '长期' },
       },
-      changeWindow: { label: '变更窗口', placeholder: 'YYYY-MM-DD' },
       contactPhone: { label: '联系电话', placeholder: '选填' },
     },
     ticket: {
