@@ -42,7 +42,9 @@ export function RequestDrawer({ open, onClose, eyebrow, title, description, chil
             {description ? <p className={styles.description}>{description}</p> : null}
           </div>
           <button type="button" className={styles.close} onClick={onClose} aria-label="Close">
-            ×
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+              <path d="m6 6 12 12M18 6 6 18" />
+            </svg>
           </button>
         </header>
         <div className={styles.body}>{children}</div>

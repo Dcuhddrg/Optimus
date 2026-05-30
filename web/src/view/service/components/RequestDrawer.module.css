@@ -66,11 +66,27 @@
 }
 
 .close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
   border: 0;
+  border-radius: 0.55rem;
   background: transparent;
-  font-size: 1.4rem;
   cursor: pointer;
   color: #76695d;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.close:hover {
+  background: rgba(86, 70, 55, 0.08);
+  color: #24201c;
+}
+
+.close:active {
+  transform: translateY(1px);
+  transition-duration: 80ms;
 }
 
 .body {

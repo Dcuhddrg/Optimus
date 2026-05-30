@@ -19,5 +19,9 @@ const STATUS_I18N: Record<TicketStatus, MessageKey> = {
 
 export function TicketStatusBadge({ status }: Props) {
   const { t } = useI18n();
-  return <span className={`${styles.badge} ${styles[status]}`}>{t(STATUS_I18N[status])}</span>;
+  return (
+    <span key={status} className={`${styles.badge} ${styles[status]}`}>
+      {t(STATUS_I18N[status])}
+    </span>
+  );
 }

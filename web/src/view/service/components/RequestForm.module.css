@@ -70,19 +70,40 @@
   border-radius: 0.65rem;
   font: inherit;
   font-size: 0.84rem;
-  font-weight: 760;
+  font-weight: 700;
   cursor: pointer;
 }
 
 .cancel {
-  background: rgba(255, 255, 255, 0.6);
-  border: 1px solid rgba(86, 70, 55, 0.2);
+  background: transparent;
+  border: 0;
+  color: #76695d;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.cancel:hover:not([disabled]) {
+  background: rgba(86, 70, 55, 0.08);
   color: #24201c;
+}
+
+.cancel:active:not([disabled]) {
+  transform: translateY(1px);
+  transition-duration: 80ms;
 }
 
 .submit {
   background: #2f625c;
   color: #fffdf9;
+  transition: background-color 120ms ease;
+}
+
+.submit:hover:not([disabled]) {
+  background: #284f4a;
+}
+
+.submit:active:not([disabled]) {
+  transform: translateY(1px);
+  transition-duration: 80ms;
 }
 
 .submit[disabled] {

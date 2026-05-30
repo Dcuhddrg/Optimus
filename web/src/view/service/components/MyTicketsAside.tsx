@@ -19,7 +19,24 @@ export function MyTicketsAside() {
       <p className={styles.description}>{t('servicePortal.ticket.myAside.description')}</p>
 
       {preview.length === 0 ? (
-        <p className={styles.empty}>{t('servicePortal.ticket.myAside.empty')}</p>
+        <div className={styles.emptyState}>
+          <svg
+            className={styles.emptyIllustration}
+            width="56"
+            height="56"
+            viewBox="0 0 56 56"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.25"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <rect x="6" y="10" width="44" height="36" rx="6" strokeDasharray="3 4" />
+            <path d="M28 22v12M22 28h12" />
+          </svg>
+          <p className={styles.empty}>{t('servicePortal.ticket.myAside.empty')}</p>
+        </div>
       ) : (
         <div className={styles.list}>
           {preview.map((ticket) => (

@@ -21,7 +21,7 @@ export function TicketDetailPage() {
       <div className={styles.page}>
         <div className={styles.breadcrumb}>
           <Link to="/service-portal">{t('servicePortal.breadcrumbHome')}</Link>
-          <span>/</span>
+          <span aria-hidden="true">›</span>
           <Link to="/service-portal/tickets">{t('servicePortal.breadcrumbTickets')}</Link>
         </div>
         <div className={styles.emptyState}>
@@ -42,9 +42,9 @@ export function TicketDetailPage() {
     <div className={styles.page}>
       <div className={styles.breadcrumb}>
         <Link to="/service-portal">{t('servicePortal.breadcrumbHome')}</Link>
-        <span>/</span>
+        <span aria-hidden="true">›</span>
         <Link to="/service-portal/tickets">{t('servicePortal.breadcrumbTickets')}</Link>
-        <span>/</span>
+        <span aria-hidden="true">›</span>
         <span>{ticket.title}</span>
       </div>
 
@@ -68,21 +68,22 @@ export function TicketDetailPage() {
         </div>
       </section>
 
-      <section className={styles.section}>
-        <h3>{t('servicePortal.ticket.detail.formValuesLabel')}</h3>
-        <dl className={styles.formValues}>
-          {Object.entries(ticket.formValues).map(([key, value]) => (
-            <div key={key}>
-              <dt>{key}</dt>
-              <dd>{Array.isArray(value) ? value.join(', ') : String(value ?? '')}</dd>
-            </div>
-          ))}
-        </dl>
-      </section>
-
-      <section className={styles.section}>
-        <h3>{t('servicePortal.ticket.detail.timelineLabel')}</h3>
-        <TicketTimeline ticket={ticket} />
+      <section className={styles.flatGroup}>
+        <div className={styles.flatBlock}>
+          <h3>{t('servicePortal.ticket.detail.formValuesLabel')}</h3>
+          <dl className={styles.formValues}>
+            {Object.entries(ticket.formValues).map(([key, value]) => (
+              <div key={key}>
+                <dt>{key}</dt>
+                <dd>{Array.isArray(value) ? value.join(', ') : String(value ?? '')}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+        <div className={styles.flatBlock}>
+          <h3>{t('servicePortal.ticket.detail.timelineLabel')}</h3>
+          <TicketTimeline ticket={ticket} />
+        </div>
       </section>
     </div>
   );

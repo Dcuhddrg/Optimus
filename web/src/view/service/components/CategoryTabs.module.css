@@ -16,7 +16,7 @@
   color: #24201c;
   font: inherit;
   font-size: 0.84rem;
-  font-weight: 760;
+  font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
 }
@@ -25,4 +25,9 @@
   border-color: #24201c;
   background: #24201c;
   color: #fffdf9;
+}
+
+.tab:active {
+  transform: translateY(1px);
+  transition: transform 80ms ease;
 }

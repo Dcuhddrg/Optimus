@@ -17,15 +17,25 @@
 
 .card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 18px rgba(47, 98, 92, 0.08);
+  box-shadow: 0 8px 18px rgba(86, 70, 55, 0.10);
+}
+
+.card:active {
+  transform: translateY(1px);
+  transition-duration: 80ms;
+  box-shadow: none;
 }
 
 .icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 2.15rem;
   height: 2.15rem;
   border: 1px solid rgba(47, 98, 92, 0.13);
   border-radius: 0.78rem;
   background: rgba(47, 98, 92, 0.12);
+  color: #2f625c;
 }
 
 .title {

@@ -64,6 +64,18 @@
   color: #76695d;
   font-size: 0.8rem;
   line-height: 1.5;
+  text-align: center;
+}
+
+.emptyState {
+  display: grid;
+  justify-items: center;
+  gap: 0.65rem;
+  padding: 0.5rem 0;
+}
+
+.emptyIllustration {
+  color: rgba(118, 105, 93, 0.55);
 }
 
 .viewAll {
