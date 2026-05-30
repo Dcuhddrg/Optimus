@@ -11,7 +11,16 @@ interface Props {
 export function TicketTimeline({ ticket }: Props) {
   const { t } = useI18n();
   return (
-    <ol className={styles.timeline}>
+    <div className={styles.wrap}>
+      <svg
+        className={styles.spine}
+        preserveAspectRatio="none"
+        viewBox="0 0 2 100"
+        aria-hidden="true"
+      >
+        <path d="M1 0 V100" pathLength={100} stroke="rgba(86, 70, 55, 0.22)" strokeWidth={2} />
+      </svg>
+      <ol className={styles.timeline}>
       {ticket.timeline.map((event, index) => {
         const statusLabel = t(`servicePortal.ticket.status.${event.status}` as MessageKey);
         const note = event.i18nNoteKey
@@ -26,6 +35,7 @@ export function TicketTimeline({ ticket }: Props) {
           </li>
         );
       })}
-    </ol>
+      </ol>
+    </div>
   );
 }

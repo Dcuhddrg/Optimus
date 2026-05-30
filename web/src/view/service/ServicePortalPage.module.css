@@ -97,6 +97,7 @@
 .serviceGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(13.5rem, 1fr));
+  grid-auto-flow: dense;
   gap: 0.8rem;
 }
 

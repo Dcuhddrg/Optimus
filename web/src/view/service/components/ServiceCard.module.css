@@ -26,6 +26,10 @@
   box-shadow: none;
 }
 
+.cardWide {
+  grid-column: span 2;
+}
+
 .icon {
   display: inline-flex;
   align-items: center;

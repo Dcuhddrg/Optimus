@@ -14,7 +14,7 @@ export function ServiceCard({ item, onSelect }: Props) {
   const titleKey = `${item.i18nKey}.title` as MessageKey;
   const descKey = `${item.i18nKey}.description` as MessageKey;
   return (
-    <button type="button" className={styles.card} onClick={() => onSelect(item)}>
+    <button type="button" className={item.hot ? `${styles.card} ${styles.cardWide}` : styles.card} onClick={() => onSelect(item)}>
       <span className={styles.icon} aria-hidden="true">
         <ServiceTokenIcon token={item.iconToken} />
       </span>
