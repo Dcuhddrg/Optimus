@@ -218,7 +218,7 @@ const en = {
     eyebrow: 'Service portal',
     title: 'Service portal',
     description:
-      'Add IT services to the current dashboard as request entry points, so business users can submit service requests and follow recent progress without leaving the workspace.',
+      'Keep common IT services, request entry points, and recent progress in one place so business users can find what they need faster.',
     viewAll: 'View all services',
     createRequest: 'Create request',
     cancel: 'Cancel',
@@ -651,7 +651,7 @@ const zhCN: typeof en = {
   servicePortal: {
     eyebrow: '服务门户',
     title: '服务门户',
-    description: '把 IT 部门可提供的服务以工单入口的形式补充到当前页面，业务用户可直接发起申请并查看最近进度。',
+    description: '常用 IT 服务、申请入口和最近进度集中在这里，减少业务用户找入口的成本。',
     viewAll: '查看全部服务',
     createRequest: '发起服务申请',
     cancel: '取消',
