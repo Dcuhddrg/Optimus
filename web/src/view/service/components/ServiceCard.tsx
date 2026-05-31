@@ -20,7 +20,7 @@ export function ServiceCard({ item, onSelect }: Props) {
   return (
     <button type="button" className={styles.card} onClick={() => onSelect(item)}>
       {isPopular ? (
-        <span className={styles.hotBadge} aria-hidden="true">
+        <span className={styles.popularBadge}>
           {t('servicePortal.tag.popular')}
         </span>
       ) : null}
@@ -30,11 +30,13 @@ export function ServiceCard({ item, onSelect }: Props) {
       <h3 className={styles.title}>{t(titleKey)}</h3>
       <p className={styles.description}>{t(descKey)}</p>
       <div className={styles.tags}>
-        {item.tags.map((tag) => (
-          <span key={tag} className={styles.tag}>
-            {t(tag as MessageKey)}
-          </span>
-        ))}
+        {item.tags
+          .filter((tag) => tag !== POPULAR_TAG)
+          .map((tag) => (
+            <span key={tag} className={styles.tag}>
+              {t(tag as MessageKey)}
+            </span>
+          ))}
       </div>
     </button>
   );
