@@ -39,20 +39,16 @@
   text-transform: uppercase;
 }
 
-.panelHeader h1,
-.panelHeader p {
-  margin: 0;
-}
-
 .panelHeader h1 {
+  margin: 0;
   color: var(--service-ink);
   font-size: clamp(1.7rem, 2.6vw, 2.05rem);
   font-weight: 780;
   line-height: 1.08;
 }
 
-.panelCopy > p:last-child {
-  margin-top: 0.72rem;
+.panelHeader h1 + p {
+  margin: 0.72rem 0 0;
   color: var(--service-muted);
   font-size: 0.96rem;
   line-height: 1.65;
