@@ -64,6 +64,9 @@
 
 .primaryAction,
 .secondaryAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-height: 2.35rem;
   padding: 0 0.9rem;
   border: 0;
