@@ -13,14 +13,15 @@ export const CATEGORY_I18N_KEYS: Record<ServiceCategory | 'popular', string> = {
   support: 'servicePortal.category.support',
 };
 
+const POPULAR_TAG = 'servicePortal.tag.popular';
+
 export const SERVICE_CATALOG: ServiceCatalogItem[] = [
   {
     id: 'account.role-grant',
     category: 'account',
     i18nKey: 'servicePortal.catalog.accountRoleGrant',
     iconToken: 'shield',
-    tags: ['servicePortal.tag.approval', 'servicePortal.tag.oneToTwoDays'],
-    hot: true,
+    tags: ['servicePortal.tag.approval', 'servicePortal.tag.oneToTwoDays', POPULAR_TAG],
     estimatedSla: 'servicePortal.sla.oneToTwoBusinessDays',
   },
   {
@@ -44,8 +45,7 @@ export const SERVICE_CATALOG: ServiceCatalogItem[] = [
     category: 'cloud',
     i18nKey: 'servicePortal.catalog.cloudComputeResize',
     iconToken: 'cloud',
-    tags: ['servicePortal.tag.projectScope', 'servicePortal.tag.costReview'],
-    hot: true,
+    tags: ['servicePortal.tag.projectScope', 'servicePortal.tag.costReview', POPULAR_TAG],
     estimatedSla: 'servicePortal.sla.oneToTwoBusinessDays',
   },
   {
@@ -77,8 +77,7 @@ export const SERVICE_CATALOG: ServiceCatalogItem[] = [
     category: 'network',
     i18nKey: 'servicePortal.catalog.networkVpnAccess',
     iconToken: 'network',
-    tags: ['servicePortal.tag.securityReview', 'servicePortal.tag.frequent'],
-    hot: true,
+    tags: ['servicePortal.tag.securityReview', 'servicePortal.tag.frequent', POPULAR_TAG],
     estimatedSla: 'servicePortal.sla.sameDay',
   },
   {
@@ -118,8 +117,7 @@ export const SERVICE_CATALOG: ServiceCatalogItem[] = [
     category: 'support',
     i18nKey: 'servicePortal.catalog.supportIncident',
     iconToken: 'support',
-    tags: ['servicePortal.tag.fastResponse', 'servicePortal.tag.trackable'],
-    hot: true,
+    tags: ['servicePortal.tag.fastResponse', 'servicePortal.tag.trackable', POPULAR_TAG],
     estimatedSla: 'servicePortal.sla.sameDay',
   },
 ];
@@ -130,7 +128,7 @@ export function getCatalogById(id: string): ServiceCatalogItem | undefined {
 
 export function listByCategory(category: ServiceCategory | 'popular'): ServiceCatalogItem[] {
   if (category === 'popular') {
-    return SERVICE_CATALOG.filter((item) => item.hot);
+    return SERVICE_CATALOG.filter((item) => item.tags.includes(POPULAR_TAG));
   }
   return SERVICE_CATALOG.filter((item) => item.category === category);
 }

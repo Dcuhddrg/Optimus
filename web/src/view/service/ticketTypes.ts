@@ -8,7 +8,6 @@ export interface ServiceCatalogItem {
   i18nKey: string; // e.g. 'servicePortal.catalog.accountRoleGrant'
   iconToken: 'shield' | 'cloud' | 'network' | 'env' | 'support';
   tags: string[]; // i18n leaf keys, e.g. 'servicePortal.tag.approval'
-  hot?: boolean;
   estimatedSla: string; // i18n leaf key
 }
 
