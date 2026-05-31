@@ -1,5 +1,6 @@
 /* ServiceCard.module.css */
 .card {
+  position: relative;
   display: grid;
   align-content: start;
   gap: 0.65rem;
@@ -24,10 +25,6 @@
   transform: translateY(1px);
   transition-duration: 80ms;
   box-shadow: none;
-}
-
-.cardWide {
-  grid-column: span 2;
 }
 
 .icon {
@@ -73,4 +70,21 @@
   color: #2f625c;
   font-size: 0.7rem;
   font-weight: 800;
+}
+
+.popularBadge {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.55rem;
+  min-height: 1.05rem;
+  padding: 0 0.4rem;
+  border: 1px solid rgba(86, 70, 55, 0.18);
+  border-radius: 999px;
+  background: #fffaf2;
+  color: #935d2d;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  pointer-events: none;
 }
