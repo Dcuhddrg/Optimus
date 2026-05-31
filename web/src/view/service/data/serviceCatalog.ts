@@ -13,7 +13,7 @@ export const CATEGORY_I18N_KEYS: Record<ServiceCategory | 'popular', string> = {
   support: 'servicePortal.category.support',
 };
 
-const POPULAR_TAG = 'servicePortal.tag.popular';
+export const POPULAR_TAG = 'servicePortal.tag.popular';
 
 export const SERVICE_CATALOG: ServiceCatalogItem[] = [
   {

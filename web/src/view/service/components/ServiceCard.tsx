@@ -3,6 +3,7 @@ import { ShieldCheck, Cloud, ShareNetwork, StackSimple, Headset } from '@phospho
 
 import { useI18n } from '../../../locale/useI18n';
 import type { MessageKey } from '../../../locale/messages';
+import { POPULAR_TAG } from '../data/serviceCatalog';
 import type { ServiceCatalogItem } from '../ticketTypes';
 import styles from './ServiceCard.module.css';
 
@@ -15,8 +16,14 @@ export function ServiceCard({ item, onSelect }: Props) {
   const { t } = useI18n();
   const titleKey = `${item.i18nKey}.title` as MessageKey;
   const descKey = `${item.i18nKey}.description` as MessageKey;
+  const isPopular = item.tags.includes(POPULAR_TAG);
   return (
-    <button type="button" className={item.hot ? `${styles.card} ${styles.cardWide}` : styles.card} onClick={() => onSelect(item)}>
+    <button type="button" className={styles.card} onClick={() => onSelect(item)}>
+      {isPopular ? (
+        <span className={styles.hotBadge} aria-hidden="true">
+          {t('servicePortal.tag.popular')}
+        </span>
+      ) : null}
       <span className={styles.icon} aria-hidden="true">
         <ServiceTokenIcon token={item.iconToken} />
       </span>
