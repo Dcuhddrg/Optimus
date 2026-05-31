@@ -379,6 +379,7 @@ const en = {
       frequent: 'Frequent',
       fastResponse: 'Fast response',
       trackable: 'Trackable',
+      popular: 'Popular',
     },
   },
   system: {
@@ -810,6 +811,7 @@ const zhCN: typeof en = {
       frequent: '高频',
       fastResponse: '快速响应',
       trackable: '可追踪',
+      popular: '热门',
     },
   },
   system: {
