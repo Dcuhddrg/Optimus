@@ -1,5 +1,6 @@
 // TicketDetailPage.tsx
 import { Link, useParams } from 'react-router-dom';
+import { CaretRight } from '@phosphor-icons/react';
 
 import { useI18n } from '../../locale/useI18n';
 import type { MessageKey } from '../../locale/messages';
@@ -21,7 +22,7 @@ export function TicketDetailPage() {
       <div className={styles.page}>
         <div className={styles.breadcrumb}>
           <Link to="/service-portal">{t('servicePortal.breadcrumbHome')}</Link>
-          <span aria-hidden="true">›</span>
+          <span aria-hidden="true" className={styles.breadcrumbSep}><CaretRight size={12} weight="bold" /></span>
           <Link to="/service-portal/tickets">{t('servicePortal.breadcrumbTickets')}</Link>
         </div>
         <div className={styles.emptyState}>
@@ -42,9 +43,9 @@ export function TicketDetailPage() {
     <div className={styles.page}>
       <div className={styles.breadcrumb}>
         <Link to="/service-portal">{t('servicePortal.breadcrumbHome')}</Link>
-        <span aria-hidden="true">›</span>
+        <span aria-hidden="true" className={styles.breadcrumbSep}><CaretRight size={12} weight="bold" /></span>
         <Link to="/service-portal/tickets">{t('servicePortal.breadcrumbTickets')}</Link>
-        <span aria-hidden="true">›</span>
+        <span aria-hidden="true" className={styles.breadcrumbSep}><CaretRight size={12} weight="bold" /></span>
         <span>{ticket.title}</span>
       </div>
 
