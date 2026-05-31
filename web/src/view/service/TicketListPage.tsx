@@ -95,12 +95,12 @@ export function TicketListPage() {
                 className={styles.row}
                 onClick={() => navigate(`/service-portal/tickets/${ticket.id}`)}
               >
-                <td>{ticket.id}</td>
+                <td className={styles.mono}>{ticket.id}</td>
                 <td>{ticket.title}</td>
                 <td>
                   <TicketStatusBadge status={ticket.status} />
                 </td>
-                <td>{new Date(ticket.createdAt).toLocaleString()}</td>
+                <td className={styles.mono}>{new Date(ticket.createdAt).toLocaleString()}</td>
               </tr>
             ))
           )}

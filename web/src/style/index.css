@@ -1,6 +1,7 @@
 :root {
   color-scheme: light;
-  font-family: "DM Sans", "Segoe UI", sans-serif;
+  font-family: 'Geist Variable', 'DM Sans', 'Segoe UI', sans-serif;
+  --font-mono: 'Geist Mono Variable', ui-monospace, 'SF Mono', Consolas, monospace;
   line-height: 1.5;
   font-weight: 400;
   --shell-bg: #f2ede4;

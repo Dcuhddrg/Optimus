@@ -94,3 +94,10 @@
   text-align: center;
   color: #76695d;
 }
+
+.mono {
+  font-family: var(--font-mono);
+  font-feature-settings: 'tnum' on;
+  letter-spacing: -0.01em;
+  color: #4a3f33;
+}
