@@ -1,4 +1,5 @@
 // TicketStatusBadge.tsx
+import { AnimatePresence, motion } from 'framer-motion';
 
 import { useI18n } from '../../../locale/useI18n';
 import type { MessageKey } from '../../../locale/messages';
@@ -20,8 +21,17 @@ const STATUS_I18N: Record<TicketStatus, MessageKey> = {
 export function TicketStatusBadge({ status }: Props) {
   const { t } = useI18n();
   return (
-    <span key={status} className={`${styles.badge} ${styles[status]}`}>
-      {t(STATUS_I18N[status])}
-    </span>
+    <AnimatePresence mode="wait" initial={false}>
+      <motion.span
+        key={status}
+        className={`${styles.badge} ${styles[status]}`}
+        initial={{ scale: 0.85, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.85, opacity: 0 }}
+        transition={{ type: 'spring', stiffness: 380, damping: 24 }}
+      >
+        {t(STATUS_I18N[status])}
+      </motion.span>
+    </AnimatePresence>
   );
 }

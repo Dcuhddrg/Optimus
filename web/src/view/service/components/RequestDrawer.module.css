@@ -3,15 +3,7 @@
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.4);
-  opacity: 0;
-  transition: opacity 160ms ease;
   z-index: 1000;
-  pointer-events: none;
-}
-
-.overlay[data-open='true'] {
-  opacity: 1;
-  pointer-events: auto;
 }
 
 .drawer {
@@ -23,15 +15,9 @@
   max-width: 100vw;
   background: #fffdf9;
   box-shadow: -16px 0 32px rgba(36, 32, 28, 0.16);
-  transform: translateX(100%);
-  transition: transform 220ms ease;
   z-index: 1001;
   display: grid;
   grid-template-rows: auto 1fr;
-}
-
-.drawer[data-open='true'] {
-  transform: translateX(0);
 }
 
 .header {

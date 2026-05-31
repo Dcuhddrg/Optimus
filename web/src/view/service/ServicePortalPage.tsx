@@ -1,6 +1,7 @@
 // ServicePortalPage.tsx
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 
 import { useAuth } from '../../auth/AuthContext';
 import { useI18n } from '../../locale/useI18n';
@@ -93,11 +94,20 @@ export function ServicePortalPage() {
         <div className={styles.panelBody}>
           <div className={styles.catalogArea}>
             <CategoryTabs active={activeCategory} onChange={setActiveCategory} />
-            <div className={styles.serviceGrid}>
-              {visibleItems.map((item) => (
-                <ServiceCard key={item.id} item={item} onSelect={openService} />
-              ))}
-            </div>
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={activeCategory}
+                className={styles.serviceGrid}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.22 }}
+              >
+                {visibleItems.map((item) => (
+                  <ServiceCard key={item.id} item={item} onSelect={openService} />
+                ))}
+              </motion.div>
+            </AnimatePresence>
           </div>
 
           <MyTicketsAside />
