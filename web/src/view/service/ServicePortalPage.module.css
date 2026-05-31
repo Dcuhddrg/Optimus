@@ -12,7 +12,7 @@
   overflow: hidden;
   border: 1px solid var(--service-line);
   border-radius: 1.55rem;
-  background: linear-gradient(135deg, #fffdf9 0%, #f8f2ea 100%);
+  background: rgba(255, 253, 249, 0.74);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
 }
 
@@ -23,6 +23,7 @@
   gap: clamp(1rem, 3vw, 2rem);
   padding: clamp(1.25rem, 2.8vw, 1.65rem);
   border-bottom: 1px solid var(--service-line);
+  background: linear-gradient(135deg, #fffdf9 0%, #f8f2ea 100%);
 }
 
 .panelCopy {
