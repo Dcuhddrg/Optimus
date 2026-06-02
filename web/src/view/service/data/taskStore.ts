@@ -1,0 +1,102 @@
+// web/src/view/service/data/taskStore.ts
+
+import type { Ticket } from '../ticketTypes';
+import type { OpsTask, TaskStorageStatus } from './taskTypes';
+
+const STORAGE_KEY = 'optimus.opsTasks.v1';
+
+type Listener = () => void;
+
+let tasks: OpsTask[] = loadInitial();
+const listeners = new Set<Listener>();
+
+function loadInitial(): OpsTask[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed as OpsTask[];
+  } catch (error) {
+    console.warn('[taskStore] failed to parse localStorage; starting empty', error);
+    return [];
+  }
+}
+
+function persist(next: OpsTask[]): TaskStorageStatus {
+  if (typeof window === 'undefined') return 'memory-only';
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    return 'persisted';
+  } catch (error) {
+    console.warn('[taskStore] failed to persist; staying in memory', error);
+    return 'memory-only';
+  }
+}
+
+function notify() {
+  for (const listener of listeners) listener();
+}
+
+function nextTaskId(now: Date, existing: OpsTask[]): string {
+  const year = now.getFullYear();
+  const prefix = `TASK-${year}-`;
+  const sameYear = existing.filter((task) => task.id.startsWith(prefix));
+  const max = sameYear.reduce((acc, task) => {
+    const n = Number(task.id.slice(prefix.length));
+    return Number.isFinite(n) && n > acc ? n : acc;
+  }, 0);
+  return `${prefix}${String(max + 1).padStart(4, '0')}`;
+}
+
+export const taskStore = {
+  list(): OpsTask[] {
+    return tasks;
+  },
+
+  get(id: string): OpsTask | undefined {
+    return tasks.find((task) => task.id === id);
+  },
+
+  subscribe(listener: Listener): () => void {
+    listeners.add(listener);
+    return () => listeners.delete(listener);
+  },
+
+  reconcileFromTickets(tickets: Ticket[]): void {
+    const linked = new Set(tasks.map((task) => task.ticketId));
+    const created: OpsTask[] = [];
+    for (const ticket of tickets) {
+      if (ticket.status !== 'processing') continue;
+      if (linked.has(ticket.id)) continue;
+      const now = new Date();
+      const task: OpsTask = {
+        id: nextTaskId(now, [...tasks, ...created]),
+        ticketId: ticket.id,
+        title: ticket.title,
+        serviceId: ticket.serviceId,
+        status: 'pending',
+        assignee: null,
+        createdAt: now.toISOString(),
+        timeline: [
+          { at: now.toISOString(), status: 'pending', i18nNoteKey: 'servicePortal.task.event.created' },
+        ],
+      };
+      created.push(task);
+      linked.add(ticket.id);
+    }
+    if (created.length === 0) return;
+    const next = [...created, ...tasks];
+    persist(next);
+    tasks = next;
+    notify();
+  },
+
+  // 仅供测试 / 重置使用，非 UI 入口
+  __resetForTest(): void {
+    tasks = [];
+    persist(tasks);
+    notify();
+  },
+};
