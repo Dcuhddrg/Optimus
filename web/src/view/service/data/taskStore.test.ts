@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { taskStore } from './taskStore';
 import { ticketStore } from './ticketStore';
@@ -125,5 +125,20 @@ describe('taskStore.release', () => {
     const id = taskStore.list()[0].id;
     taskStore.release(id);
     expect(taskStore.get(id)!.status).toBe('pending');
+  });
+});
+
+describe('taskStore 持久化降级', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('localStorage 抛错时仍在内存建任务', () => {
+    const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('quota exceeded');
+    });
+    taskStore.reconcileFromTickets([processingTicket('TKT-2026-0030')]);
+    expect(taskStore.list()).toHaveLength(1);
+    expect(spy).toHaveBeenCalled();
   });
 });
