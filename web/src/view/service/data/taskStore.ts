@@ -170,20 +170,32 @@ export const taskStore = {
 };
 
 let bridgeUnsub: (() => void) | null = null;
+let bridgeRefs = 0;
 
 /**
  * 启动 ticket → task 协调桥：订阅 ticketStore，并立即回填一次。
- * 幂等：重复调用复用已有订阅。返回停止函数。
+ * 幂等：多次调用共享同一订阅（引用计数），仅首个调用建立订阅；每次调用都回填一次。
+ * 返回的停止函数绑定本次调用，幂等，且仅当引用归零时真正解除订阅。
  */
 export function startTaskBridge(): () => void {
-  if (!bridgeUnsub) {
+  if (bridgeRefs === 0) {
     const reconcile = () => taskStore.reconcileFromTickets(ticketStore.list());
     bridgeUnsub = ticketStore.subscribe(reconcile);
     reconcile();
+  } else {
+    // 后来的调用方仍需一次回填，确保订阅期间错过的 processing 工单被补建。
+    taskStore.reconcileFromTickets(ticketStore.list());
   }
+  bridgeRefs += 1;
+  let stopped = false;
   return () => {
-    bridgeUnsub?.();
-    bridgeUnsub = null;
+    if (stopped) return;
+    stopped = true;
+    bridgeRefs -= 1;
+    if (bridgeRefs === 0) {
+      bridgeUnsub?.();
+      bridgeUnsub = null;
+    }
   };
 }
 

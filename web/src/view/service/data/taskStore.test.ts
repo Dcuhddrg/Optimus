@@ -173,4 +173,29 @@ describe('startTaskBridge', () => {
     stop1();
     stop2();
   });
+
+  it('引用计数：先 stop 一个后桥仍存活，归零才解除', () => {
+    const stop1 = startTaskBridge();
+    const stop2 = startTaskBridge();
+    stop1(); // 引用未归零，桥应继续工作
+    const created = ticketStore.createTicket({
+      serviceId: 'svc-1',
+      title: '引用计数验证',
+      formValues: {},
+      applicant: { name: '申请人', email: 'a@x.io' },
+    });
+    ticketStore.advance(created.ticket.id, 'submitted', 'approving');
+    ticketStore.advance(created.ticket.id, 'approving', 'processing');
+    expect(taskStore.list().some((tk) => tk.ticketId === created.ticket.id)).toBe(true);
+    stop2(); // 归零，解除订阅
+    const after = ticketStore.createTicket({
+      serviceId: 'svc-1',
+      title: '解除后不再建任务',
+      formValues: {},
+      applicant: { name: '申请人', email: 'b@x.io' },
+    });
+    ticketStore.advance(after.ticket.id, 'submitted', 'approving');
+    ticketStore.advance(after.ticket.id, 'approving', 'processing');
+    expect(taskStore.list().some((tk) => tk.ticketId === after.ticket.id)).toBe(false);
+  });
 });
