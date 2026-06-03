@@ -106,3 +106,24 @@ describe('taskStore.complete', () => {
     expect(taskStore.get(taskId)!.status).toBe('pending');
   });
 });
+
+describe('taskStore.release', () => {
+  const user = { name: '小李', email: 'li@x.io' };
+
+  it('in_progress → pending 并清空 assignee', () => {
+    taskStore.reconcileFromTickets([processingTicket('TKT-2026-0020')]);
+    const id = taskStore.list()[0].id;
+    taskStore.claim(id, user);
+    taskStore.release(id);
+    const task = taskStore.get(id)!;
+    expect(task.status).toBe('pending');
+    expect(task.assignee).toBeNull();
+  });
+
+  it('对非 in_progress 任务幂等忽略', () => {
+    taskStore.reconcileFromTickets([processingTicket('TKT-2026-0021')]);
+    const id = taskStore.list()[0].id;
+    taskStore.release(id);
+    expect(taskStore.get(id)!.status).toBe('pending');
+  });
+});

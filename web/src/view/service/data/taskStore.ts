@@ -109,6 +109,28 @@ export const taskStore = {
     ticketStore.advance(current.ticketId, 'processing', 'done');
   },
 
+  release(id: string): void {
+    const idx = tasks.findIndex((task) => task.id === id);
+    if (idx === -1) return;
+    const current = tasks[idx];
+    if (current.status !== 'in_progress') return;
+    const at = new Date().toISOString();
+    const updated: OpsTask = {
+      ...current,
+      status: 'pending',
+      assignee: null,
+      claimedAt: undefined,
+      timeline: [
+        ...current.timeline,
+        { at, status: 'pending', i18nNoteKey: 'servicePortal.task.event.released' },
+      ],
+    };
+    const next = [...tasks.slice(0, idx), updated, ...tasks.slice(idx + 1)];
+    persist(next);
+    tasks = next;
+    notify();
+  },
+
   reconcileFromTickets(tickets: Ticket[]): void {
     const linked = new Set(tasks.map((task) => task.ticketId));
     const created: OpsTask[] = [];
