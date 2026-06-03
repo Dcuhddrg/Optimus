@@ -1,5 +1,6 @@
 // web/src/view/service/data/taskStore.ts
 
+import { useSyncExternalStore } from 'react';
 import type { Ticket } from '../ticketTypes';
 import type { OpsTask, TaskStorageStatus } from './taskTypes';
 import { ticketStore } from './ticketStore';
@@ -167,3 +168,32 @@ export const taskStore = {
     notify();
   },
 };
+
+let bridgeUnsub: (() => void) | null = null;
+
+/**
+ * 启动 ticket → task 协调桥：订阅 ticketStore，并立即回填一次。
+ * 幂等：重复调用复用已有订阅。返回停止函数。
+ */
+export function startTaskBridge(): () => void {
+  if (!bridgeUnsub) {
+    const reconcile = () => taskStore.reconcileFromTickets(ticketStore.list());
+    bridgeUnsub = ticketStore.subscribe(reconcile);
+    reconcile();
+  }
+  return () => {
+    bridgeUnsub?.();
+    bridgeUnsub = null;
+  };
+}
+
+export function useTaskStore() {
+  const snapshot = useSyncExternalStore(taskStore.subscribe, taskStore.list, taskStore.list);
+  return {
+    tasks: snapshot,
+    claim: taskStore.claim,
+    complete: taskStore.complete,
+    release: taskStore.release,
+    getTask: taskStore.get,
+  };
+}

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { taskStore } from './taskStore';
+import { startTaskBridge, taskStore } from './taskStore';
 import { ticketStore } from './ticketStore';
 import type { Ticket } from '../ticketTypes';
 
@@ -140,5 +140,37 @@ describe('taskStore 持久化降级', () => {
     taskStore.reconcileFromTickets([processingTicket('TKT-2026-0030')]);
     expect(taskStore.list()).toHaveLength(1);
     expect(spy).toHaveBeenCalled();
+  });
+});
+
+describe('startTaskBridge', () => {
+  it('启动后工单进入 processing 会自动建任务', () => {
+    const stop = startTaskBridge();
+    const created = ticketStore.createTicket({
+      serviceId: 'svc-1',
+      title: '桥接验证',
+      formValues: {},
+      applicant: { name: '申请人', email: 'a@x.io' },
+    });
+    ticketStore.advance(created.ticket.id, 'submitted', 'approving');
+    ticketStore.advance(created.ticket.id, 'approving', 'processing');
+    expect(taskStore.list().some((tk) => tk.ticketId === created.ticket.id)).toBe(true);
+    stop();
+  });
+
+  it('重复启动幂等，只订阅一次', () => {
+    const stop1 = startTaskBridge();
+    const stop2 = startTaskBridge();
+    const created = ticketStore.createTicket({
+      serviceId: 'svc-1',
+      title: '幂等验证',
+      formValues: {},
+      applicant: { name: '申请人', email: 'a@x.io' },
+    });
+    ticketStore.advance(created.ticket.id, 'submitted', 'approving');
+    ticketStore.advance(created.ticket.id, 'approving', 'processing');
+    expect(taskStore.list().filter((tk) => tk.ticketId === created.ticket.id)).toHaveLength(1);
+    stop1();
+    stop2();
   });
 });
