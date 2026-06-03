@@ -121,9 +121,16 @@ export function SideNav() {
           >
             {t('shell.tickets')}
           </NavLink>
-          <span className={styles.navEntryDisabled} title={t('shell.comingSoon')}>
+          <NavLink
+            to="/service-portal/tasks"
+            className={({ isActive }) =>
+              [styles.navEntry, isActive ? styles.navEntryActive : '']
+                .filter(Boolean)
+                .join(' ')
+            }
+          >
             {t('shell.tasks')}
-          </span>
+          </NavLink>
           <span className={styles.navEntryDisabled} title={t('shell.comingSoon')}>
             {t('shell.myDuty')}
           </span>

@@ -14,6 +14,7 @@ import { ProjectsPage } from '../view/project/ProjectsPage';
 import { ServicePortalPage } from '../view/service/ServicePortalPage';
 import { TicketDetailPage } from '../view/service/TicketDetailPage';
 import { TicketListPage } from '../view/service/TicketListPage';
+import { TaskListPage } from '../view/service/TaskListPage';
 import { ForbiddenPage } from '../view/system/ForbiddenPage';
 import { SystemAuditLogsPage } from '../view/system/SystemAuditLogsPage';
 import { SystemLdapPage } from '../view/system/SystemLdapPage';
@@ -72,6 +73,10 @@ export const router = createBrowserRouter([
               {
                 path: 'service-portal/tickets/:id',
                 element: <TicketDetailPage />,
+              },
+              {
+                path: 'service-portal/tasks',
+                element: <TaskListPage />,
               },
               {
                 path: 'projects/:code/members',
