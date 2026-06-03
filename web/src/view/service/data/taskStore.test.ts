@@ -46,3 +46,28 @@ describe('taskStore.reconcileFromTickets', () => {
     expect(taskStore.list()).toHaveLength(0);
   });
 });
+
+describe('taskStore.claim', () => {
+  const user = { name: '小李', email: 'li@x.io' };
+
+  function seedPending(ticketId: string): string {
+    taskStore.reconcileFromTickets([processingTicket(ticketId)]);
+    return taskStore.list()[0].id;
+  }
+
+  it('pending → in_progress 并记录 assignee/claimedAt', () => {
+    const id = seedPending('TKT-2026-0010');
+    taskStore.claim(id, user);
+    const task = taskStore.get(id)!;
+    expect(task.status).toBe('in_progress');
+    expect(task.assignee).toEqual(user);
+    expect(task.claimedAt).toBeTruthy();
+  });
+
+  it('对非 pending 任务幂等忽略', () => {
+    const id = seedPending('TKT-2026-0011');
+    taskStore.claim(id, user);
+    taskStore.claim(id, { name: '别人', email: 'other@x.io' });
+    expect(taskStore.get(id)!.assignee).toEqual(user);
+  });
+});

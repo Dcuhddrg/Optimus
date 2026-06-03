@@ -64,6 +64,28 @@ export const taskStore = {
     return () => listeners.delete(listener);
   },
 
+  claim(id: string, user: { name: string; email: string }): void {
+    const idx = tasks.findIndex((task) => task.id === id);
+    if (idx === -1) return;
+    const current = tasks[idx];
+    if (current.status !== 'pending') return;
+    const at = new Date().toISOString();
+    const updated: OpsTask = {
+      ...current,
+      status: 'in_progress',
+      assignee: { name: user.name, email: user.email },
+      claimedAt: at,
+      timeline: [
+        ...current.timeline,
+        { at, status: 'in_progress', i18nNoteKey: 'servicePortal.task.event.claimed', actor: user.name },
+      ],
+    };
+    const next = [...tasks.slice(0, idx), updated, ...tasks.slice(idx + 1)];
+    persist(next);
+    tasks = next;
+    notify();
+  },
+
   reconcileFromTickets(tickets: Ticket[]): void {
     const linked = new Set(tasks.map((task) => task.ticketId));
     const created: OpsTask[] = [];
