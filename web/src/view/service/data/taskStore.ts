@@ -2,6 +2,7 @@
 
 import type { Ticket } from '../ticketTypes';
 import type { OpsTask, TaskStorageStatus } from './taskTypes';
+import { ticketStore } from './ticketStore';
 
 const STORAGE_KEY = 'optimus.opsTasks.v1';
 
@@ -84,6 +85,28 @@ export const taskStore = {
     persist(next);
     tasks = next;
     notify();
+  },
+
+  complete(id: string): void {
+    const idx = tasks.findIndex((task) => task.id === id);
+    if (idx === -1) return;
+    const current = tasks[idx];
+    if (current.status !== 'in_progress') return;
+    const at = new Date().toISOString();
+    const updated: OpsTask = {
+      ...current,
+      status: 'done',
+      completedAt: at,
+      timeline: [
+        ...current.timeline,
+        { at, status: 'done', i18nNoteKey: 'servicePortal.task.event.completed', actor: current.assignee?.name },
+      ],
+    };
+    const next = [...tasks.slice(0, idx), updated, ...tasks.slice(idx + 1)];
+    persist(next);
+    tasks = next;
+    notify();
+    ticketStore.advance(current.ticketId, 'processing', 'done');
   },
 
   reconcileFromTickets(tickets: Ticket[]): void {

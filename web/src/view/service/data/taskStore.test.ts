@@ -71,3 +71,38 @@ describe('taskStore.claim', () => {
     expect(taskStore.get(id)!.assignee).toEqual(user);
   });
 });
+
+describe('taskStore.complete', () => {
+  const user = { name: '小李', email: 'li@x.io' };
+
+  function seedProcessingTicketWithTask(): { ticketId: string; taskId: string } {
+    const created = ticketStore.createTicket({
+      serviceId: 'svc-1',
+      title: '扩容申请',
+      formValues: {},
+      applicant: { name: '申请人', email: 'a@x.io' },
+    });
+    const ticketId = created.ticket.id;
+    ticketStore.advance(ticketId, 'submitted', 'approving');
+    ticketStore.advance(ticketId, 'approving', 'processing');
+    taskStore.reconcileFromTickets(ticketStore.list());
+    const taskId = taskStore.list().find((tk) => tk.ticketId === ticketId)!.id;
+    return { ticketId, taskId };
+  }
+
+  it('in_progress → done 并把工单推进到 done', () => {
+    const { ticketId, taskId } = seedProcessingTicketWithTask();
+    taskStore.claim(taskId, user);
+    taskStore.complete(taskId);
+    const task = taskStore.get(taskId)!;
+    expect(task.status).toBe('done');
+    expect(task.completedAt).toBeTruthy();
+    expect(ticketStore.get(ticketId)!.status).toBe('done');
+  });
+
+  it('对非 in_progress 任务幂等忽略', () => {
+    const { taskId } = seedProcessingTicketWithTask();
+    taskStore.complete(taskId);
+    expect(taskStore.get(taskId)!.status).toBe('pending');
+  });
+});
