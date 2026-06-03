@@ -1,0 +1,135 @@
+.page {
+  display: grid;
+  gap: 1.2rem;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.search {
+  flex: 1 1 18rem;
+  min-height: 2.35rem;
+  padding: 0 0.85rem;
+  border: 1px solid rgba(86, 70, 55, 0.2);
+  border-radius: 0.65rem;
+  background: #fffdf9;
+  font: inherit;
+  color: #24201c;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.chip {
+  min-height: 1.85rem;
+  padding: 0 0.7rem;
+  border: 1px solid rgba(86, 70, 55, 0.2);
+  border-radius: 999px;
+  background: #fffdf9;
+  color: #24201c;
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.chipActive {
+  background: #24201c;
+  color: #fffdf9;
+  border-color: #24201c;
+}
+
+.chip:active {
+  transform: translateY(1px);
+  transition: transform 80ms ease;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: 0.85rem 0.4rem;
+  font-size: 0.84rem;
+  border-bottom: 1px solid rgba(86, 70, 55, 0.08);
+  vertical-align: middle;
+}
+
+.table th {
+  background: transparent;
+  font-weight: 700;
+  color: #76695d;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-bottom: 1px solid rgba(86, 70, 55, 0.18);
+}
+
+.table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.titleCell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.empty {
+  padding: 1.5rem;
+  text-align: center;
+  color: #76695d;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-feature-settings: 'tnum' on;
+  letter-spacing: -0.01em;
+  color: #4a3f33;
+  font-size: 0.78rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.action {
+  min-height: 1.75rem;
+  padding: 0 0.65rem;
+  border: 1px solid #24201c;
+  border-radius: 0.5rem;
+  background: #24201c;
+  color: #fffdf9;
+  font: inherit;
+  font-size: 0.76rem;
+  cursor: pointer;
+}
+
+.actionGhost {
+  min-height: 1.75rem;
+  padding: 0 0.65rem;
+  border: 1px solid rgba(86, 70, 55, 0.25);
+  border-radius: 0.5rem;
+  background: #fffdf9;
+  color: #24201c;
+  font: inherit;
+  font-size: 0.76rem;
+  cursor: pointer;
+}
+
+.action:active,
+.actionGhost:active {
+  transform: translateY(1px);
+  transition: transform 80ms ease;
+}
