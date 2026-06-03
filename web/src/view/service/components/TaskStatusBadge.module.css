@@ -1,0 +1,28 @@
+/* TaskStatusBadge.module.css */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.5rem;
+  padding: 0 0.55rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.pending {
+  background: rgba(147, 93, 45, 0.14);
+  color: #935d2d;
+}
+
+.in_progress {
+  background: rgba(54, 93, 126, 0.14);
+  color: #365d7e;
+}
+
+.done {
+  background: rgba(47, 98, 92, 0.16);
+  color: #2f625c;
+}
