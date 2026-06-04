@@ -33,10 +33,21 @@ export const GENERIC_FORM_KEY = '__generic';
 
 export type TicketStatus = 'submitted' | 'approving' | 'processing' | 'done' | 'rejected';
 
+export type ApprovalStepStatus = 'pending' | 'approved';
+
+export interface ApprovalStep {
+  roleI18nKey: string; // 角色名 i18n leaf key
+  approver: { name: string; email: string };
+  status: ApprovalStepStatus;
+  decidedAt?: string; // ISO，通过时写入
+}
+
 export interface TicketEvent {
   at: string; // ISO timestamp
   status: TicketStatus;
   i18nNoteKey?: string;
+  actor?: string; // 审批人 displayName
+  roleI18nKey?: string; // 审批角色
 }
 
 export interface Ticket {
