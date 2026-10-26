@@ -50,11 +50,14 @@
 
 ### Superpowers 工作流
 
+- 项目上下文先读 `docs/README.md`，再按任务读取相关能力行、GitHub Issue 与适用设计；不通读全部文档。文档维护遵循 `docs/governance/documentation.md`。
+- 所有问题与反馈统一在 `Dcuhddrg/Optimus` 的 GitHub Issues 提出并跟进；docs 仅保存设计、能力证据及旧编号映射，不双写问题状态。远端不可访问时如实说明阻塞。
+- 完成工作时更新受影响的能力证据、问题状态及设计替代关系；仅核查源码不得宣称运行验证或产品验收通过。
 - 非平凡任务优先从 brainstorming 开始，先澄清目标、边界与设计取舍
 - brainstorming 形成并确认规格后进入 writing-plans，沉淀为可执行计划
 - 完成规划后，实施可根据任务形态选择 subagent-driven-development 或 executing-plans
 - 设计文档写入 `docs/superpowers/specs/`，实施计划写入 `docs/superpowers/plans/`
-- **当前活跃**：只保留进行中阶段的 specs / plans（当前为 Phase 1 Cloud + SP 系列）
+- **当前活跃**：保留进行中或尚待核实交付状态的 specs / plans；实际进度以 `docs/project-status.md` 为准，不凭目录位置认定完成。
 - **已完成归档**：阶段交付完成后，把对应的 spec 与 plan 移到 `docs/superpowers/archive/specs/` 与 `docs/superpowers/archive/plans/`，保留历史但不再出现在 active 目录中干扰扫描
 - 不跳过设计直接写代码，除非任务明确是单文件小改动
 

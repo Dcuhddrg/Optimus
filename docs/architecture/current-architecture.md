@@ -126,13 +126,6 @@ docker compose -f deploy/docker-compose/docker-compose.yml up -d
 
 ## Platform Roadmap
 
-| 阶段 | 内容 | 状态 |
-|------|------|------|
-| Phase 0 | User / Role / Permission / Audit | ✅ |
-| Phase 0.5 | Audit Log Upgrade（查询 / 导出 / 保留策略） | ✅ |
-| Phase 1 | Cloud Account + Unified Asset Registry | 进行中 |
-| Phase 2 | DevOps Layer | 规划 |
-| Phase 3 | FinOps Layer | 规划 |
-| Phase 4 | Automation Layer | 规划 |
+最近状态核查：2026-10-26。历史阶段完成标记不替代当前验收证据。
 
-详细路线图见 `docs/roadmaps/finops-devops-platform-roadmap.md`。各阶段设计文档见 `docs/superpowers/specs/`。
+长期阶段见 [路线图](../roadmaps/finops-devops-platform-roadmap.md)，当前实现及验证状态统一见 [能力状态](../project-status.md)，决策理由见 [决策索引](decisions/README.md)。本文件维护架构契约，不重复维护项目进度。
