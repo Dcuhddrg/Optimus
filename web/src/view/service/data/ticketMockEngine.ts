@@ -4,7 +4,6 @@ import { ticketStore } from './ticketStore';
 
 const STEP_5_MS = 5_000;
 const STEP_30_MS = 30_000;
-const STEP_60_MS = 60_000;
 
 const timers = new Map<string, number[]>();
 
@@ -21,11 +20,6 @@ export const ticketMockEngine = {
       window.setTimeout(() => {
         ticketStore.advance(ticketId, 'approving', 'processing');
       }, STEP_30_MS),
-    );
-    ids.push(
-      window.setTimeout(() => {
-        ticketStore.advance(ticketId, 'processing', 'done');
-      }, STEP_60_MS),
     );
     timers.set(ticketId, ids);
   },

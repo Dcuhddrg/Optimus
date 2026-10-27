@@ -5,6 +5,8 @@
 - 适用范围：本期仅前端，纯 mock data；后端工单系统在后续迭代再补
 - 关联模块：`web/src/view/service/`、`web/src/components/nav/SideNav.tsx`、`web/src/router/index.tsx`
 
+> 2026-10-26 维护说明：上方草稿状态为历史记录，未补造批准结论。本文的“现状”和非目标描述对应 2026-05-28 阶段。后续 [任务管理设计](2026-06-02-ops-center-tasks-design.md) 将自动 done 改为任务完成驱动，并扩展任务入口；[审批链设计](2026-06-04-ticket-approval-chain-design.md) 进一步规划多级审批（尚未完整实现），任务阶段已引入测试基建。因此“无任务”“无多级审批”“不新增测试依赖”不能脱离原阶段范围作为永久规则。原文保留；当前实现和验证见 [能力状态](../../project-status.md)。
+
 ## 1. 背景与目标
 
 运维中心目前只有一个 `ServicePortalPage` 静态 mockup：5 个分类 tab、4 张服务卡、3 条假工单，按钮无行为，后端无任何工单 / 请求 model。SideNav 里「运维中心」组的「工单 / 任务 / 我的值班 / 大屏」全部 disabled 占位。

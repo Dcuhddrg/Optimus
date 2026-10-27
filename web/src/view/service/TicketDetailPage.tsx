@@ -6,9 +6,11 @@ import { useI18n } from '../../locale/useI18n';
 import type { MessageKey } from '../../locale/messages';
 import { PageHeader } from '../../components/page/PageHeader';
 import { TicketStatusBadge } from './components/TicketStatusBadge';
+import { TaskStatusBadge } from './components/TaskStatusBadge';
 import { TicketTimeline } from './components/TicketTimeline';
 import { getCatalogById } from './data/serviceCatalog';
 import { useTicketStore } from './data/ticketStore';
+import { useTaskStore } from './data/taskStore';
 import styles from './TicketDetailPage.module.css';
 
 export function TicketDetailPage() {
@@ -16,6 +18,8 @@ export function TicketDetailPage() {
   const { t } = useI18n();
   const { getTicket } = useTicketStore();
   const ticket = getTicket(id);
+  const { tasks } = useTaskStore();
+  const linkedTask = tasks.find((task) => task.ticketId === id) ?? null;
 
   if (!ticket) {
     return (
@@ -65,6 +69,19 @@ export function TicketDetailPage() {
           <span className={styles.fieldLabel}>{t('servicePortal.ticket.detail.applicantLabel')}</span>
           <span className={styles.fieldValue}>
             {ticket.applicant.name || ticket.applicant.email}
+          </span>
+        </div>
+        <div className={styles.field}>
+          <span className={styles.fieldLabel}>{t('servicePortal.task.ticketLink.label')}</span>
+          <span className={styles.fieldValue}>
+            {linkedTask ? (
+              <>
+                <TaskStatusBadge status={linkedTask.status} />
+                {linkedTask.assignee ? ` · ${linkedTask.assignee.name}` : ''}
+              </>
+            ) : (
+              t('servicePortal.task.ticketLink.none')
+            )}
           </span>
         </div>
       </section>

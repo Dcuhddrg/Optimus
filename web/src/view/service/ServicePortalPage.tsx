@@ -6,7 +6,6 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from '../../auth/AuthContext';
 import { useI18n } from '../../locale/useI18n';
 import type { MessageKey } from '../../locale/messages';
-import { PageHeader } from '../../components/page/PageHeader';
 import { CategoryTabs, type CategoryFilter } from './components/CategoryTabs';
 import { MyTicketsAside } from './components/MyTicketsAside';
 import { RequestDrawer } from './components/RequestDrawer';
@@ -69,16 +68,11 @@ export function ServicePortalPage() {
 
   return (
     <div className={styles.page}>
-      <PageHeader
-        eyebrow={t('servicePortal.eyebrow')}
-        title={t('servicePortal.title')}
-        description={t('servicePortal.description')}
-      />
-
       <section className={styles.portalPanel}>
         <div className={styles.panelHeader}>
-          <div>
-            <h2>{t('servicePortal.title')}</h2>
+          <div className={styles.panelCopy}>
+            <p className={styles.eyebrow}>{t('servicePortal.eyebrow')}</p>
+            <h1>{t('servicePortal.title')}</h1>
             <p>{t('servicePortal.description')}</p>
           </div>
           <div className={styles.actions}>

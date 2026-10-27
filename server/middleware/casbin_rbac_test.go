@@ -93,3 +93,59 @@ func seedRBACClaims() gin.HandlerFunc {
 		})
 	}
 }
+
+type prefixMiddlewareRBAC struct {
+	method, path string
+	roles        []uint
+	calls        int
+}
+
+func (f *prefixMiddlewareRBAC) AuthorizeAPI(_ context.Context, method, path string, roles []uint) (bool, error) {
+	f.method, f.path, f.roles = method, path, roles
+	f.calls++
+	return method == http.MethodPut && path == "/api/v1/system/users/:id", nil
+}
+
+func TestCasbinHandlerWithPrefixMapsOnlyMatchingRoutePrefix(t *testing.T) {
+	for _, tt := range []struct {
+		name, runtimePrefix, route, request, permission string
+		status, calls                                   int
+	}{
+		{"default", "/api/v1", "/api/v1/system/users/:id", "/api/v1/system/users/42", "/api/v1/system/users/:id", http.StatusOK, 1},
+		{"custom", "/custom", "/custom/system/users/:id", "/custom/system/users/42", "/api/v1/system/users/:id", http.StatusOK, 1},
+		{"trailing slash", "/custom/", "/custom/system/users/:id", "/custom/system/users/42", "/api/v1/system/users/:id", http.StatusOK, 1},
+		{"root", "/", "/system/users/:id", "/system/users/42", "/api/v1/system/users/:id", http.StatusOK, 1},
+		{"prefix boundary", "/custom", "/customized/system/users/:id", "/customized/system/users/42", "", http.StatusForbidden, 0},
+		{"unrelated prefix", "/custom", "/other/system/users/:id", "/other/system/users/42", "", http.StatusForbidden, 0},
+		{"missing prefix", "", "/custom/system/users/:id", "/custom/system/users/42", "", http.StatusForbidden, 0},
+		{"unknown permission", "/custom", "/custom/system/unknown", "/custom/system/unknown", "/api/v1/system/unknown", http.StatusForbidden, 1},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			gin.SetMode(gin.TestMode)
+			engine := gin.New()
+			authorizer := &prefixMiddlewareRBAC{}
+			engine.Use(seedRBACClaims(), CasbinHandlerWithPrefix(authorizer, tt.runtimePrefix, "/api/v1"))
+			engine.PUT(tt.route, func(c *gin.Context) { c.Status(http.StatusOK) })
+			recorder := httptest.NewRecorder()
+			engine.ServeHTTP(recorder, httptest.NewRequest(http.MethodPut, tt.request, nil))
+			require.Equal(t, tt.status, recorder.Code)
+			require.Equal(t, tt.calls, authorizer.calls)
+			require.Equal(t, tt.permission, authorizer.path)
+			if tt.calls != 0 {
+				require.Equal(t, http.MethodPut, authorizer.method)
+				require.Equal(t, []uint{1}, authorizer.roles)
+			}
+		})
+	}
+}
+
+func TestCasbinHandlerWithPrefixDeniesUnmatchedRoute(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	engine := gin.New()
+	authorizer := &prefixMiddlewareRBAC{}
+	engine.Use(seedRBACClaims(), CasbinHandlerWithPrefix(authorizer, "/", "/api/v1"))
+	recorder := httptest.NewRecorder()
+	engine.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/missing", nil))
+	require.Equal(t, http.StatusForbidden, recorder.Code)
+	require.Zero(t, authorizer.calls)
+}

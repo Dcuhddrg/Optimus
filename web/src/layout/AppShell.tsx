@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 
 import { useAuth } from '../auth/AuthContext';
@@ -6,11 +7,17 @@ import { SideNav } from '../components/nav/SideNav';
 import { TopNav } from '../components/nav/TopNav';
 import { ProjectSwitcher } from '../components/project/ProjectSwitcher';
 import { useI18n } from '../locale/useI18n';
+import { startTaskBridge } from '../view/service/data/taskStore';
 import styles from './AppShell.module.css';
 
 export function AppShell() {
   const { current, logout } = useAuth();
   const { t } = useI18n();
+
+  useEffect(() => {
+    const stop = startTaskBridge();
+    return stop;
+  }, []);
 
   return (
     <div className={styles.shell}>

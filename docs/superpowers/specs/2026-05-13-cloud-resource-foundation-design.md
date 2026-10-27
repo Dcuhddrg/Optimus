@@ -1,5 +1,7 @@
 # Cloud Resource Foundation Design
 
+> 2026-10-26 完整性说明：本文仍有仅标题的安全治理、同步生命周期、API 边界、交付切片及验证章节，不能视为完整实施契约。承接候选为 [账号资产设计](2026-05-13-cloud-account-asset-registry-design.md) 与 [项目隔离设计](2026-05-14-multi-project-cloud-isolation-design.md)，逐项映射尚待核实，跟进 [#3](https://github.com/Dcuhddrg/Optimus/issues/3)。原文与空标题保留，不补造决定。
+
 **Date:** 2026-05-13
 
 ## Background
@@ -42,7 +44,7 @@ The current backend is still `system`-centered. The active repository layout is 
 
 The current architecture documentation describes a `main -> initialize -> router -> api/handlers -> usecase/service -> infra/persistence` flow in [current-architecture.md](../../architecture/current-architecture.md), which means any new cloud foundation work must fit the existing system-oriented composition path rather than assume a new top-level runtime model already exists.
 
-The recent module-composition and service-boundary specs, [2026-05-11-system-module-composition-design.md](./2026-05-11-system-module-composition-design.md) and [2026-05-12-system-service-boundary-design.md](./2026-05-12-system-service-boundary-design.md), also show that the codebase is still tightening boundary discipline inside `system`. This Phase 1 spec must therefore anchor itself to the repository as it exists now, not to an imagined post-refactor cloud platform.
+The recent module-composition and service-boundary specs, [2026-05-11-system-module-composition-design.md](../archive/specs/2026-05-11-system-module-composition-design.md) and [2026-05-12-system-service-boundary-design.md](../archive/specs/2026-05-12-system-service-boundary-design.md), also show that the codebase is still tightening boundary discipline inside `system`. This Phase 1 spec must therefore anchor itself to the repository as it exists now, not to an imagined post-refactor cloud platform.
 
 ## Design Overview
 
