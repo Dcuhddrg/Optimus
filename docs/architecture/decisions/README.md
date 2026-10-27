@@ -1,16 +1,18 @@
 # 架构决策索引
 
-最近核查：2026-10-26。此处索引已有决定，不代表本轮重新批准，亦不证明已实现或通过安全验收。
+最近整理：2026-10-27。此处索引决定、依据和适用范围；规范方向确认不代表存量实现已经迁移或通过验收。
 
 ## 当前依据
 
 | 主题 | 原始依据 | 适用范围与核查说明 |
 | --- | --- | --- |
-| 后端分层、依赖方向和模块装配 | [当前架构约定](../current-architecture.md) | 项目规则要求遵循；实际遵守程度需代码检查 |
+| 后端分层、依赖方向和模块装配 | [ADR-001](ADR-001-backend-layering.md)、[当前架构约定](../current-architecture.md) | 根规则确认 Router → API → Service → Model；旧 usecase/infra 仅保留存量与历史说明，不作为新模块强制分层 |
 | 账号同步、凭证加密、资产软删除、Provider 注册 | [账号资产设计的 Architecture Decisions](../../superpowers/specs/2026-05-13-cloud-account-asset-registry-design.md) | 原文标为 Approved；凭证与同步的实际安全性尚未在本轮验证 |
 | 项目角色、资源归属与请求项目上下文 | [项目隔离设计的 Architecture Decisions](../../superpowers/specs/2026-05-14-multi-project-cloud-isolation-design.md) | 复用原文理由；保留 Open Questions，不能推断全部已解决 |
 | 工单完成由任务完成驱动 | [任务管理设计](../../superpowers/specs/2026-06-02-ops-center-tasks-design.md) | 取代早期门户设计中的定时自动 done；已抽查核心联动源码，未做完整运行验收 |
 | 多级审批链与当前审批人展示 | [审批链设计](../../superpowers/specs/2026-06-04-ticket-approval-chain-design.md) | 已有设计与计划，部分实现；逐级审批目标尚不能替代当前引擎事实 |
+
+历史 spec / plan 中涉及旧分层的内容按 [ADR-001](ADR-001-backend-layering.md) 的适用边界理解；原文中的业务决定和批准记录保留，不把旧分层重新作为当前强制规范。
 
 ## 以后如何记录重大决定
 

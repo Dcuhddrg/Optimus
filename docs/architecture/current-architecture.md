@@ -1,5 +1,8 @@
 # Current Architecture
 
+> 规范依据：[AGENT.MD](../../AGENT.MD) 是项目规则唯一正文；本文展开其架构职责和边界，发生冲突时以根规则为准。
+> 最近规范整理：2026-10-27，关联 [Issue #6](https://github.com/Dcuhddrg/Optimus/issues/6)。当前规范、存量实现与后续迁移分别说明，不以文档更新宣称代码已迁移。
+
 > 本文件只维护**图谱说不清的契约和约定**：边界、分层规则、命名/目录约定、运行时契约、技术选型。
 > 目录树、文件清单、函数列表、API 端点表等**结构性事实**统一以 codebase-memory 图谱为准（`get_architecture` / `search_graph` / `query_graph`）。
 
@@ -16,32 +19,31 @@
 
 ## Backend 分层契约
 
-```
-main → initialize → router → api/handlers → usecase/service → infra/persistence
+遵循根规则确认的统一逻辑分层：
+
+```text
+Router -> API -> Service -> Model
 ```
 
-**强制约束：**
+| 层 | 职责与位置 | 依赖边界 |
+| --- | --- | --- |
+| Router | `server/router/<module>/`，注册路径、中间件与 public/private 分组 | 连接 API，不承担业务处理 |
+| API | `server/api/v1/<module>/`，绑定和校验 HTTP 输入、调用服务、组织响应 | 通过 Service 处理业务，不绕过服务直接访问持久化 |
+| Service | `server/service/<module>/`，业务规则、流程编排和数据访问协作 | 使用 Model 及所需基础设施，不依赖 `gin.Context`，不反向调用 API/Router |
+| Model | `server/model/<module>/`，实体、请求/响应数据结构和持久化映射 | 不反向依赖 Router/API/Service |
 
-- `usecase/` 只依赖标准库，定义 Store / Provider 等接口，**不感知 GORM / Gin / 任何框架**
-- `infra/persistence/` 实现 Store 接口、持有 `*gorm.DB`
-- `infra/<adapter>/` 实现外部协议适配器（如 LDAP、JWT、云厂商 SDK）
-- `initialize/<module>_module.go` 负责依赖注入：GORM 实现 → usecase → handlers
-- handler 不得直接调用 GORM；usecase 不得 import infra
+- 保留现有 `enter.go` 分组注册和组合入口，新增分组沿用对应模块的注册方式；不得绕过已有入口另建平行注册链。
+- `main` 与 `initialize` 负责启动和模块装配；它们不改变上述业务职责划分。已有初始化、依赖注入和数据访问封装按任务复用，不要求重写。
+- Service 不接收 `gin.Context`；HTTP 处理留在 API，所需业务参数显式传入。Swagger 注释与真实接口行为保持一致。
+- 新模块按上述四层职责组织；具体文件与装配示例由后续 [模块开发指引事项 #8](https://github.com/Dcuhddrg/Optimus/issues/8) 整理，不将存量内部目录强加为新的必选层。
 
-**新模块必须遵循的目录约定：**
+### 存量实现与历史方案
 
-```
-server/
-├── api/v1/<module>/         # HTTP handlers
-├── router/<module>/         # 路由注册（public / private 分组）
-├── service/<module>/
-│   ├── usecase/             # 接口 + 业务逻辑，可纯单元测试
-│   └── infra/
-│       ├── persistence/     # GORM Store 实现
-│       └── provider/        # 外部 SDK 适配器
-├── model/<module>/          # GORM 模型
-└── initialize/<module>.go   # 模块组装
-```
+2026-10-27 通过 codebase-memory 确认，`server/service/system/`、`server/service/project/`、`server/service/cloud/` 下仍存在 `usecase/` 和 `infra/`。这是目录级事实核对，不代表已全面检查各模块行为或完成验收。
+
+这些目录属于存量服务内部组织。旧文档中的“usecase 仅标准库、infra 实现 Store、所有新模块必须拆成这套目录”等要求，已由根规则的统一分层取代；原文及取舍依据保留在 [ADR-001](decisions/ADR-001-backend-layering.md)。
+
+维护存量模块时先核对其已有接口、初始化和依赖关系；本次只统一文档，不删除目录、不改变接口或注入流程。代码迁移需要另行明确范围与验证条件，不能因为规则更新自动重构模块。
 
 ---
 
