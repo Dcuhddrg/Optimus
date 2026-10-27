@@ -3,7 +3,7 @@
 ## 目的
 
 本文件是 Optimus 仓库内 AI 协作规则的唯一正文。`.codex/`、`.claude/` 下的规则仅为兼容适配层，不保存独立 project rule 副本。用户当前明确指令优先；仓库内规则冲突以本文件为准。
-本文件规定开发规范；存量代码或历史文档不一致时记录差异，按任务对齐，不把规范当作已实现证据，不借此进行无关重构。
+本文件规定新旧模块共同遵循的架构目标；存量差异必须列入迁移清单，分批整改。文档更新不代表代码已完成迁移，迁移不得混入无关功能改动。
 
 ## 读取顺序
 
@@ -23,7 +23,9 @@
 
 ### 架构
 
-- 保持现有后端分层：`Router -> API -> Service -> Model`。
+- 新模块与存量模块统一采用 `Router -> API -> Service -> Model`，同时统一目录、包依赖与注册入口。
+- 旧 `usecase/infra` 必须纳入 [#11](https://github.com/Dcuhddrg/Optimus/issues/11) 的迁移清单，不再作为长期可选结构保留；目标与验收边界见 [ADR-002](docs/architecture/decisions/ADR-002-backend-structure-migration.md)。
+- 结构迁移保持现有接口及权限行为，接口协议变更按独立 Issue 实施，不与结构迁移混批。
 - `enter.go` 继续作为分组注册与组合入口。
 - API 层处理 HTTP 相关逻辑，Service 层不要依赖 `gin.Context`。
 - 对外接口的 Swagger 注释必须和真实行为保持一致。
@@ -80,6 +82,6 @@
 
 - [文档入口](docs/README.md) · [能力状态](docs/project-status.md) · [平台路线图](docs/roadmaps/finops-devops-platform-roadmap.md)
 - [架构记录](docs/architecture/current-architecture.md) · [决策索引](docs/architecture/decisions/README.md)
-- [文档维护](docs/governance/documentation.md) · [工程操作](docs/governance/engineering.md) · [旧编号映射](docs/issues/README.md)
+- [文档维护](docs/governance/documentation.md) · [工程操作](docs/governance/engineering.md)
 - [设计](docs/superpowers/specs/) · [计划](docs/superpowers/plans/) · [归档](docs/superpowers/archive/)
 

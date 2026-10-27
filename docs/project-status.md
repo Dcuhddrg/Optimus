@@ -4,6 +4,7 @@
 - 核查基线：`12c3e9f`；本轮验证包含路由与授权边界整改（[#12](https://github.com/Dcuhddrg/Optimus/issues/12)、[#13](https://github.com/Dcuhddrg/Optimus/issues/13)），对应交付提交和 PR 以 Issue 中的关联记录为准。
 - 核查方式：codebase-memory 定向审计、后端全量测试及构建。隔离 MySQL 基线 149 个测试通过；整改后 190 个测试（含子测试）通过、0 个用例跳过，中间件及装配竞态检查通过。未进行前端构建、真实云联调、部署或端到端验收；本表不是生产就绪声明。
 - 各阶段长期目标见 [路线图](roadmaps/finops-devops-platform-roadmap.md)，具体问题状态见 [GitHub Issues](https://github.com/Dcuhddrg/Optimus/issues)。
+- 架构目标以 [ADR-002](architecture/decisions/ADR-002-backend-structure-migration.md) 为准：存量后端结构须分批迁移，本次仅清理规范，尚未搬动代码。原 190 个测试仅证明首批边界修复的基线，不代表结构迁移完成；迁移验证在 #11 单独记录。
 
 ## 能力与证据
 

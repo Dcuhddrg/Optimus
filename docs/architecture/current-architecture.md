@@ -1,7 +1,7 @@
 # Current Architecture
 
 > 规范依据：[AGENT.MD](../../AGENT.MD) 是项目规则唯一正文；本文展开其架构职责和边界，发生冲突时以根规则为准。
-> 最近规范整理：2026-10-27，关联 [Issue #6](https://github.com/Dcuhddrg/Optimus/issues/6)。当前规范、存量实现与后续迁移分别说明，不以文档更新宣称代码已迁移。
+> 最近决策更新：2026-10-27，现行依据为 [ADR-002](decisions/ADR-002-backend-structure-migration.md)，存量结构迁移在 [Issue #11](https://github.com/Dcuhddrg/Optimus/issues/11) 跟进。#6 的文档统一和 #12/#13 的边界修复仍为历史交付证据，均不代表结构迁移已完成。
 
 > 本文件只维护**图谱说不清的契约和约定**：边界、分层规则、命名/目录约定、运行时契约、技术选型。
 > 目录树、文件清单、函数列表、API 端点表等**结构性事实**统一以 codebase-memory 图谱为准（`get_architecture` / `search_graph` / `query_graph`）。
@@ -19,7 +19,7 @@
 
 ## Backend 分层契约
 
-遵循根规则确认的统一逻辑分层：
+新模块与存量模块统一遵循以下分层、目录和依赖方向：
 
 ```text
 Router -> API -> Service -> Model
@@ -33,17 +33,20 @@ Router -> API -> Service -> Model
 | Model | `server/model/<module>/`，实体、请求/响应数据结构和持久化映射 | 不反向依赖 Router/API/Service |
 
 - 保留现有 `enter.go` 分组注册和组合入口，新增分组沿用对应模块的注册方式；不得绕过已有入口另建平行注册链。
-- `main` 与 `initialize` 负责启动和模块装配；它们不改变上述业务职责划分。已有初始化、依赖注入和数据访问封装按任务复用，不要求重写。
+- `main` 与 `initialize` 负责启动和模块装配；随模块迁移同步调整导入与注入，保留必要能力，不保留重复的平行装配入口。
 - Service 不接收 `gin.Context`；HTTP 处理留在 API，所需业务参数显式传入。Swagger 注释与真实接口行为保持一致。
-- 新模块按上述四层职责组织；具体文件与装配示例由后续 [模块开发指引事项 #8](https://github.com/Dcuhddrg/Optimus/issues/8) 整理，不将存量内部目录强加为新的必选层。
+- 新旧模块均按上述四层职责组织；具体开发指引在 [#8](https://github.com/Dcuhddrg/Optimus/issues/8) 维护，样例应使用已迁移并验证的模块。
 
-### 存量实现与历史方案
+### 存量迁移要求
 
-2026-10-27 通过 codebase-memory 确认，`server/service/system/`、`server/service/project/`、`server/service/cloud/` 下仍存在 `usecase/` 和 `infra/`。这是目录级事实核对，不代表已全面检查各模块行为或完成验收。
+- 旧 `usecase/infra` 是待消除的结构差异，必须列入 #11 的逐模块清单，不再以“Service 内部组织”为由永久保留。
+- 业务流程与服务内部接口归入 `server/service/<module>/`；实体、请求/响应数据结构与持久化映射归入 `server/model/<module>/`。数据访问实现位于对应 Service，不能把业务流程搬进 Model。
+- 外部 SDK、协议适配和公共能力按职责迁入明确的模块或插件位置，每项给出旧路径、新路径、调用者与测试映射；避免仅给旧层改名后保留平行体系。
+- 同批调整 API 导入、服务构造、`enter.go`、初始化注入和测试。必要接口可保留用于解耦与测试，不能成为旧包长期存在的豁免理由。
+- 每批保持已有接口返回、HTTP 状态、权限和项目隔离行为；#7 的响应协议设计暂停，待结构稳定后单独继续。
+- 迁移结束须清除范围内旧目录、旧包导入及临时兼容入口，构建和隔离 MySQL 回归通过，再由用户验收。计划清单、逐项进度和剩余差异仅在 GitHub 跟进。
 
-这些目录属于存量服务内部组织。旧文档中的“usecase 仅标准库、infra 实现 Store、所有新模块必须拆成这套目录”等要求，已由根规则的统一分层取代；原文及取舍依据保留在 [ADR-001](decisions/ADR-001-backend-layering.md)。
-
-维护存量模块时先核对其已有接口、初始化和依赖关系；本次只统一文档，不删除目录、不改变接口或注入流程。代码迁移需要另行明确范围与验证条件，不能因为规则更新自动重构模块。
+2026-10-27 已核实 system/project/cloud 服务中存在旧目录；当前记录的是迁移起点，不是代码完成声明。现行决定及旧决定的替代关系见 [ADR-002](decisions/ADR-002-backend-structure-migration.md)。
 
 ---
 
