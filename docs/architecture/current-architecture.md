@@ -70,7 +70,7 @@ server/
 - 三服务：frontend（nginx）+ backend（Go）+ mysql，由 `deploy/docker-compose/docker-compose.yml` 编排
 - nginx 反向代理 `/api/` → `optimus-server:8888`
 - Mac 端访问域名 `optimus.intellivis.cn`（Caddy HTTPS），直连排查走 `http://192.169.50.100:8080/`
-- 前端运行效果验证**默认走 Compose**，不依赖 Vite dev server（详见 `.claude/project_rules.md` VERIFICATION）
+- 前端运行效果验证**默认走 Compose**，不依赖 Vite dev server（详见 [工程操作参考](../governance/engineering.md) 的验证步骤）
 
 ---
 
@@ -117,7 +117,7 @@ cd server && go build ./...
 # 前端基线
 cd web && pnpm build
 
-# 运行效果（按 project_rules.md VERIFICATION 章节）
+# 运行效果（按工程操作参考的验证步骤）
 docker compose -f deploy/docker-compose/docker-compose.yml build
 docker compose -f deploy/docker-compose/docker-compose.yml up -d
 ```
