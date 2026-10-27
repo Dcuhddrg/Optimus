@@ -1,6 +1,6 @@
 # Optimus 项目文档入口
 
-最近核查：2026-10-26。文档治理初版；能力核查范围和证据见状态表。
+最近架构规范整理：2026-10-27。能力核查范围和证据见状态表，文档整理不代表代码迁移或业务验收。
 
 项目规则唯一正文：[AGENT.MD](../AGENT.MD)。`.claude/project_rules.md` 和 `.codex/project_rules.md` 仅为工具兼容适配层，负责指向统一规则和按需读取项目上下文，不保存独立规则副本。
 
@@ -10,11 +10,13 @@
 | --- | --- | --- |
 | 长期方向、阶段依赖 | [平台路线图](roadmaps/finops-devops-platform-roadmap.md) | 用户确定目标与优先级，助手维护依据 |
 | 当前实现到哪、哪些仍是 mock | [能力状态](project-status.md) | 助手按代码和验证结果更新 |
-| 当前必须遵守的架构边界 | [架构约定](architecture/current-architecture.md) | 重要边界变更由用户决定 |
+| 当前架构规范与存量实现说明 | [架构约定](architecture/current-architecture.md) | 遵循根规则，区分规范与实现；重要边界变更由用户决定 |
 | 当初为什么这样设计 | [决策索引](architecture/decisions/README.md) | 维护原始理由和后续替代关系 |
 | 问题、反馈和待决策事项 | [GitHub Issues](https://github.com/Dcuhddrg/Optimus/issues)；[旧编号映射](issues/README.md) | 用户决定取舍，助手持续跟进 |
 | 文档状态、冲突与更新规则 | [文档维护约定](governance/documentation.md) | 每次工作均遵守 |
 | 图谱工具用法、运行与条件验证步骤 | [工程操作参考](governance/engineering.md) | 按任务触发读取 |
+
+后端统一规范为 `Router -> API -> Service -> Model`，保留 `enter.go` 注册和组合入口。旧 `usecase/infra` 方案的适用边界和替代关系见 [ADR-001](architecture/decisions/ADR-001-backend-layering.md)，不据此自动迁移存量代码。
 
 ## 功能设计与计划
 

@@ -33,14 +33,17 @@ func Routers() *gin.Engine {
 	publicGroup := engine.Group(routerPrefix())
 	// 私有路由
 	privateGroup := engine.Group(routerPrefix())
-	privateGroup.Use(middleware.JWTAuth(), middleware.CasbinHandler(systemModule.Capabilities.RBAC))
+	privateGroup.Use(middleware.JWTAuth(), middleware.CasbinHandlerWithPrefix(
+		systemModule.Capabilities.RBAC, privateGroup.BasePath(), defaultRouterPrefix,
+	))
+	cloudGroup := privateGroup.Group("")
 	if projectModule != nil && projectModule.Service != nil {
-		privateGroup.Use(middleware.ProjectScope(projectModule.Service))
+		cloudGroup.Use(middleware.ProjectScope(projectModule.Service))
 	}
 
 	routerGroup := router.RouterGroupApp
 	routerGroup.System.InitSystemRouter(publicGroup, privateGroup, systemModule.Handlers)
-	routerGroup.Cloud.InitCloudRouter(privateGroup, cloudModule.Handlers)
+	routerGroup.Cloud.InitCloudRouter(cloudGroup, cloudModule.Handlers)
 	routerGroup.Project.InitProjectRouter(privateGroup, projectModule.Handlers)
 
 	return engine
