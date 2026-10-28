@@ -11,7 +11,7 @@
 | 长期方向、阶段依赖        | [平台路线图](memory/platform-roadmap.md)         | 用户确定目标与优先级，助手维护依据         |
 | 当前实现到哪、哪些仍是 mock | [能力状态](project-status.md)                                   | 助手按代码和验证结果更新              |
 | 统一架构与存量迁移要求       | [架构约定](relations/current-architecture.md)                | 遵循根规则，区分目标与实现；迁移和验收在 #11 跟进 |
-| 前后端协作与接口契约       | [契约提案](frontend-backend/boundary.md)                    | #7 文档先行；当前行为、目标规范与待确认项分开说明 |
+| 前后端协作与接口契约       | [接口契约](frontend-backend/boundary.md)                    | #7 文档先行；当前行为、目标规范与待确认项分开说明 |
 | 当初为什么这样设计        | [决策索引](relations/decisions/README.md)                    | 维护原始理由和后续替代关系             |
 | 问题、反馈和待决策事项      | [GitHub Issues](https://github.com/Dcuhddrg/Optimus/issues) | 用户决定取舍，助手持续跟进             |
 | 文档状态、冲突与更新规则     | [文档维护约定](relations/documentation-workflow.md)                       | 每次工作均遵守                   |
