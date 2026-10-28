@@ -17,36 +17,9 @@
 
 ---
 
-## Backend 分层契约
+## 后端架构
 
-新模块与存量模块统一遵循以下分层、目录和依赖方向：
-
-```text
-Router -> API -> Service -> Model
-```
-
-| 层 | 职责与位置 | 依赖边界 |
-| --- | --- | --- |
-| Router | `server/router/<module>/`，注册路径、中间件与 public/private 分组 | 连接 API，不承担业务处理 |
-| API | `server/api/v1/<module>/`，绑定和校验 HTTP 输入、调用服务、组织响应 | 通过 Service 处理业务，不绕过服务直接访问持久化 |
-| Service | `server/service/<module>/`，业务规则、流程编排和数据访问协作 | 使用 Model 及所需基础设施，不依赖 `gin.Context`，不反向调用 API/Router |
-| Model | `server/model/<module>/`，实体、请求/响应数据结构和持久化映射 | 不反向依赖 Router/API/Service |
-
-- 保留现有 `enter.go` 分组注册和组合入口，新增分组沿用对应模块的注册方式；不得绕过已有入口另建平行注册链。
-- `main` 与 `initialize` 负责启动和模块装配；随模块迁移同步调整导入与注入，保留必要能力，不保留重复的平行装配入口。
-- Service 不接收 `gin.Context`；HTTP 处理留在 API，所需业务参数显式传入。Swagger 注释与真实接口行为保持一致。
-- 新旧模块均按上述四层职责组织；具体开发指引在 [#8](https://github.com/Dcuhddrg/Optimus/issues/8) 维护，样例应使用已迁移并验证的模块。
-
-### 存量迁移要求
-
-- 旧 `usecase/infra` 是待消除的结构差异，必须列入 #11 的逐模块清单，不再以“Service 内部组织”为由永久保留。
-- 业务流程与服务内部接口归入 `server/service/<module>/`；实体、请求/响应数据结构与持久化映射归入 `server/model/<module>/`。数据访问实现位于对应 Service，不能把业务流程搬进 Model。
-- 外部 SDK、协议适配和公共能力按职责迁入明确的模块或插件位置，每项给出旧路径、新路径、调用者与测试映射；避免仅给旧层改名后保留平行体系。
-- 同批调整 API 导入、服务构造、`enter.go`、初始化注入和测试。必要接口可保留用于解耦与测试，不能成为旧包长期存在的豁免理由。
-- 每批保持已有接口返回、HTTP 状态、权限和项目隔离行为；#7 的响应协议设计暂停，待结构稳定后单独继续。
-- 迁移结束须清除范围内旧目录、旧包导入及临时兼容入口，构建和隔离 MySQL 回归通过，再由用户验收。计划清单、逐项进度和剩余差异仅在 GitHub 跟进。
-
-2026-10-27 已核实 system/project/cloud 服务中存在旧目录；当前记录的是迁移起点，不是代码完成声明。现行决定及旧决定的替代关系见 [ADR-002](decisions/ADR-002-backend-structure-migration.md)。
+后端分层、注册入口及存量迁移要求见 [后端分层与迁移规则](../modules/backend-layer-rules.md)；当前接口行为须在结构迁移中保留。
 
 ---
 
@@ -62,6 +35,7 @@ Router -> API -> Service -> Model
 
 ## API 设计契约
 
+- 前后端响应、分页、错误和兼容边界见 [接口契约提案](../frontend-backend/boundary.md)。#7 先补文档，不依赖结构迁移完成；当前行为、已确认决定和待确认提案分别标注，文档更新不触发 API 代码变更。
 - 统一前缀 `/api/v1/<module>/...`
 - 健康检查：`/api/v1/health`、`/api/v1/ping`（公开）
 - 鉴权：登录 `/api/v1/<module>/auth/login`（公开），其它路径走 JWT + Casbin RBAC（私有）
@@ -75,7 +49,7 @@ Router -> API -> Service -> Model
 - 三服务：frontend（nginx）+ backend（Go）+ mysql，由 `deploy/docker-compose/docker-compose.yml` 编排
 - nginx 反向代理 `/api/` → `optimus-server:8888`
 - Mac 端访问域名 `optimus.intellivis.cn`（Caddy HTTPS），直连排查走 `http://192.169.50.100:8080/`
-- 前端运行效果验证**默认走 Compose**，不依赖 Vite dev server（详见 [工程操作参考](../governance/engineering.md) 的验证步骤）
+- 前端运行效果验证**默认走 Compose**，不依赖 Vite dev server（详见 [工程操作参考](engineering-workflow.md) 的验证步骤）
 
 ---
 
@@ -133,4 +107,4 @@ docker compose -f deploy/docker-compose/docker-compose.yml up -d
 
 最近状态核查：2026-10-26。历史阶段完成标记不替代当前验收证据。
 
-长期阶段见 [路线图](../roadmaps/finops-devops-platform-roadmap.md)，当前实现及验证状态统一见 [能力状态](../project-status.md)，决策理由见 [决策索引](decisions/README.md)。本文件维护架构契约，不重复维护项目进度。
+长期阶段见 [路线图](../memory/platform-roadmap.md)，当前实现及验证状态统一见 [能力状态](../project-status.md)，决策理由见 [决策索引](decisions/README.md)。本文件维护架构契约，不重复维护项目进度。

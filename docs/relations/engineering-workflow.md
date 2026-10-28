@@ -27,7 +27,7 @@
 
 ## 验证步骤
 
-基础命令见 [根规则验证章节](../../AGENT.MD#验证)。以下步骤按任务触发；部署地址和代理契约统一以 [当前架构](../architecture/current-architecture.md) 为准。
+基础命令见 [根规则验证章节](../../AGENT.MD#验证)。以下步骤按任务触发；部署地址和代理契约统一以 [当前架构](current-architecture.md) 为准。
 
 ### 依赖准备
 

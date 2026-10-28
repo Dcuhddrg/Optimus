@@ -1,6 +1,6 @@
 # 项目文档治理初版 Implementation Plan
 
-> 历史实施记录：本计划描述仓库台账初版。后续问题跟踪已按用户指令迁移至 GitHub，当前规则见 [维护约定](../../governance/documentation.md)，原 DOC-001 见 [GitHub #1](https://github.com/Dcuhddrg/Optimus/issues/1)。以下清单和校验数字保留当时记录，不用于恢复本地问题状态。
+> 历史实施记录：本计划描述仓库台账初版。后续问题跟踪已按用户指令迁移至 GitHub，当前规则见 [维护约定](../../relations/documentation-workflow.md)，原 DOC-001 见 [GitHub #1](https://github.com/Dcuhddrg/Optimus/issues/1)。以下清单和校验数字保留当时记录，不用于恢复本地问题状态。
 
 > 执行方式：按 superpowers:executing-plans 在当前会话逐项实施。用户已确认上一轮评估建议并授权初版实现。
 

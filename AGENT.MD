@@ -24,7 +24,7 @@
 ### 架构
 
 - 新模块与存量模块统一采用 `Router -> API -> Service -> Model`，同时统一目录、包依赖与注册入口。
-- 旧 `usecase/infra` 必须纳入 [#11](https://github.com/Dcuhddrg/Optimus/issues/11) 的迁移清单，不再作为长期可选结构保留；目标与验收边界见 [ADR-002](docs/architecture/decisions/ADR-002-backend-structure-migration.md)。
+- 旧 `usecase/infra` 必须纳入 [#11](https://github.com/Dcuhddrg/Optimus/issues/11) 的迁移清单，不再作为长期可选结构保留；目标与验收边界见 [ADR-002](docs/relations/decisions/ADR-002-backend-structure-migration.md)。
 - 结构迁移保持现有接口及权限行为，接口协议变更按独立 Issue 实施，不与结构迁移混批。
 - `enter.go` 继续作为分组注册与组合入口。
 - API 层处理 HTTP 相关逻辑，Service 层不要依赖 `gin.Context`。
@@ -42,15 +42,15 @@
 ### 插件与模块
 
 - 后端插件放在 `server/plugin/<name>/`，前端插件放在 `web/src/plugin/<name>/`。
-- 插件沿用现有注册和装配方式；模块职责、入口和边界写入 `docs/architecture/` 或相关 spec。
+- 插件沿用现有注册和装配方式；模块职责、入口和边界写入 `docs/modules/` 或相关 spec。
 - 新增模块或跨模块改动先明确边界，避免绕过既有 API、Service 和注册入口。
 
 ### 示例与文档维护
 
 - 新增某层文件前先阅读对应模块设计和同类实现；示例用于说明项目标准，不要求逐字复制。
-- 本文件只保存高层、稳定、跨任务规则，工具用法和验证细节按需读取 [工程操作参考](docs/governance/engineering.md)。
+- 本文件只保存高层、稳定、跨任务规则，工具用法和验证细节按需读取 [工程操作参考](docs/relations/engineering-workflow.md)。
 - spec / plan 放在 `docs/superpowers/specs/`、`docs/superpowers/plans/`；已交付阶段归档到 `docs/superpowers/archive/`，待核实项保持活跃。
-- 项目规则先改本文件，再按需更新适配层；相关设计保留决定理由、历史及替代关系，状态维护遵循 [文档维护约定](docs/governance/documentation.md)。
+- 项目规则先改本文件，再按需更新适配层；相关设计保留决定理由、历史及替代关系，状态维护遵循 [文档维护约定](docs/relations/documentation-workflow.md)。
 
 ### 需求与协作记忆
 
@@ -68,7 +68,7 @@
 ### 代码读取约束
 
 - 代码探索优先 codebase-memory-mcp，项目为 `home-lilin-trae-project-Optimus`；状态不明先查 `index_status`，拉取主干、大重构或批量新增后用 `detect_changes` 核对漂移并更新落后索引。
-- 探索前读取 [图谱操作参考](docs/governance/engineering.md#图谱查询)；文本工具仅用于非代码文件、文字查找或确认图谱未覆盖的新文件，不先宽泛扫描源码。派发子代理须传递相同要求。
+- 探索前读取 [图谱操作参考](docs/relations/engineering-workflow.md#图谱查询)；文本工具仅用于非代码文件、文字查找或确认图谱未覆盖的新文件，不先宽泛扫描源码。派发子代理须传递相同要求。
 - 不直接读取 `node_modules/` 中的实现代码；第三方行为先看项目调用、锁文件、配置、官方文档和公开类型/说明，不逐文件翻依赖实现。
 
 ### 验证
@@ -80,8 +80,8 @@
 
 ## 文档索引
 
-- [文档入口](docs/README.md) · [能力状态](docs/project-status.md) · [平台路线图](docs/roadmaps/finops-devops-platform-roadmap.md)
-- [架构记录](docs/architecture/current-architecture.md) · [决策索引](docs/architecture/decisions/README.md)
-- [文档维护](docs/governance/documentation.md) · [工程操作](docs/governance/engineering.md)
+- [文档入口](docs/README.md) · [能力状态](docs/project-status.md) · [平台路线图](docs/memory/platform-roadmap.md)
+- [系统关系](docs/relations/README.md) · [模块与分层](docs/modules/README.md) · [前后端协作](docs/frontend-backend/README.md) · [决策索引](docs/relations/decisions/README.md)
+- [文档维护](docs/relations/documentation-workflow.md) · [工程操作](docs/relations/engineering-workflow.md)
 - [设计](docs/superpowers/specs/) · [计划](docs/superpowers/plans/) · [归档](docs/superpowers/archive/)
 
