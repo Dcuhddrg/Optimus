@@ -3,7 +3,7 @@ package project
 import (
 	"net/http"
 
-	projectUsecase "optimus/server/service/project/usecase"
+	projectModel "optimus/server/model/project"
 
 	"github.com/gin-gonic/gin"
 )
@@ -26,7 +26,7 @@ func (h *ProjectHandlers) CreateProject(c *gin.Context) {
 		writeProjectServiceUnavailable(c)
 		return
 	}
-	var req projectUsecase.CreateProjectRequest
+	var req projectModel.CreateProjectRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid project payload"})
 		return
@@ -57,7 +57,7 @@ func (h *ProjectHandlers) UpdateProject(c *gin.Context) {
 		writeProjectServiceUnavailable(c)
 		return
 	}
-	var req projectUsecase.UpdateProjectRequest
+	var req projectModel.UpdateProjectRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid project payload"})
 		return

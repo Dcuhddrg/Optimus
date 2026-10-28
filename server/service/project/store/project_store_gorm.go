@@ -1,4 +1,4 @@
-package persistence
+package store
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	projectModel "optimus/server/model/project"
-	"optimus/server/service/project/usecase"
+	projectService "optimus/server/service/project"
 
 	"gorm.io/gorm"
 )
@@ -27,14 +27,14 @@ func (s *GormProjectStore) Create(ctx context.Context, p *projectModel.Project, 
 		}
 		if err := tx.Create(p).Error; err != nil {
 			if isDuplicateKeyError(err) {
-				return usecase.ErrProjectCodeTaken
+				return projectService.ErrProjectCodeTaken
 			}
 			return err
 		}
 		ownerRow := projectModel.UserProject{
 			UserID:      ownerID,
 			ProjectID:   p.ID,
-			ProjectRole: usecase.RoleOwner,
+			ProjectRole: projectService.RoleOwner,
 		}
 		return tx.Create(&ownerRow).Error
 	})
@@ -44,7 +44,7 @@ func (s *GormProjectStore) FindByCode(ctx context.Context, code string) (project
 	var p projectModel.Project
 	if err := s.db.WithContext(ctx).Where("code = ?", code).First(&p).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return projectModel.Project{}, usecase.ErrProjectNotFound
+			return projectModel.Project{}, projectService.ErrProjectNotFound
 		}
 		return projectModel.Project{}, err
 	}
@@ -67,7 +67,7 @@ func (s *GormProjectStore) Update(ctx context.Context, code string, fields map[s
 	var existing projectModel.Project
 	if err := s.db.WithContext(ctx).Where("code = ?", code).First(&existing).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return projectModel.Project{}, usecase.ErrProjectNotFound
+			return projectModel.Project{}, projectService.ErrProjectNotFound
 		}
 		return projectModel.Project{}, err
 	}
@@ -85,7 +85,7 @@ func (s *GormProjectStore) Delete(ctx context.Context, code string) error {
 		var p projectModel.Project
 		if err := tx.Where("code = ?", code).First(&p).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return usecase.ErrProjectNotFound
+				return projectService.ErrProjectNotFound
 			}
 			return err
 		}
@@ -121,7 +121,7 @@ func (s *GormProjectStore) UpdateMemberRole(ctx context.Context, userID, project
 		Where("user_id = ? AND project_id = ?", userID, projectID).
 		First(&existing).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return usecase.ErrMemberNotFound
+			return projectService.ErrMemberNotFound
 		}
 		return err
 	}
@@ -139,13 +139,13 @@ func (s *GormProjectStore) RemoveMember(ctx context.Context, userID, projectID u
 		return res.Error
 	}
 	if res.RowsAffected == 0 {
-		return usecase.ErrMemberNotFound
+		return projectService.ErrMemberNotFound
 	}
 	return nil
 }
 
-func (s *GormProjectStore) ListMembers(ctx context.Context, projectID uint) ([]usecase.ProjectMember, error) {
-	var rows []usecase.ProjectMember
+func (s *GormProjectStore) ListMembers(ctx context.Context, projectID uint) ([]projectModel.ProjectMember, error) {
+	var rows []projectModel.ProjectMember
 	err := s.db.WithContext(ctx).
 		Table("user_projects").
 		Select("user_projects.user_id, sys_users.username, sys_users.display_name, user_projects.project_role").
@@ -153,7 +153,7 @@ func (s *GormProjectStore) ListMembers(ctx context.Context, projectID uint) ([]u
 		Where("user_projects.project_id = ?", projectID).
 		Scan(&rows).Error
 	if rows == nil {
-		rows = []usecase.ProjectMember{}
+		rows = []projectModel.ProjectMember{}
 	}
 	return rows, err
 }
@@ -164,7 +164,7 @@ func (s *GormProjectStore) FindMember(ctx context.Context, userID, projectID uin
 		Where("user_id = ? AND project_id = ?", userID, projectID).
 		First(&m).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return projectModel.UserProject{}, usecase.ErrMemberNotFound
+		return projectModel.UserProject{}, projectService.ErrMemberNotFound
 	}
 	return m, err
 }
@@ -185,7 +185,7 @@ func (s *GormProjectStore) CountOwners(ctx context.Context, projectID uint) (int
 	var n int64
 	err := s.db.WithContext(ctx).
 		Model(&projectModel.UserProject{}).
-		Where("project_id = ? AND project_role = ?", projectID, usecase.RoleOwner).
+		Where("project_id = ? AND project_role = ?", projectID, projectService.RoleOwner).
 		Count(&n).Error
 	return n, err
 }

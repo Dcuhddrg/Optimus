@@ -5,18 +5,18 @@ import (
 	"net/http"
 	"strconv"
 
-	projectUsecase "optimus/server/service/project/usecase"
+	projectService "optimus/server/service/project"
 	"optimus/server/utils"
 
 	"github.com/gin-gonic/gin"
 )
 
 type ProjectHandlers struct {
-	svc *projectUsecase.ProjectService
+	svc *projectService.ProjectService
 }
 
 type ProjectHandlerDeps struct {
-	Service *projectUsecase.ProjectService
+	Service *projectService.ProjectService
 }
 
 func NewProjectHandlers(deps ProjectHandlerDeps) *ProjectHandlers {
@@ -29,19 +29,19 @@ func writeProjectServiceUnavailable(c *gin.Context) {
 
 func writeProjectError(c *gin.Context, err error) {
 	switch {
-	case errors.Is(err, projectUsecase.ErrProjectNotFound),
-		errors.Is(err, projectUsecase.ErrMemberNotFound):
+	case errors.Is(err, projectService.ErrProjectNotFound),
+		errors.Is(err, projectService.ErrMemberNotFound):
 		c.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
-	case errors.Is(err, projectUsecase.ErrProjectCodeTaken),
-		errors.Is(err, projectUsecase.ErrProjectHasAccounts),
-		errors.Is(err, projectUsecase.ErrCannotRemoveLastOwner):
+	case errors.Is(err, projectService.ErrProjectCodeTaken),
+		errors.Is(err, projectService.ErrProjectHasAccounts),
+		errors.Is(err, projectService.ErrCannotRemoveLastOwner):
 		c.JSON(http.StatusConflict, gin.H{"message": err.Error()})
-	case errors.Is(err, projectUsecase.ErrInvalidProjectCode),
-		errors.Is(err, projectUsecase.ErrInvalidProjectName),
-		errors.Is(err, projectUsecase.ErrInvalidProjectRole),
-		errors.Is(err, projectUsecase.ErrUserNotFound):
+	case errors.Is(err, projectService.ErrInvalidProjectCode),
+		errors.Is(err, projectService.ErrInvalidProjectName),
+		errors.Is(err, projectService.ErrInvalidProjectRole),
+		errors.Is(err, projectService.ErrUserNotFound):
 		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
-	case errors.Is(err, projectUsecase.ErrForbidden):
+	case errors.Is(err, projectService.ErrForbidden):
 		c.JSON(http.StatusForbidden, gin.H{"message": err.Error()})
 	default:
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "internal error"})

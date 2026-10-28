@@ -7,7 +7,7 @@ import (
 	cloudModel "optimus/server/model/cloud"
 	projectModel "optimus/server/model/project"
 	systemModel "optimus/server/model/system"
-	projectUsecase "optimus/server/service/project/usecase"
+	projectService "optimus/server/service/project"
 
 	"gorm.io/gorm"
 )
@@ -78,7 +78,7 @@ func ensureDefaultProject(db *gorm.DB) (projectModel.Project, error) {
 	member := projectModel.UserProject{
 		UserID:      admin.ID,
 		ProjectID:   project.ID,
-		ProjectRole: projectUsecase.RoleOwner,
+		ProjectRole: projectService.RoleOwner,
 	}
 	if err := db.Create(&member).Error; err != nil {
 		return projectModel.Project{}, err

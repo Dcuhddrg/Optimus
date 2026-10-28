@@ -1,9 +1,8 @@
-package usecase
+package project
 
 import (
 	"context"
 	"errors"
-	"time"
 
 	projectModel "optimus/server/model/project"
 )
@@ -33,44 +32,6 @@ func IsValidProjectRole(role string) bool {
 	return role == RoleOwner || role == RoleMember || role == RoleViewer
 }
 
-type CreateProjectRequest struct {
-	Name        string `json:"name"`
-	Code        string `json:"code"`
-	Description string `json:"description"`
-}
-
-type UpdateProjectRequest struct {
-	Name        *string `json:"name"`
-	Description *string `json:"description"`
-}
-
-type AddMemberRequest struct {
-	UserID      uint   `json:"userId"`
-	ProjectRole string `json:"projectRole"`
-}
-
-type UpdateMemberRoleRequest struct {
-	ProjectRole string `json:"projectRole"`
-}
-
-type ProjectView struct {
-	ID          uint      `json:"id"`
-	Name        string    `json:"name"`
-	Code        string    `json:"code"`
-	Description string    `json:"description"`
-	OwnerID     uint      `json:"ownerId"`
-	Status      string    `json:"status"`
-	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
-}
-
-type ProjectMember struct {
-	UserID      uint   `json:"userId"`
-	Username    string `json:"username"`
-	DisplayName string `json:"displayName"`
-	ProjectRole string `json:"projectRole"`
-}
-
 type ProjectStore interface {
 	Create(ctx context.Context, p *projectModel.Project, ownerID uint) error
 	FindByCode(ctx context.Context, code string) (projectModel.Project, error)
@@ -82,7 +43,7 @@ type ProjectStore interface {
 	AddOrReplaceMember(ctx context.Context, m projectModel.UserProject) error
 	UpdateMemberRole(ctx context.Context, userID, projectID uint, role string) error
 	RemoveMember(ctx context.Context, userID, projectID uint) error
-	ListMembers(ctx context.Context, projectID uint) ([]ProjectMember, error)
+	ListMembers(ctx context.Context, projectID uint) ([]projectModel.ProjectMember, error)
 	FindMember(ctx context.Context, userID, projectID uint) (projectModel.UserProject, error)
 	ListAccessibleProjectIDs(ctx context.Context, userID uint) ([]uint, error)
 	CountOwners(ctx context.Context, projectID uint) (int64, error)
