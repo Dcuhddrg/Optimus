@@ -3,9 +3,10 @@ package system
 import (
 	"errors"
 	"net/http"
+	systemModel "optimus/server/model/system"
 	"strconv"
 
-	systemUsecase "optimus/server/service/system/usecase"
+	systemService "optimus/server/service/system"
 	"optimus/server/utils"
 
 	"github.com/gin-gonic/gin"
@@ -33,7 +34,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 	if !ok {
 		return
 	}
-	var req systemUsecase.UpdateUserRequest
+	var req systemModel.UpdateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid user request"})
 		return
@@ -79,7 +80,7 @@ func (h *UserHandler) UpdateUserRoles(c *gin.Context) {
 		return
 	}
 	err := h.service.UpdateUserRoles(c.Request.Context(), actorID(c), id, req.RoleIDs, auditMeta(c))
-	if errors.Is(err, systemUsecase.ErrLastAdminCapableUser) {
+	if errors.Is(err, systemService.ErrLastAdminCapableUser) {
 		c.JSON(http.StatusForbidden, gin.H{"message": err.Error()})
 		return
 	}
@@ -111,8 +112,8 @@ func actorID(c *gin.Context) uint {
 	return customClaims.BaseClaims.ID
 }
 
-func auditMeta(c *gin.Context) systemUsecase.AuditMeta {
-	meta := systemUsecase.AuditMeta{IP: c.ClientIP(), UserAgent: c.Request.UserAgent()}
+func auditMeta(c *gin.Context) systemService.AuditMeta {
+	meta := systemService.AuditMeta{IP: c.ClientIP(), UserAgent: c.Request.UserAgent()}
 	if raw, ok := c.Get(utils.ClaimsContextKey); ok {
 		if cc, ok := raw.(*utils.CustomClaims); ok {
 			meta.ActorUsername = cc.BaseClaims.Username
@@ -121,12 +122,12 @@ func auditMeta(c *gin.Context) systemUsecase.AuditMeta {
 	return meta
 }
 
-func writeUserServiceResult(c *gin.Context, user systemUsecase.SystemUserSummary, err error) {
-	if errors.Is(err, systemUsecase.ErrUserNotFound) {
+func writeUserServiceResult(c *gin.Context, user systemModel.SystemUserSummary, err error) {
+	if errors.Is(err, systemService.ErrUserNotFound) {
 		c.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
 		return
 	}
-	if errors.Is(err, systemUsecase.ErrLastAdminCapableUser) {
+	if errors.Is(err, systemService.ErrLastAdminCapableUser) {
 		c.JSON(http.StatusForbidden, gin.H{"message": err.Error()})
 		return
 	}

@@ -16,7 +16,6 @@ import (
 	projectModel "optimus/server/model/project"
 	projectService "optimus/server/service/project"
 	systemService "optimus/server/service/system"
-	systemUsecase "optimus/server/service/system/usecase"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
@@ -139,7 +138,7 @@ func newRouterWithProjectStore(t *testing.T, store *routerScopeStore, allowed bo
 			Handlers: projectAPI.NewProjectHandlers(projectAPI.ProjectHandlerDeps{Service: svc}),
 		}
 	}
-	token, err := systemService.IssueJWT(systemUsecase.TokenSubject{
+	token, err := systemService.IssueJWT(systemService.TokenSubject{
 		ID: 1, UUID: "scope-user", Username: "admin", RoleIDs: []uint{1}, RoleCodes: []string{"admin"},
 	}, global.OPTIMUS_CONFIG.JWT, time.Now())
 	require.NoError(t, err)

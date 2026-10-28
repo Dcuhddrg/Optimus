@@ -11,7 +11,6 @@ import (
 	"optimus/server/config"
 	"optimus/server/global"
 	systemService "optimus/server/service/system"
-	systemUsecase "optimus/server/service/system/usecase"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
@@ -25,14 +24,14 @@ type routerPrefixPermissionStore struct {
 	path   string
 }
 
-func (s *routerPrefixPermissionStore) FindAPIPermission(_ context.Context, method, path string) (systemUsecase.SystemPermissionSummary, bool, error) {
+func (s *routerPrefixPermissionStore) FindAPIPermission(_ context.Context, method, path string) (systemService.SystemPermissionSummary, bool, error) {
 	s.method, s.path = method, path
 	for i, permission := range systemService.DefaultSystemPermissions() {
 		if permission.Type == "api" && permission.Method == method && permission.Path == path {
-			return systemUsecase.SystemPermissionSummary{ID: uint(i + 1), Code: permission.Code}, true, nil
+			return systemService.SystemPermissionSummary{ID: uint(i + 1), Code: permission.Code}, true, nil
 		}
 	}
-	return systemUsecase.SystemPermissionSummary{}, false, nil
+	return systemService.SystemPermissionSummary{}, false, nil
 }
 
 func (*routerPrefixPermissionStore) RoleHasPermission(_ context.Context, roleID, _ uint) (bool, error) {
@@ -67,11 +66,11 @@ func TestRoutersAuthorizeCanonicalPermissionWithConfiguredPrefix(t *testing.T) {
 			newSystemModule = func(_ *gorm.DB, cfg config.Config) *SystemModule {
 				return &SystemModule{
 					Handlers:     systemApi.NewSystemHandlers(systemApi.SystemHandlerDeps{}),
-					Capabilities: &SystemCapabilities{RBAC: systemUsecase.NewRBACService(store)},
+					Capabilities: &SystemCapabilities{RBAC: systemService.NewRBACService(store)},
 					cfg:          cfg,
 				}
 			}
-			token, err := systemService.IssueJWT(systemUsecase.TokenSubject{ID: 1, RoleIDs: []uint{7}}, global.OPTIMUS_CONFIG.JWT, time.Now())
+			token, err := systemService.IssueJWT(systemService.TokenSubject{ID: 1, RoleIDs: []uint{7}}, global.OPTIMUS_CONFIG.JWT, time.Now())
 			require.NoError(t, err)
 			request := httptest.NewRequest(tt.method, tt.requestPath, nil)
 			request.Header.Set("Authorization", "Bearer "+token)

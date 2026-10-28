@@ -3,15 +3,16 @@ package system
 import (
 	"errors"
 	"net/http"
+	systemModel "optimus/server/model/system"
 
-	systemUsecase "optimus/server/service/system/usecase"
+	systemService "optimus/server/service/system"
 	"optimus/server/utils"
 
 	"github.com/gin-gonic/gin"
 )
 
 func (h *AuthHandler) Login(c *gin.Context) {
-	var req systemUsecase.LoginRequest
+	var req systemModel.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid login request"})
 		return
@@ -25,7 +26,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	if err != nil {
 		status := http.StatusUnauthorized
 		message := "username or password is incorrect"
-		if errors.Is(err, systemUsecase.ErrUserDisabled) {
+		if errors.Is(err, systemService.ErrUserDisabled) {
 			status = http.StatusForbidden
 			message = "account is disabled"
 		}

@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	systemService "optimus/server/service/system"
-	systemUsecase "optimus/server/service/system/usecase"
 
 	"github.com/gin-gonic/gin"
 )
@@ -15,23 +14,23 @@ type systemStatusService interface {
 }
 
 type AuthHandler struct {
-	service *systemUsecase.AuthService
+	service *systemService.AuthService
 }
 
 type UserHandler struct {
-	service *systemUsecase.UserService
+	service *systemService.UserService
 }
 
 type RoleHandler struct {
-	service *systemUsecase.RoleService
+	service *systemService.RoleService
 }
 
 type LDAPHandler struct {
-	service *systemUsecase.LDAPService
+	service *systemService.LDAPService
 }
 
 type AuditHandler struct {
-	service *systemUsecase.AuditService
+	service *systemService.AuditService
 }
 
 type BaseHandler struct {
@@ -53,11 +52,11 @@ type SystemHandlers struct {
 }
 
 type SystemHandlerDeps struct {
-	Auth   *systemUsecase.AuthService
-	User   *systemUsecase.UserService
-	Role   *systemUsecase.RoleService
-	LDAP   *systemUsecase.LDAPService
-	Audit  *systemUsecase.AuditService
+	Auth   *systemService.AuthService
+	User   *systemService.UserService
+	Role   *systemService.RoleService
+	LDAP   *systemService.LDAPService
+	Audit  *systemService.AuditService
 	System systemStatusService
 }
 
