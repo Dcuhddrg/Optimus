@@ -4,7 +4,7 @@
 - 核查基线：`12c3e9f`；本轮验证包含路由与授权边界整改（[#12](https://github.com/Dcuhddrg/Optimus/issues/12)、[#13](https://github.com/Dcuhddrg/Optimus/issues/13)），对应交付提交和 PR 以 Issue 中的关联记录为准。
 - 核查方式：codebase-memory 定向审计、后端全量测试及构建。隔离 MySQL 基线 149 个测试通过；整改后 190 个测试（含子测试）通过、0 个用例跳过，中间件及装配竞态检查通过。未进行前端构建、真实云联调、部署或端到端验收；本表不是生产就绪声明。
 - 各阶段长期目标见 [路线图](memory/platform-roadmap.md)，具体问题状态见 [GitHub Issues](https://github.com/Dcuhddrg/Optimus/issues)。
-- 架构目标以 [ADR-002](relations/decisions/ADR-002-backend-structure-migration.md) 为准：存量后端结构须分批迁移，本次仅清理规范，尚未搬动代码。原 190 个测试仅证明首批边界修复的基线，不代表结构迁移完成；迁移验证在 #11 单独记录。
+- 架构目标以 [ADR-002](relations/decisions/ADR-002-backend-structure-migration.md) 为准：存量后端结构须分批迁移；project、cloud、system 的结构改动已合入，system 和 #11 整体验收待完成。原 190 个测试仅证明首批边界修复的基线，迁移验证见 #11。
 
 ## 能力与证据
 
@@ -22,4 +22,4 @@
 
 只更新有新增证据的行，保留日期和基线。源码存在、测试通过、业务验收三个层次分别记录。无法确认时保留待核实，不根据文件名、归档目录或计划勾选推断完成。
 
-初版文档校验记录在 [#1](https://github.com/Dcuhddrg/Optimus/issues/1)；本轮后端基线和首批整改记录在 [#2](https://github.com/Dcuhddrg/Optimus/issues/2)、[#11](https://github.com/Dcuhddrg/Optimus/issues/11)。响应、分页和错误字段尚未迁移到统一 envelope，具体契约由 [#7](https://github.com/Dcuhddrg/Optimus/issues/7) 确认，不能据测试通过宣称迁移已完成。
+初版文档校验记录在 [#1](https://github.com/Dcuhddrg/Optimus/issues/1)；本轮后端基线和首批整改记录在 [#2](https://github.com/Dcuhddrg/Optimus/issues/2)、[#11](https://github.com/Dcuhddrg/Optimus/issues/11)。响应、分页和错误字段尚未迁移到统一 envelope，契约已由 [#7](https://github.com/Dcuhddrg/Optimus/issues/7) 确认，代码迁移在 [#18](https://github.com/Dcuhddrg/Optimus/issues/18) 跟进，不能据测试通过宣称迁移已完成。

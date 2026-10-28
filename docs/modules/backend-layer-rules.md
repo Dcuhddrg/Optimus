@@ -31,4 +31,4 @@ Router -> API -> Service -> Model
 - 每批结构迁移保持已有接口返回、HTTP 状态、权限和项目隔离行为；#7 的契约文档先行，响应协议代码改造另批实施，不与结构迁移混批。
 - 迁移结束须清除范围内旧目录、旧包导入及临时兼容入口，构建和隔离 MySQL 回归通过，再由用户验收。计划清单、逐项进度和剩余差异仅在 GitHub 跟进。
 
-2026-10-27 已核实 system/project/cloud 服务中存在旧目录；当前记录的是迁移起点，不是代码完成声明。现行决定及旧决定的替代关系见 [ADR-002](../relations/decisions/ADR-002-backend-structure-migration.md)。
+2026-10-27 的盘点曾发现 system/project/cloud 旧目录；截至 2026-10-28，三批结构迁移已合入，system 批次及 #11 整体验收仍待完成。现行决定及旧决定的替代关系见 [ADR-002](../relations/decisions/ADR-002-backend-structure-migration.md)。
