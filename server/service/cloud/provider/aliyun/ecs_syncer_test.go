@@ -4,18 +4,18 @@ import (
 	"context"
 	"testing"
 
-	"optimus/server/service/cloud/usecase"
+	cloudService "optimus/server/service/cloud"
 
 	"github.com/stretchr/testify/require"
 )
 
 func TestECSSyncerImplementsAssetSyncer(t *testing.T) {
-	var _ usecase.AssetSyncer = NewECSSyncer()
+	var _ cloudService.AssetSyncer = NewECSSyncer()
 }
 
 func TestECSSyncerReturnsErrorWithInvalidCredentials(t *testing.T) {
 	s := NewECSSyncer()
-	_, err := s.Sync(context.Background(), usecase.SyncAccount{
+	_, err := s.Sync(context.Background(), cloudService.SyncAccount{
 		ID:             1,
 		Provider:       "aliyun",
 		AccountID:      "fake-account",

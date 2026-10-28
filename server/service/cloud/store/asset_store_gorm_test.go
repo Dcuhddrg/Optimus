@@ -1,10 +1,10 @@
-package persistence
+package store
 
 import (
 	"context"
 	"testing"
 
-	"optimus/server/service/cloud/usecase"
+	cloudService "optimus/server/service/cloud"
 
 	"github.com/stretchr/testify/require"
 )
@@ -17,13 +17,13 @@ func TestGormAssetStoreUpsertCreatesNewAsset(t *testing.T) {
 	account, err := accountStore.Create(context.Background(), 7, testAccountRow("prod", "aliyun", "123"))
 	require.NoError(t, err)
 
-	result, err := store.Upsert(context.Background(), account.ID, "aliyun", []usecase.RawAsset{
+	result, err := store.Upsert(context.Background(), account.ID, "aliyun", []cloudService.RawAsset{
 		{ResourceType: "ecs_instance", ResourceID: "i-001", Name: "web-1", Region: "cn-hangzhou", Status: "Running"},
 	})
 	require.NoError(t, err)
 	require.Equal(t, 1, result.Upserted)
 
-	page, err := store.Query(context.Background(), usecase.AssetFilter{AccessibleProjectIDs: []uint{7}, Page: 1, PageSize: 20})
+	page, err := store.Query(context.Background(), cloudService.AssetFilter{AccessibleProjectIDs: []uint{7}, Page: 1, PageSize: 20})
 	require.NoError(t, err)
 	require.Equal(t, int64(1), page.Total)
 	require.Equal(t, "i-001", page.Items[0].ResourceID)
@@ -37,17 +37,17 @@ func TestGormAssetStoreUpsertUpdatesExistingAsset(t *testing.T) {
 	account, err := accountStore.Create(context.Background(), 7, testAccountRow("prod", "aliyun", "123"))
 	require.NoError(t, err)
 
-	_, err = store.Upsert(context.Background(), account.ID, "aliyun", []usecase.RawAsset{
+	_, err = store.Upsert(context.Background(), account.ID, "aliyun", []cloudService.RawAsset{
 		{ResourceType: "ecs_instance", ResourceID: "i-001", Name: "web-1", Region: "cn-hangzhou", Status: "Running"},
 	})
 	require.NoError(t, err)
 
-	_, err = store.Upsert(context.Background(), account.ID, "aliyun", []usecase.RawAsset{
+	_, err = store.Upsert(context.Background(), account.ID, "aliyun", []cloudService.RawAsset{
 		{ResourceType: "ecs_instance", ResourceID: "i-001", Name: "web-1-updated", Region: "cn-hangzhou", Status: "Stopped"},
 	})
 	require.NoError(t, err)
 
-	page, err := store.Query(context.Background(), usecase.AssetFilter{AccessibleProjectIDs: []uint{7}, Page: 1, PageSize: 20})
+	page, err := store.Query(context.Background(), cloudService.AssetFilter{AccessibleProjectIDs: []uint{7}, Page: 1, PageSize: 20})
 	require.NoError(t, err)
 	require.Equal(t, int64(1), page.Total)
 	require.Equal(t, "web-1-updated", page.Items[0].Name)
@@ -64,17 +64,17 @@ func TestGormAssetStoreQueryFiltersByProvider(t *testing.T) {
 	awsAccount, err := accountStore.Create(context.Background(), 7, testAccountRow("aws", "aws", "456"))
 	require.NoError(t, err)
 
-	_, err = store.Upsert(context.Background(), aliyunAccount.ID, "aliyun", []usecase.RawAsset{
+	_, err = store.Upsert(context.Background(), aliyunAccount.ID, "aliyun", []cloudService.RawAsset{
 		{ResourceType: "ecs_instance", ResourceID: "i-001", Region: "cn-hangzhou", Status: "Running"},
 	})
 	require.NoError(t, err)
-	_, err = store.Upsert(context.Background(), awsAccount.ID, "aws", []usecase.RawAsset{
+	_, err = store.Upsert(context.Background(), awsAccount.ID, "aws", []cloudService.RawAsset{
 		{ResourceType: "ec2_instance", ResourceID: "i-abc", Region: "us-east-1", Status: "running"},
 	})
 	require.NoError(t, err)
 
 	provider := "aliyun"
-	page, err := store.Query(context.Background(), usecase.AssetFilter{AccessibleProjectIDs: []uint{7}, Provider: &provider, Page: 1, PageSize: 20})
+	page, err := store.Query(context.Background(), cloudService.AssetFilter{AccessibleProjectIDs: []uint{7}, Provider: &provider, Page: 1, PageSize: 20})
 	require.NoError(t, err)
 	require.Equal(t, int64(1), page.Total)
 	require.Equal(t, "aliyun", page.Items[0].Provider)
@@ -90,16 +90,16 @@ func TestGormAssetStoreQueryFiltersByAccessibleProjects(t *testing.T) {
 	account2, err := accountStore.Create(context.Background(), 8, testAccountRow("other", "aliyun", "456"))
 	require.NoError(t, err)
 
-	_, err = store.Upsert(context.Background(), account1.ID, "aliyun", []usecase.RawAsset{
+	_, err = store.Upsert(context.Background(), account1.ID, "aliyun", []cloudService.RawAsset{
 		{ResourceType: "ecs_instance", ResourceID: "i-001", Name: "visible", Region: "cn-hangzhou", Status: "Running"},
 	})
 	require.NoError(t, err)
-	_, err = store.Upsert(context.Background(), account2.ID, "aliyun", []usecase.RawAsset{
+	_, err = store.Upsert(context.Background(), account2.ID, "aliyun", []cloudService.RawAsset{
 		{ResourceType: "ecs_instance", ResourceID: "i-002", Name: "hidden", Region: "cn-hangzhou", Status: "Running"},
 	})
 	require.NoError(t, err)
 
-	page, err := store.Query(context.Background(), usecase.AssetFilter{AccessibleProjectIDs: []uint{7}, Page: 1, PageSize: 20})
+	page, err := store.Query(context.Background(), cloudService.AssetFilter{AccessibleProjectIDs: []uint{7}, Page: 1, PageSize: 20})
 	require.NoError(t, err)
 	require.Equal(t, int64(1), page.Total)
 	require.Len(t, page.Items, 1)
@@ -121,18 +121,18 @@ func TestGormAssetStoreQueryFiltersByAccountTag(t *testing.T) {
 	_, err = accountStore.UpdateTags(context.Background(), []uint{1}, devAccount.ID, map[string]string{"environment": "dev"})
 	require.NoError(t, err)
 
-	_, err = assetStore.Upsert(context.Background(), prodAccount.ID, "aliyun", []usecase.RawAsset{
+	_, err = assetStore.Upsert(context.Background(), prodAccount.ID, "aliyun", []cloudService.RawAsset{
 		{ResourceType: "ecs", ResourceID: "i-1", Name: "prod-vm"},
 	})
 	require.NoError(t, err)
-	_, err = assetStore.Upsert(context.Background(), devAccount.ID, "aliyun", []usecase.RawAsset{
+	_, err = assetStore.Upsert(context.Background(), devAccount.ID, "aliyun", []cloudService.RawAsset{
 		{ResourceType: "ecs", ResourceID: "i-2", Name: "dev-vm"},
 	})
 	require.NoError(t, err)
 
-	page, err := assetStore.Query(context.Background(), usecase.AssetFilter{
+	page, err := assetStore.Query(context.Background(), cloudService.AssetFilter{
 		AccessibleProjectIDs: []uint{1},
-		Tags:                 []usecase.TagFilter{{Key: "environment", Value: "prod", Exists: true}},
+		Tags:                 []cloudService.TagFilter{{Key: "environment", Value: "prod", Exists: true}},
 	})
 	require.NoError(t, err)
 	require.Equal(t, int64(1), page.Total)
@@ -140,8 +140,8 @@ func TestGormAssetStoreQueryFiltersByAccountTag(t *testing.T) {
 	require.Equal(t, "prod-vm", page.Items[0].Name)
 }
 
-func testAccountRow(name, provider, accountID string) usecase.AccountRow {
-	return usecase.AccountRow{
+func testAccountRow(name, provider, accountID string) cloudService.AccountRow {
+	return cloudService.AccountRow{
 		Name:           name,
 		Provider:       provider,
 		AccountID:      accountID,

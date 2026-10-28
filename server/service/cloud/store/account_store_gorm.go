@@ -1,4 +1,4 @@
-package persistence
+package store
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"time"
 
 	cloudModel "optimus/server/model/cloud"
-	"optimus/server/service/cloud/usecase"
+	cloudService "optimus/server/service/cloud"
 
 	"gorm.io/gorm"
 )
@@ -20,10 +20,10 @@ func NewGormAccountStore(db *gorm.DB) *GormAccountStore {
 	return &GormAccountStore{db: db}
 }
 
-func (s *GormAccountStore) Create(ctx context.Context, projectID uint, row usecase.AccountRow) (usecase.AccountRow, error) {
+func (s *GormAccountStore) Create(ctx context.Context, projectID uint, row cloudService.AccountRow) (cloudService.AccountRow, error) {
 	tagsJSON, err := marshalTags(row.Tags)
 	if err != nil {
-		return usecase.AccountRow{}, err
+		return cloudService.AccountRow{}, err
 	}
 	m := cloudModel.CloudAccount{
 		ProjectID:      projectID,
@@ -36,41 +36,41 @@ func (s *GormAccountStore) Create(ctx context.Context, projectID uint, row useca
 		Status:         "active",
 	}
 	if err := s.db.WithContext(ctx).Create(&m).Error; err != nil {
-		return usecase.AccountRow{}, err
+		return cloudService.AccountRow{}, err
 	}
 	return toAccountRow(m)
 }
 
-func (s *GormAccountStore) Get(ctx context.Context, accessibleProjectIDs []uint, id uint) (usecase.AccountRow, error) {
+func (s *GormAccountStore) Get(ctx context.Context, accessibleProjectIDs []uint, id uint) (cloudService.AccountRow, error) {
 	if len(accessibleProjectIDs) == 0 {
-		return usecase.AccountRow{}, usecase.ErrAccountNotFound
+		return cloudService.AccountRow{}, cloudService.ErrAccountNotFound
 	}
 	var m cloudModel.CloudAccount
 	if err := s.db.WithContext(ctx).
 		Where("id = ? AND project_id IN ?", id, accessibleProjectIDs).
 		First(&m).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return usecase.AccountRow{}, usecase.ErrAccountNotFound
+			return cloudService.AccountRow{}, cloudService.ErrAccountNotFound
 		}
-		return usecase.AccountRow{}, err
+		return cloudService.AccountRow{}, err
 	}
 	return toAccountRow(m)
 }
 
-func (s *GormAccountStore) GetForSync(ctx context.Context, id uint) (usecase.AccountRow, error) {
+func (s *GormAccountStore) GetForSync(ctx context.Context, id uint) (cloudService.AccountRow, error) {
 	var m cloudModel.CloudAccount
 	if err := s.db.WithContext(ctx).First(&m, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return usecase.AccountRow{}, usecase.ErrAccountNotFound
+			return cloudService.AccountRow{}, cloudService.ErrAccountNotFound
 		}
-		return usecase.AccountRow{}, err
+		return cloudService.AccountRow{}, err
 	}
 	return toAccountRow(m)
 }
 
-func (s *GormAccountStore) List(ctx context.Context, accessibleProjectIDs []uint, filters []usecase.TagFilter) ([]usecase.AccountRow, error) {
+func (s *GormAccountStore) List(ctx context.Context, accessibleProjectIDs []uint, filters []cloudService.TagFilter) ([]cloudService.AccountRow, error) {
 	if len(accessibleProjectIDs) == 0 {
-		return []usecase.AccountRow{}, nil
+		return []cloudService.AccountRow{}, nil
 	}
 	tx := s.db.WithContext(ctx).Where("project_id IN ?", accessibleProjectIDs)
 	for _, filter := range filters {
@@ -83,7 +83,7 @@ func (s *GormAccountStore) List(ctx context.Context, accessibleProjectIDs []uint
 		Find(&models).Error; err != nil {
 		return nil, err
 	}
-	rows := make([]usecase.AccountRow, 0, len(models))
+	rows := make([]cloudService.AccountRow, 0, len(models))
 	for _, m := range models {
 		row, err := toAccountRow(m)
 		if err != nil {
@@ -94,18 +94,18 @@ func (s *GormAccountStore) List(ctx context.Context, accessibleProjectIDs []uint
 	return rows, nil
 }
 
-func (s *GormAccountStore) Update(ctx context.Context, accessibleProjectIDs []uint, id uint, name *string, encryptedCredential *string) (usecase.AccountRow, error) {
+func (s *GormAccountStore) Update(ctx context.Context, accessibleProjectIDs []uint, id uint, name *string, encryptedCredential *string) (cloudService.AccountRow, error) {
 	if len(accessibleProjectIDs) == 0 {
-		return usecase.AccountRow{}, usecase.ErrAccountNotFound
+		return cloudService.AccountRow{}, cloudService.ErrAccountNotFound
 	}
 	var m cloudModel.CloudAccount
 	if err := s.db.WithContext(ctx).
 		Where("id = ? AND project_id IN ?", id, accessibleProjectIDs).
 		First(&m).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return usecase.AccountRow{}, usecase.ErrAccountNotFound
+			return cloudService.AccountRow{}, cloudService.ErrAccountNotFound
 		}
-		return usecase.AccountRow{}, err
+		return cloudService.AccountRow{}, err
 	}
 	updates := map[string]any{}
 	if name != nil {
@@ -116,34 +116,34 @@ func (s *GormAccountStore) Update(ctx context.Context, accessibleProjectIDs []ui
 	}
 	if len(updates) > 0 {
 		if err := s.db.WithContext(ctx).Model(&m).Updates(updates).Error; err != nil {
-			return usecase.AccountRow{}, err
+			return cloudService.AccountRow{}, err
 		}
 		if err := s.db.WithContext(ctx).First(&m, m.ID).Error; err != nil {
-			return usecase.AccountRow{}, err
+			return cloudService.AccountRow{}, err
 		}
 	}
 	return toAccountRow(m)
 }
 
-func (s *GormAccountStore) UpdateTags(ctx context.Context, accessibleProjectIDs []uint, id uint, tags map[string]string) (usecase.AccountRow, error) {
+func (s *GormAccountStore) UpdateTags(ctx context.Context, accessibleProjectIDs []uint, id uint, tags map[string]string) (cloudService.AccountRow, error) {
 	if len(accessibleProjectIDs) == 0 {
-		return usecase.AccountRow{}, usecase.ErrAccountNotFound
+		return cloudService.AccountRow{}, cloudService.ErrAccountNotFound
 	}
 	var m cloudModel.CloudAccount
 	if err := s.db.WithContext(ctx).
 		Where("id = ? AND project_id IN ?", id, accessibleProjectIDs).
 		First(&m).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return usecase.AccountRow{}, usecase.ErrAccountNotFound
+			return cloudService.AccountRow{}, cloudService.ErrAccountNotFound
 		}
-		return usecase.AccountRow{}, err
+		return cloudService.AccountRow{}, err
 	}
 	tagsJSON, err := marshalTags(tags)
 	if err != nil {
-		return usecase.AccountRow{}, err
+		return cloudService.AccountRow{}, err
 	}
 	if err := s.db.WithContext(ctx).Model(&m).Update("tags_json", tagsJSON).Error; err != nil {
-		return usecase.AccountRow{}, err
+		return cloudService.AccountRow{}, err
 	}
 	m.TagsJSON = tagsJSON
 	return toAccountRow(m)
@@ -151,7 +151,7 @@ func (s *GormAccountStore) UpdateTags(ctx context.Context, accessibleProjectIDs 
 
 func (s *GormAccountStore) Delete(ctx context.Context, accessibleProjectIDs []uint, id uint) error {
 	if len(accessibleProjectIDs) == 0 {
-		return usecase.ErrAccountNotFound
+		return cloudService.ErrAccountNotFound
 	}
 	res := s.db.WithContext(ctx).
 		Where("id = ? AND project_id IN ?", id, accessibleProjectIDs).
@@ -160,7 +160,7 @@ func (s *GormAccountStore) Delete(ctx context.Context, accessibleProjectIDs []ui
 		return res.Error
 	}
 	if res.RowsAffected == 0 {
-		return usecase.ErrAccountNotFound
+		return cloudService.ErrAccountNotFound
 	}
 	return nil
 }
@@ -175,17 +175,17 @@ func (s *GormAccountStore) UpdateSyncStatus(ctx context.Context, id uint, lastSy
 		return res.Error
 	}
 	if res.RowsAffected == 0 {
-		return usecase.ErrAccountNotFound
+		return cloudService.ErrAccountNotFound
 	}
 	return nil
 }
 
-func toAccountRow(m cloudModel.CloudAccount) (usecase.AccountRow, error) {
+func toAccountRow(m cloudModel.CloudAccount) (cloudService.AccountRow, error) {
 	tags, err := unmarshalTags(m.TagsJSON)
 	if err != nil {
-		return usecase.AccountRow{}, err
+		return cloudService.AccountRow{}, err
 	}
-	return usecase.AccountRow{
+	return cloudService.AccountRow{
 		ID:             m.ID,
 		ProjectID:      m.ProjectID,
 		Name:           m.Name,
@@ -224,7 +224,7 @@ func unmarshalTags(s string) (map[string]string, error) {
 	return out, nil
 }
 
-func tagFilterToSQL(f usecase.TagFilter) (string, []any) {
+func tagFilterToSQL(f cloudService.TagFilter) (string, []any) {
 	path := "$." + f.Key
 	if !f.Exists {
 		return "JSON_EXTRACT(tags_json, ?) IS NULL", []any{path}

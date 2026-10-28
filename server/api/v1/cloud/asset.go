@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
-	cloudUsecase "optimus/server/service/cloud/usecase"
+	cloudService "optimus/server/service/cloud"
 
 	"github.com/gin-gonic/gin"
 )
@@ -29,8 +29,8 @@ func (h *AssetHandler) ListAssets(c *gin.Context) {
 	c.JSON(http.StatusOK, page)
 }
 
-func parseAssetFilter(c *gin.Context) (cloudUsecase.AssetFilter, error) {
-	f := cloudUsecase.AssetFilter{Page: 1, PageSize: 20}
+func parseAssetFilter(c *gin.Context) (cloudService.AssetFilter, error) {
+	f := cloudService.AssetFilter{Page: 1, PageSize: 20}
 
 	if v := c.Query("page"); v != "" {
 		if n, err := strconv.Atoi(v); err == nil && n > 0 {
@@ -65,7 +65,7 @@ func parseAssetFilter(c *gin.Context) (cloudUsecase.AssetFilter, error) {
 	}
 	tagFilters, err := parseTagFilters(c)
 	if err != nil {
-		return cloudUsecase.AssetFilter{}, err
+		return cloudService.AssetFilter{}, err
 	}
 	f.Tags = tagFilters
 	return f, nil

@@ -1,4 +1,4 @@
-package persistence
+package store
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"time"
 
 	cloudModel "optimus/server/model/cloud"
-	"optimus/server/service/cloud/usecase"
+	cloudService "optimus/server/service/cloud"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -20,9 +20,9 @@ func NewGormAssetStore(db *gorm.DB) *GormAssetStore {
 	return &GormAssetStore{db: db}
 }
 
-func (s *GormAssetStore) Upsert(ctx context.Context, accountID uint, provider string, assets []usecase.RawAsset) (usecase.SyncResult, error) {
+func (s *GormAssetStore) Upsert(ctx context.Context, accountID uint, provider string, assets []cloudService.RawAsset) (cloudModel.SyncResult, error) {
 	if len(assets) == 0 {
-		return usecase.SyncResult{}, nil
+		return cloudModel.SyncResult{}, nil
 	}
 	now := time.Now()
 	records := make([]cloudModel.CloudAsset, len(assets))
@@ -55,14 +55,14 @@ func (s *GormAssetStore) Upsert(ctx context.Context, accountID uint, provider st
 		}).
 		CreateInBatches(records, 100)
 	if res.Error != nil {
-		return usecase.SyncResult{}, res.Error
+		return cloudModel.SyncResult{}, res.Error
 	}
-	return usecase.SyncResult{Upserted: len(assets)}, nil
+	return cloudModel.SyncResult{Upserted: len(assets)}, nil
 }
 
-func (s *GormAssetStore) Query(ctx context.Context, f usecase.AssetFilter) (usecase.AssetPage, error) {
+func (s *GormAssetStore) Query(ctx context.Context, f cloudService.AssetFilter) (cloudModel.AssetPage, error) {
 	if len(f.AccessibleProjectIDs) == 0 {
-		return usecase.AssetPage{Items: []usecase.AssetView{}}, nil
+		return cloudModel.AssetPage{Items: []cloudModel.AssetView{}}, nil
 	}
 
 	q := s.db.WithContext(ctx).
@@ -107,21 +107,21 @@ func (s *GormAssetStore) Query(ctx context.Context, f usecase.AssetFilter) (usec
 	countQ := q.Session(&gorm.Session{})
 	var total int64
 	if err := countQ.Count(&total).Error; err != nil {
-		return usecase.AssetPage{}, err
+		return cloudModel.AssetPage{}, err
 	}
 	var models []cloudModel.CloudAsset
 	if err := q.Order("cloud_assets.created_at DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&models).Error; err != nil {
-		return usecase.AssetPage{}, err
+		return cloudModel.AssetPage{}, err
 	}
-	items := make([]usecase.AssetView, len(models))
+	items := make([]cloudModel.AssetView, len(models))
 	for i, m := range models {
 		items[i] = toAssetView(m)
 	}
-	return usecase.AssetPage{Items: items, Total: total, Page: page, PageSize: pageSize}, nil
+	return cloudModel.AssetPage{Items: items, Total: total, Page: page, PageSize: pageSize}, nil
 }
 
-func toAssetView(m cloudModel.CloudAsset) usecase.AssetView {
-	return usecase.AssetView{
+func toAssetView(m cloudModel.CloudAsset) cloudModel.AssetView {
+	return cloudModel.AssetView{
 		ID:           m.ID,
 		AccountID:    m.AccountID,
 		Provider:     m.Provider,
