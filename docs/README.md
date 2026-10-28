@@ -6,17 +6,30 @@
 
 ## 从哪里开始
 
-| 你要了解的内容 | 阅读入口 | 维护职责 |
-| --- | --- | --- |
-| 长期方向、阶段依赖 | [平台路线图](roadmaps/finops-devops-platform-roadmap.md) | 用户确定目标与优先级，助手维护依据 |
-| 当前实现到哪、哪些仍是 mock | [能力状态](project-status.md) | 助手按代码和验证结果更新 |
-| 当前架构规范与存量实现说明 | [架构约定](architecture/current-architecture.md) | 遵循根规则，区分规范与实现；重要边界变更由用户决定 |
-| 当初为什么这样设计 | [决策索引](architecture/decisions/README.md) | 维护原始理由和后续替代关系 |
-| 问题、反馈和待决策事项 | [GitHub Issues](https://github.com/Dcuhddrg/Optimus/issues)；[旧编号映射](issues/README.md) | 用户决定取舍，助手持续跟进 |
-| 文档状态、冲突与更新规则 | [文档维护约定](governance/documentation.md) | 每次工作均遵守 |
-| 图谱工具用法、运行与条件验证步骤 | [工程操作参考](governance/engineering.md) | 按任务触发读取 |
+| 你要了解的内容          | 阅读入口                                                        | 维护职责                      |
+| ---------------- | ----------------------------------------------------------- | ------------------------- |
+| 长期方向、阶段依赖        | [平台路线图](memory/platform-roadmap.md)         | 用户确定目标与优先级，助手维护依据         |
+| 当前实现到哪、哪些仍是 mock | [能力状态](project-status.md)                                   | 助手按代码和验证结果更新              |
+| 统一架构与存量迁移要求       | [架构约定](relations/current-architecture.md)                | 遵循根规则，区分目标与实现；迁移和验收在 #11 跟进 |
+| 前后端协作与接口契约       | [契约提案](frontend-backend/boundary.md)                    | #7 文档先行；当前行为、目标规范与待确认项分开说明 |
+| 当初为什么这样设计        | [决策索引](relations/decisions/README.md)                    | 维护原始理由和后续替代关系             |
+| 问题、反馈和待决策事项      | [GitHub Issues](https://github.com/Dcuhddrg/Optimus/issues) | 用户决定取舍，助手持续跟进             |
+| 文档状态、冲突与更新规则     | [文档维护约定](relations/documentation-workflow.md)                       | 每次工作均遵守                   |
+| 图谱工具用法、运行与条件验证步骤 | [工程操作参考](relations/engineering-workflow.md)                         | 按任务触发读取                   |
 
-后端统一规范为 `Router -> API -> Service -> Model`，保留 `enter.go` 注册和组合入口。旧 `usecase/infra` 方案的适用边界和替代关系见 [ADR-001](architecture/decisions/ADR-001-backend-layering.md)，不据此自动迁移存量代码。
+后端新旧模块统一采用 `Router -> API -> Service -> Model`，保留 `enter.go` 注册和组合入口。存量 `usecase/infra` 必须按 [ADR-002](relations/decisions/ADR-002-backend-structure-migration.md) 的目标分批迁移，范围、进度和验收在 [#11](https://github.com/Dcuhddrg/Optimus/issues/11) 跟进；当前文档不宣称代码迁移已完成。
+
+## 按主题读取工程上下文
+
+参考 gin-vue-admin 的组织方式，按任务选择入口，不需要通读所有目录：
+
+- [relations](relations/README.md)：系统结构、技术栈及运行边界。
+- [modules](modules/README.md)：模块职责、后端分层与迁移规则。
+- [frontend-backend](frontend-backend/README.md)：前后端契约、前端规范与复用。
+- [examples](examples/README.md)：基于已验证实现的开发示例入口。
+- [memory](memory/README.md)：长期规则、能力证据与 GitHub Issue 入口。
+
+架构决策维护在 [relations/decisions](relations/decisions/README.md)，产品设计、计划和路线图保留各自职责。旧架构入口已删除；现行系统架构和后端分层分别从 relations 与 modules 读取。
 
 ## 功能设计与计划
 
@@ -30,4 +43,4 @@
 
 结束时记录实际改动、验证结果、剩余问题及相关编号。涉及行为或边界演进时更新设计关联。需要用户决策的事项保留待评估，不由助手补造结论。
 
-新问题统一在 GitHub 提出，进度和讨论在对应 Issue 维护；docs 保存产品、架构和能力证据。原有 5 条已迁移，本地仅保留旧编号映射。聊天中形成的重要结论须写入对应 Issue 或设计文档，才能作为长期依据。
+新问题统一在 GitHub 提出，进度和讨论在对应 Issue 维护；docs 保存产品、架构和能力证据。本地不再维护问题台账或编号映射正文。聊天中形成的重要结论须写入对应 Issue 或设计文档，才能作为长期依据。

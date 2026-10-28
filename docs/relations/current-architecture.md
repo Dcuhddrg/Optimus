@@ -1,7 +1,7 @@
 # Current Architecture
 
 > 规范依据：[AGENT.MD](../../AGENT.MD) 是项目规则唯一正文；本文展开其架构职责和边界，发生冲突时以根规则为准。
-> 最近规范整理：2026-10-27，关联 [Issue #6](https://github.com/Dcuhddrg/Optimus/issues/6)。当前规范、存量实现与后续迁移分别说明，不以文档更新宣称代码已迁移。
+> 最近决策更新：2026-10-27，现行依据为 [ADR-002](decisions/ADR-002-backend-structure-migration.md)，存量结构迁移在 [Issue #11](https://github.com/Dcuhddrg/Optimus/issues/11) 跟进。#6 的文档统一和 #12/#13 的边界修复仍为历史交付证据，均不代表结构迁移已完成。
 
 > 本文件只维护**图谱说不清的契约和约定**：边界、分层规则、命名/目录约定、运行时契约、技术选型。
 > 目录树、文件清单、函数列表、API 端点表等**结构性事实**统一以 codebase-memory 图谱为准（`get_architecture` / `search_graph` / `query_graph`）。
@@ -17,33 +17,9 @@
 
 ---
 
-## Backend 分层契约
+## 后端架构
 
-遵循根规则确认的统一逻辑分层：
-
-```text
-Router -> API -> Service -> Model
-```
-
-| 层 | 职责与位置 | 依赖边界 |
-| --- | --- | --- |
-| Router | `server/router/<module>/`，注册路径、中间件与 public/private 分组 | 连接 API，不承担业务处理 |
-| API | `server/api/v1/<module>/`，绑定和校验 HTTP 输入、调用服务、组织响应 | 通过 Service 处理业务，不绕过服务直接访问持久化 |
-| Service | `server/service/<module>/`，业务规则、流程编排和数据访问协作 | 使用 Model 及所需基础设施，不依赖 `gin.Context`，不反向调用 API/Router |
-| Model | `server/model/<module>/`，实体、请求/响应数据结构和持久化映射 | 不反向依赖 Router/API/Service |
-
-- 保留现有 `enter.go` 分组注册和组合入口，新增分组沿用对应模块的注册方式；不得绕过已有入口另建平行注册链。
-- `main` 与 `initialize` 负责启动和模块装配；它们不改变上述业务职责划分。已有初始化、依赖注入和数据访问封装按任务复用，不要求重写。
-- Service 不接收 `gin.Context`；HTTP 处理留在 API，所需业务参数显式传入。Swagger 注释与真实接口行为保持一致。
-- 新模块按上述四层职责组织；具体文件与装配示例由后续 [模块开发指引事项 #8](https://github.com/Dcuhddrg/Optimus/issues/8) 整理，不将存量内部目录强加为新的必选层。
-
-### 存量实现与历史方案
-
-2026-10-27 通过 codebase-memory 确认，`server/service/system/`、`server/service/project/`、`server/service/cloud/` 下仍存在 `usecase/` 和 `infra/`。这是目录级事实核对，不代表已全面检查各模块行为或完成验收。
-
-这些目录属于存量服务内部组织。旧文档中的“usecase 仅标准库、infra 实现 Store、所有新模块必须拆成这套目录”等要求，已由根规则的统一分层取代；原文及取舍依据保留在 [ADR-001](decisions/ADR-001-backend-layering.md)。
-
-维护存量模块时先核对其已有接口、初始化和依赖关系；本次只统一文档，不删除目录、不改变接口或注入流程。代码迁移需要另行明确范围与验证条件，不能因为规则更新自动重构模块。
+后端分层、注册入口及存量迁移要求见 [后端分层与迁移规则](../modules/backend-layer-rules.md)；当前接口行为须在结构迁移中保留。
 
 ---
 
@@ -59,6 +35,7 @@ Router -> API -> Service -> Model
 
 ## API 设计契约
 
+- 前后端响应、分页、错误和兼容边界见 [接口契约提案](../frontend-backend/boundary.md)。#7 先补文档，不依赖结构迁移完成；当前行为、已确认决定和待确认提案分别标注，文档更新不触发 API 代码变更。
 - 统一前缀 `/api/v1/<module>/...`
 - 健康检查：`/api/v1/health`、`/api/v1/ping`（公开）
 - 鉴权：登录 `/api/v1/<module>/auth/login`（公开），其它路径走 JWT + Casbin RBAC（私有）
@@ -72,7 +49,7 @@ Router -> API -> Service -> Model
 - 三服务：frontend（nginx）+ backend（Go）+ mysql，由 `deploy/docker-compose/docker-compose.yml` 编排
 - nginx 反向代理 `/api/` → `optimus-server:8888`
 - Mac 端访问域名 `optimus.intellivis.cn`（Caddy HTTPS），直连排查走 `http://192.169.50.100:8080/`
-- 前端运行效果验证**默认走 Compose**，不依赖 Vite dev server（详见 [工程操作参考](../governance/engineering.md) 的验证步骤）
+- 前端运行效果验证**默认走 Compose**，不依赖 Vite dev server（详见 [工程操作参考](engineering-workflow.md) 的验证步骤）
 
 ---
 
@@ -130,4 +107,4 @@ docker compose -f deploy/docker-compose/docker-compose.yml up -d
 
 最近状态核查：2026-10-26。历史阶段完成标记不替代当前验收证据。
 
-长期阶段见 [路线图](../roadmaps/finops-devops-platform-roadmap.md)，当前实现及验证状态统一见 [能力状态](../project-status.md)，决策理由见 [决策索引](decisions/README.md)。本文件维护架构契约，不重复维护项目进度。
+长期阶段见 [路线图](../memory/platform-roadmap.md)，当前实现及验证状态统一见 [能力状态](../project-status.md)，决策理由见 [决策索引](decisions/README.md)。本文件维护架构契约，不重复维护项目进度。

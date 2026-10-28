@@ -6,7 +6,7 @@
 
 ## Background
 
-Phase 1 exists because the [roadmap](../../roadmaps/finops-devops-platform-roadmap.md) separates shared cloud resource foundation work from the later DevOps, FinOps, and automation phases. The roadmap makes this sequence explicit: the platform must first establish a shared cloud resource base that later phases can depend on without redefining the core resource model.
+Phase 1 exists because the [roadmap](../../memory/platform-roadmap.md) separates shared cloud resource foundation work from the later DevOps, FinOps, and automation phases. The roadmap makes this sequence explicit: the platform must first establish a shared cloud resource base that later phases can depend on without redefining the core resource model.
 
 This spec is the boundary-setting document for that first platform phase. Its job is to lock the scope before any deeper design work starts, so later phase specs can reuse the same foundation instead of re-litigating account, resource, and visibility semantics.
 
@@ -42,7 +42,7 @@ Phase 1 does not define:
 
 The current backend is still `system`-centered. The active repository layout is organized around `server/api/v1/system`, `server/router/system`, `server/service/system`, and `server/initialize`, not around a mature `cloud` domain.
 
-The current architecture documentation describes a `main -> initialize -> router -> api/handlers -> usecase/service -> infra/persistence` flow in [current-architecture.md](../../architecture/current-architecture.md), which means any new cloud foundation work must fit the existing system-oriented composition path rather than assume a new top-level runtime model already exists.
+At the time of this design, the architecture documentation described a `main -> initialize -> router -> api/handlers -> usecase/service -> infra/persistence` flow. This historical description is superseded by [ADR-002](../../relations/decisions/ADR-002-backend-structure-migration.md); current architecture requirements are in [backend layer rules](../../modules/backend-layer-rules.md).
 
 The recent module-composition and service-boundary specs, [2026-05-11-system-module-composition-design.md](../archive/specs/2026-05-11-system-module-composition-design.md) and [2026-05-12-system-service-boundary-design.md](../archive/specs/2026-05-12-system-service-boundary-design.md), also show that the codebase is still tightening boundary discipline inside `system`. This Phase 1 spec must therefore anchor itself to the repository as it exists now, not to an imagined post-refactor cloud platform.
 
