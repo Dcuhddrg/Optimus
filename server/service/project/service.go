@@ -1,4 +1,4 @@
-package usecase
+package project
 
 import (
 	"context"
@@ -20,13 +20,13 @@ func NewProjectService(store ProjectStore) *ProjectService {
 	return &ProjectService{store: store}
 }
 
-func (s *ProjectService) Create(ctx context.Context, actorID uint, req CreateProjectRequest) (ProjectView, error) {
+func (s *ProjectService) Create(ctx context.Context, actorID uint, req projectModel.CreateProjectRequest) (projectModel.ProjectView, error) {
 	name := strings.TrimSpace(req.Name)
 	if name == "" || len(name) > 128 {
-		return ProjectView{}, ErrInvalidProjectName
+		return projectModel.ProjectView{}, ErrInvalidProjectName
 	}
 	if !projectCodeRegex.MatchString(req.Code) {
-		return ProjectView{}, ErrInvalidProjectCode
+		return projectModel.ProjectView{}, ErrInvalidProjectCode
 	}
 	p := &projectModel.Project{
 		Name:        name,
@@ -35,57 +35,57 @@ func (s *ProjectService) Create(ctx context.Context, actorID uint, req CreatePro
 		Status:      statusActive,
 	}
 	if err := s.store.Create(ctx, p, actorID); err != nil {
-		return ProjectView{}, err
+		return projectModel.ProjectView{}, err
 	}
 	return toProjectView(*p), nil
 }
 
-func (s *ProjectService) List(ctx context.Context, actorID uint) ([]ProjectView, error) {
+func (s *ProjectService) List(ctx context.Context, actorID uint) ([]projectModel.ProjectView, error) {
 	ids, err := s.store.ListAccessibleProjectIDs(ctx, actorID)
 	if err != nil {
 		return nil, err
 	}
 	if len(ids) == 0 {
-		return []ProjectView{}, nil
+		return []projectModel.ProjectView{}, nil
 	}
 	projects, err := s.store.List(ctx, ids)
 	if err != nil {
 		return nil, err
 	}
-	views := make([]ProjectView, len(projects))
+	views := make([]projectModel.ProjectView, len(projects))
 	for i, p := range projects {
 		views[i] = toProjectView(p)
 	}
 	return views, nil
 }
 
-func (s *ProjectService) Get(ctx context.Context, actorID uint, code string) (ProjectView, error) {
+func (s *ProjectService) Get(ctx context.Context, actorID uint, code string) (projectModel.ProjectView, error) {
 	p, err := s.store.FindByCode(ctx, code)
 	if err != nil {
-		return ProjectView{}, err
+		return projectModel.ProjectView{}, err
 	}
 	if _, err := s.store.FindMember(ctx, actorID, p.ID); err != nil {
 		if errors.Is(err, ErrMemberNotFound) {
-			return ProjectView{}, ErrForbidden
+			return projectModel.ProjectView{}, ErrForbidden
 		}
-		return ProjectView{}, err
+		return projectModel.ProjectView{}, err
 	}
 	return toProjectView(p), nil
 }
 
-func (s *ProjectService) Update(ctx context.Context, actorID uint, code string, req UpdateProjectRequest) (ProjectView, error) {
+func (s *ProjectService) Update(ctx context.Context, actorID uint, code string, req projectModel.UpdateProjectRequest) (projectModel.ProjectView, error) {
 	p, err := s.store.FindByCode(ctx, code)
 	if err != nil {
-		return ProjectView{}, err
+		return projectModel.ProjectView{}, err
 	}
 	if err := s.requireOwner(ctx, actorID, p.ID); err != nil {
-		return ProjectView{}, err
+		return projectModel.ProjectView{}, err
 	}
 	fields := map[string]any{}
 	if req.Name != nil {
 		name := strings.TrimSpace(*req.Name)
 		if name == "" || len(name) > 128 {
-			return ProjectView{}, ErrInvalidProjectName
+			return projectModel.ProjectView{}, ErrInvalidProjectName
 		}
 		fields["name"] = name
 	}
@@ -98,7 +98,7 @@ func (s *ProjectService) Update(ctx context.Context, actorID uint, code string, 
 	fields["updated_at"] = time.Now()
 	updated, err := s.store.Update(ctx, code, fields)
 	if err != nil {
-		return ProjectView{}, err
+		return projectModel.ProjectView{}, err
 	}
 	return toProjectView(updated), nil
 }
@@ -197,7 +197,7 @@ func (s *ProjectService) RemoveMember(ctx context.Context, actorID uint, code st
 	return s.store.RemoveMember(ctx, userID, p.ID)
 }
 
-func (s *ProjectService) ListMembers(ctx context.Context, actorID uint, code string) ([]ProjectMember, error) {
+func (s *ProjectService) ListMembers(ctx context.Context, actorID uint, code string) ([]projectModel.ProjectMember, error) {
 	p, err := s.store.FindByCode(ctx, code)
 	if err != nil {
 		return nil, err
@@ -229,8 +229,8 @@ func (s *ProjectService) requireOwner(ctx context.Context, actorID, projectID ui
 	return nil
 }
 
-func toProjectView(p projectModel.Project) ProjectView {
-	return ProjectView{
+func toProjectView(p projectModel.Project) projectModel.ProjectView {
+	return projectModel.ProjectView{
 		ID:          p.ID,
 		Name:        p.Name,
 		Code:        p.Code,

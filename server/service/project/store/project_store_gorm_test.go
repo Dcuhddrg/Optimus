@@ -1,11 +1,11 @@
-package persistence
+package store
 
 import (
 	"context"
 	"testing"
 
 	projectModel "optimus/server/model/project"
-	"optimus/server/service/project/usecase"
+	projectService "optimus/server/service/project"
 
 	"github.com/stretchr/testify/require"
 )
@@ -22,7 +22,7 @@ func TestCreate_PersistsOwnerMembership(t *testing.T) {
 
 	m, err := store.FindMember(context.Background(), 1, p.ID)
 	require.NoError(t, err)
-	require.Equal(t, usecase.RoleOwner, m.ProjectRole)
+	require.Equal(t, projectService.RoleOwner, m.ProjectRole)
 }
 
 func TestCreate_DuplicateCodeReturnsCodeTaken(t *testing.T) {
@@ -32,7 +32,7 @@ func TestCreate_DuplicateCodeReturnsCodeTaken(t *testing.T) {
 
 	require.NoError(t, store.Create(context.Background(), &projectModel.Project{Name: "P1", Code: "prod", Status: "active"}, 1))
 	err := store.Create(context.Background(), &projectModel.Project{Name: "P2", Code: "prod", Status: "active"}, 1)
-	require.ErrorIs(t, err, usecase.ErrProjectCodeTaken)
+	require.ErrorIs(t, err, projectService.ErrProjectCodeTaken)
 }
 
 func TestListMembers_JoinsSystemUsers(t *testing.T) {
@@ -44,7 +44,7 @@ func TestListMembers_JoinsSystemUsers(t *testing.T) {
 	p := &projectModel.Project{Name: "Prod", Code: "prod", Status: "active"}
 	require.NoError(t, store.Create(context.Background(), p, 1))
 	require.NoError(t, store.AddOrReplaceMember(context.Background(), projectModel.UserProject{
-		UserID: 2, ProjectID: p.ID, ProjectRole: usecase.RoleMember,
+		UserID: 2, ProjectID: p.ID, ProjectRole: projectService.RoleMember,
 	}))
 
 	members, err := store.ListMembers(context.Background(), p.ID)
@@ -55,8 +55,8 @@ func TestListMembers_JoinsSystemUsers(t *testing.T) {
 	for _, m := range members {
 		roles[m.Username] = m.ProjectRole
 	}
-	require.Equal(t, usecase.RoleOwner, roles["alice"])
-	require.Equal(t, usecase.RoleMember, roles["bob"])
+	require.Equal(t, projectService.RoleOwner, roles["alice"])
+	require.Equal(t, projectService.RoleMember, roles["bob"])
 }
 
 func TestListAccessibleProjectIDs_ReturnsOnlyMemberships(t *testing.T) {
@@ -103,7 +103,7 @@ func TestCountOwners(t *testing.T) {
 	require.Equal(t, int64(1), n)
 
 	require.NoError(t, store.AddOrReplaceMember(context.Background(), projectModel.UserProject{
-		UserID: 2, ProjectID: p.ID, ProjectRole: usecase.RoleOwner,
+		UserID: 2, ProjectID: p.ID, ProjectRole: projectService.RoleOwner,
 	}))
 	n, err = store.CountOwners(context.Background(), p.ID)
 	require.NoError(t, err)
@@ -131,7 +131,7 @@ func TestUpdateMemberRole_SameRoleStillSucceeds(t *testing.T) {
 	require.NoError(t, store.Create(context.Background(), p, 1))
 
 	// Owner→Owner: same role, must NOT return ErrMemberNotFound.
-	require.NoError(t, store.UpdateMemberRole(context.Background(), 1, p.ID, usecase.RoleOwner))
+	require.NoError(t, store.UpdateMemberRole(context.Background(), 1, p.ID, projectService.RoleOwner))
 }
 
 func TestDelete_RemovesOrphanUserProjects(t *testing.T) {
@@ -142,7 +142,7 @@ func TestDelete_RemovesOrphanUserProjects(t *testing.T) {
 	p := &projectModel.Project{Name: "P", Code: "p", Status: "active"}
 	require.NoError(t, store.Create(context.Background(), p, 1))
 	require.NoError(t, store.AddOrReplaceMember(context.Background(), projectModel.UserProject{
-		UserID: 2, ProjectID: p.ID, ProjectRole: usecase.RoleMember,
+		UserID: 2, ProjectID: p.ID, ProjectRole: projectService.RoleMember,
 	}))
 
 	require.NoError(t, store.Delete(context.Background(), "p"))

@@ -1,4 +1,4 @@
-package usecase_test
+package project_test
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	"time"
 
 	projectModel "optimus/server/model/project"
-	"optimus/server/service/project/usecase"
+	projectService "optimus/server/service/project"
 
 	"github.com/stretchr/testify/require"
 )
@@ -36,7 +36,7 @@ func (s *fakeStore) Create(_ context.Context, p *projectModel.Project, ownerID u
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if _, ok := s.projects[p.Code]; ok {
-		return usecase.ErrProjectCodeTaken
+		return projectService.ErrProjectCodeTaken
 	}
 	p.ID = s.nextID
 	s.nextID++
@@ -46,7 +46,7 @@ func (s *fakeStore) Create(_ context.Context, p *projectModel.Project, ownerID u
 	p.UpdatedAt = time.Now()
 	s.projects[p.Code] = *p
 	s.members[p.Code] = map[uint]projectModel.UserProject{
-		ownerID: {UserID: ownerID, ProjectID: p.ID, ProjectRole: usecase.RoleOwner, CreatedAt: time.Now()},
+		ownerID: {UserID: ownerID, ProjectID: p.ID, ProjectRole: projectService.RoleOwner, CreatedAt: time.Now()},
 	}
 	return nil
 }
@@ -56,7 +56,7 @@ func (s *fakeStore) FindByCode(_ context.Context, code string) (projectModel.Pro
 	defer s.mu.Unlock()
 	p, ok := s.projects[code]
 	if !ok {
-		return projectModel.Project{}, usecase.ErrProjectNotFound
+		return projectModel.Project{}, projectService.ErrProjectNotFound
 	}
 	return p, nil
 }
@@ -82,7 +82,7 @@ func (s *fakeStore) Update(_ context.Context, code string, fields map[string]any
 	defer s.mu.Unlock()
 	p, ok := s.projects[code]
 	if !ok {
-		return projectModel.Project{}, usecase.ErrProjectNotFound
+		return projectModel.Project{}, projectService.ErrProjectNotFound
 	}
 	if v, ok := fields["name"].(string); ok {
 		p.Name = v
@@ -99,7 +99,7 @@ func (s *fakeStore) Delete(_ context.Context, code string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if _, ok := s.projects[code]; !ok {
-		return usecase.ErrProjectNotFound
+		return projectService.ErrProjectNotFound
 	}
 	delete(s.projects, code)
 	delete(s.members, code)
@@ -125,7 +125,7 @@ func (s *fakeStore) AddOrReplaceMember(_ context.Context, m projectModel.UserPro
 			return nil
 		}
 	}
-	return usecase.ErrProjectNotFound
+	return projectService.ErrProjectNotFound
 }
 
 func (s *fakeStore) UpdateMemberRole(_ context.Context, userID, projectID uint, role string) error {
@@ -135,14 +135,14 @@ func (s *fakeStore) UpdateMemberRole(_ context.Context, userID, projectID uint, 
 		if p.ID == projectID {
 			m, ok := s.members[code][userID]
 			if !ok {
-				return usecase.ErrMemberNotFound
+				return projectService.ErrMemberNotFound
 			}
 			m.ProjectRole = role
 			s.members[code][userID] = m
 			return nil
 		}
 	}
-	return usecase.ErrProjectNotFound
+	return projectService.ErrProjectNotFound
 }
 
 func (s *fakeStore) RemoveMember(_ context.Context, userID, projectID uint) error {
@@ -151,23 +151,23 @@ func (s *fakeStore) RemoveMember(_ context.Context, userID, projectID uint) erro
 	for code, p := range s.projects {
 		if p.ID == projectID {
 			if _, ok := s.members[code][userID]; !ok {
-				return usecase.ErrMemberNotFound
+				return projectService.ErrMemberNotFound
 			}
 			delete(s.members[code], userID)
 			return nil
 		}
 	}
-	return usecase.ErrProjectNotFound
+	return projectService.ErrProjectNotFound
 }
 
-func (s *fakeStore) ListMembers(_ context.Context, projectID uint) ([]usecase.ProjectMember, error) {
+func (s *fakeStore) ListMembers(_ context.Context, projectID uint) ([]projectModel.ProjectMember, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	for code, p := range s.projects {
 		if p.ID == projectID {
-			out := []usecase.ProjectMember{}
+			out := []projectModel.ProjectMember{}
 			for _, m := range s.members[code] {
-				out = append(out, usecase.ProjectMember{
+				out = append(out, projectModel.ProjectMember{
 					UserID:      m.UserID,
 					Username:    "user-" + string(rune('A'+int(m.UserID))),
 					DisplayName: "",
@@ -177,7 +177,7 @@ func (s *fakeStore) ListMembers(_ context.Context, projectID uint) ([]usecase.Pr
 			return out, nil
 		}
 	}
-	return nil, usecase.ErrProjectNotFound
+	return nil, projectService.ErrProjectNotFound
 }
 
 func (s *fakeStore) FindMember(_ context.Context, userID, projectID uint) (projectModel.UserProject, error) {
@@ -187,12 +187,12 @@ func (s *fakeStore) FindMember(_ context.Context, userID, projectID uint) (proje
 		if p.ID == projectID {
 			m, ok := s.members[code][userID]
 			if !ok {
-				return projectModel.UserProject{}, usecase.ErrMemberNotFound
+				return projectModel.UserProject{}, projectService.ErrMemberNotFound
 			}
 			return m, nil
 		}
 	}
-	return projectModel.UserProject{}, usecase.ErrProjectNotFound
+	return projectModel.UserProject{}, projectService.ErrProjectNotFound
 }
 
 func (s *fakeStore) ListAccessibleProjectIDs(_ context.Context, userID uint) ([]uint, error) {
@@ -214,7 +214,7 @@ func (s *fakeStore) CountOwners(_ context.Context, projectID uint) (int64, error
 		if p.ID == projectID {
 			n := int64(0)
 			for _, m := range s.members[code] {
-				if m.ProjectRole == usecase.RoleOwner {
+				if m.ProjectRole == projectService.RoleOwner {
 					n++
 				}
 			}
@@ -232,9 +232,9 @@ func (s *fakeStore) UserExists(_ context.Context, userID uint) (bool, error) {
 
 func TestCreate_AssignsActorAsOwner(t *testing.T) {
 	store := newFakeStore()
-	svc := usecase.NewProjectService(store)
+	svc := projectService.NewProjectService(store)
 
-	view, err := svc.Create(context.Background(), 1, usecase.CreateProjectRequest{
+	view, err := svc.Create(context.Background(), 1, projectModel.CreateProjectRequest{
 		Name: "Prod", Code: "prod", Description: "Production",
 	})
 	require.NoError(t, err)
@@ -244,34 +244,34 @@ func TestCreate_AssignsActorAsOwner(t *testing.T) {
 	members, err := svc.ListMembers(context.Background(), 1, "prod")
 	require.NoError(t, err)
 	require.Len(t, members, 1)
-	require.Equal(t, usecase.RoleOwner, members[0].ProjectRole)
+	require.Equal(t, projectService.RoleOwner, members[0].ProjectRole)
 }
 
 func TestCreate_RejectsInvalidCode(t *testing.T) {
-	svc := usecase.NewProjectService(newFakeStore())
-	_, err := svc.Create(context.Background(), 1, usecase.CreateProjectRequest{Name: "X", Code: "Prod"})
-	require.ErrorIs(t, err, usecase.ErrInvalidProjectCode)
+	svc := projectService.NewProjectService(newFakeStore())
+	_, err := svc.Create(context.Background(), 1, projectModel.CreateProjectRequest{Name: "X", Code: "Prod"})
+	require.ErrorIs(t, err, projectService.ErrInvalidProjectCode)
 
-	_, err = svc.Create(context.Background(), 1, usecase.CreateProjectRequest{Name: "X", Code: "1bad"})
-	require.ErrorIs(t, err, usecase.ErrInvalidProjectCode)
+	_, err = svc.Create(context.Background(), 1, projectModel.CreateProjectRequest{Name: "X", Code: "1bad"})
+	require.ErrorIs(t, err, projectService.ErrInvalidProjectCode)
 }
 
 func TestCreate_RejectsDuplicateCode(t *testing.T) {
 	store := newFakeStore()
-	svc := usecase.NewProjectService(store)
+	svc := projectService.NewProjectService(store)
 
-	_, err := svc.Create(context.Background(), 1, usecase.CreateProjectRequest{Name: "P1", Code: "prod"})
+	_, err := svc.Create(context.Background(), 1, projectModel.CreateProjectRequest{Name: "P1", Code: "prod"})
 	require.NoError(t, err)
-	_, err = svc.Create(context.Background(), 1, usecase.CreateProjectRequest{Name: "P2", Code: "prod"})
-	require.ErrorIs(t, err, usecase.ErrProjectCodeTaken)
+	_, err = svc.Create(context.Background(), 1, projectModel.CreateProjectRequest{Name: "P2", Code: "prod"})
+	require.ErrorIs(t, err, projectService.ErrProjectCodeTaken)
 }
 
 func TestList_OnlyReturnsAccessible(t *testing.T) {
 	store := newFakeStore()
-	svc := usecase.NewProjectService(store)
-	_, err := svc.Create(context.Background(), 1, usecase.CreateProjectRequest{Name: "P1", Code: "p1"})
+	svc := projectService.NewProjectService(store)
+	_, err := svc.Create(context.Background(), 1, projectModel.CreateProjectRequest{Name: "P1", Code: "p1"})
 	require.NoError(t, err)
-	_, err = svc.Create(context.Background(), 2, usecase.CreateProjectRequest{Name: "P2", Code: "p2"})
+	_, err = svc.Create(context.Background(), 2, projectModel.CreateProjectRequest{Name: "P2", Code: "p2"})
 	require.NoError(t, err)
 
 	views, err := svc.List(context.Background(), 1)
@@ -282,38 +282,38 @@ func TestList_OnlyReturnsAccessible(t *testing.T) {
 
 func TestUpdate_OnlyOwnerCanUpdate(t *testing.T) {
 	store := newFakeStore()
-	svc := usecase.NewProjectService(store)
-	_, err := svc.Create(context.Background(), 1, usecase.CreateProjectRequest{Name: "P1", Code: "p1"})
+	svc := projectService.NewProjectService(store)
+	_, err := svc.Create(context.Background(), 1, projectModel.CreateProjectRequest{Name: "P1", Code: "p1"})
 	require.NoError(t, err)
 
 	name := "P1-Renamed"
-	_, err = svc.Update(context.Background(), 2, "p1", usecase.UpdateProjectRequest{Name: &name})
-	require.ErrorIs(t, err, usecase.ErrForbidden)
+	_, err = svc.Update(context.Background(), 2, "p1", projectModel.UpdateProjectRequest{Name: &name})
+	require.ErrorIs(t, err, projectService.ErrForbidden)
 
-	view, err := svc.Update(context.Background(), 1, "p1", usecase.UpdateProjectRequest{Name: &name})
+	view, err := svc.Update(context.Background(), 1, "p1", projectModel.UpdateProjectRequest{Name: &name})
 	require.NoError(t, err)
 	require.Equal(t, "P1-Renamed", view.Name)
 }
 
 func TestDelete_RejectsIfCloudAccountsBound(t *testing.T) {
 	store := newFakeStore()
-	svc := usecase.NewProjectService(store)
-	view, err := svc.Create(context.Background(), 1, usecase.CreateProjectRequest{Name: "P1", Code: "p1"})
+	svc := projectService.NewProjectService(store)
+	view, err := svc.Create(context.Background(), 1, projectModel.CreateProjectRequest{Name: "P1", Code: "p1"})
 	require.NoError(t, err)
 	store.accounts[view.ID] = 3
 
 	err = svc.Delete(context.Background(), 1, "p1")
-	require.ErrorIs(t, err, usecase.ErrProjectHasAccounts)
+	require.ErrorIs(t, err, projectService.ErrProjectHasAccounts)
 }
 
 func TestDelete_OnlyOwnerCanDelete(t *testing.T) {
 	store := newFakeStore()
-	svc := usecase.NewProjectService(store)
-	_, err := svc.Create(context.Background(), 1, usecase.CreateProjectRequest{Name: "P1", Code: "p1"})
+	svc := projectService.NewProjectService(store)
+	_, err := svc.Create(context.Background(), 1, projectModel.CreateProjectRequest{Name: "P1", Code: "p1"})
 	require.NoError(t, err)
 
 	err = svc.Delete(context.Background(), 2, "p1")
-	require.ErrorIs(t, err, usecase.ErrForbidden)
+	require.ErrorIs(t, err, projectService.ErrForbidden)
 
 	err = svc.Delete(context.Background(), 1, "p1")
 	require.NoError(t, err)
@@ -321,54 +321,54 @@ func TestDelete_OnlyOwnerCanDelete(t *testing.T) {
 
 func TestAddMember_OnlyOwnerCanAdd(t *testing.T) {
 	store := newFakeStore()
-	svc := usecase.NewProjectService(store)
-	_, err := svc.Create(context.Background(), 1, usecase.CreateProjectRequest{Name: "P1", Code: "p1"})
+	svc := projectService.NewProjectService(store)
+	_, err := svc.Create(context.Background(), 1, projectModel.CreateProjectRequest{Name: "P1", Code: "p1"})
 	require.NoError(t, err)
 
-	err = svc.AddMember(context.Background(), 2, "p1", 3, usecase.RoleMember)
-	require.ErrorIs(t, err, usecase.ErrForbidden)
+	err = svc.AddMember(context.Background(), 2, "p1", 3, projectService.RoleMember)
+	require.ErrorIs(t, err, projectService.ErrForbidden)
 
-	err = svc.AddMember(context.Background(), 1, "p1", 2, usecase.RoleMember)
+	err = svc.AddMember(context.Background(), 1, "p1", 2, projectService.RoleMember)
 	require.NoError(t, err)
 }
 
 func TestAddMember_RejectsInvalidRole(t *testing.T) {
 	store := newFakeStore()
-	svc := usecase.NewProjectService(store)
-	_, err := svc.Create(context.Background(), 1, usecase.CreateProjectRequest{Name: "P1", Code: "p1"})
+	svc := projectService.NewProjectService(store)
+	_, err := svc.Create(context.Background(), 1, projectModel.CreateProjectRequest{Name: "P1", Code: "p1"})
 	require.NoError(t, err)
 
 	err = svc.AddMember(context.Background(), 1, "p1", 2, "admin")
-	require.ErrorIs(t, err, usecase.ErrInvalidProjectRole)
+	require.ErrorIs(t, err, projectService.ErrInvalidProjectRole)
 }
 
 func TestAddMember_RejectsUnknownUser(t *testing.T) {
 	store := newFakeStore()
-	svc := usecase.NewProjectService(store)
-	_, err := svc.Create(context.Background(), 1, usecase.CreateProjectRequest{Name: "P1", Code: "p1"})
+	svc := projectService.NewProjectService(store)
+	_, err := svc.Create(context.Background(), 1, projectModel.CreateProjectRequest{Name: "P1", Code: "p1"})
 	require.NoError(t, err)
 
-	err = svc.AddMember(context.Background(), 1, "p1", 999, usecase.RoleMember)
-	require.ErrorIs(t, err, usecase.ErrUserNotFound)
+	err = svc.AddMember(context.Background(), 1, "p1", 999, projectService.RoleMember)
+	require.ErrorIs(t, err, projectService.ErrUserNotFound)
 }
 
 func TestRemoveMember_PreventsRemovingLastOwner(t *testing.T) {
 	store := newFakeStore()
-	svc := usecase.NewProjectService(store)
-	view, err := svc.Create(context.Background(), 1, usecase.CreateProjectRequest{Name: "P1", Code: "p1"})
+	svc := projectService.NewProjectService(store)
+	view, err := svc.Create(context.Background(), 1, projectModel.CreateProjectRequest{Name: "P1", Code: "p1"})
 	require.NoError(t, err)
 	_ = view
 
 	err = svc.RemoveMember(context.Background(), 1, "p1", 1)
-	require.True(t, errors.Is(err, usecase.ErrCannotRemoveLastOwner))
+	require.True(t, errors.Is(err, projectService.ErrCannotRemoveLastOwner))
 }
 
 func TestUpdateMemberRole_PreventsDemotingLastOwner(t *testing.T) {
 	store := newFakeStore()
-	svc := usecase.NewProjectService(store)
-	_, err := svc.Create(context.Background(), 1, usecase.CreateProjectRequest{Name: "P1", Code: "p1"})
+	svc := projectService.NewProjectService(store)
+	_, err := svc.Create(context.Background(), 1, projectModel.CreateProjectRequest{Name: "P1", Code: "p1"})
 	require.NoError(t, err)
 
-	err = svc.UpdateMemberRole(context.Background(), 1, "p1", 1, usecase.RoleMember)
-	require.ErrorIs(t, err, usecase.ErrCannotRemoveLastOwner)
+	err = svc.UpdateMemberRole(context.Background(), 1, "p1", 1, projectService.RoleMember)
+	require.ErrorIs(t, err, projectService.ErrCannotRemoveLastOwner)
 }

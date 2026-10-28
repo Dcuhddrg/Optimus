@@ -14,7 +14,7 @@ import (
 	"optimus/server/global"
 	projectModule "optimus/server/initialize/project"
 	projectModel "optimus/server/model/project"
-	projectUsecase "optimus/server/service/project/usecase"
+	projectService "optimus/server/service/project"
 	systemService "optimus/server/service/system"
 	systemUsecase "optimus/server/service/system/usecase"
 
@@ -133,7 +133,7 @@ func newRouterWithProjectStore(t *testing.T, store *routerScopeStore, allowed bo
 		}
 	}
 	newProjectModule = func(_ *gorm.DB, _ config.Config) *projectModule.ProjectModule {
-		svc := projectUsecase.NewProjectService(store)
+		svc := projectService.NewProjectService(store)
 		return &projectModule.ProjectModule{
 			Service:  svc,
 			Handlers: projectAPI.NewProjectHandlers(projectAPI.ProjectHandlerDeps{Service: svc}),
@@ -147,7 +147,7 @@ func newRouterWithProjectStore(t *testing.T, store *routerScopeStore, allowed bo
 }
 
 type routerScopeStore struct {
-	projectUsecase.ProjectStore
+	projectService.ProjectStore
 	projectID     uint
 	missing       bool
 	memberMissing bool
@@ -176,7 +176,7 @@ func (s *routerScopeStore) ListAccessibleProjectIDs(context.Context, uint) ([]ui
 
 func (s *routerScopeStore) FindByCode(context.Context, string) (projectModel.Project, error) {
 	if s.missing {
-		return projectModel.Project{}, projectUsecase.ErrProjectNotFound
+		return projectModel.Project{}, projectService.ErrProjectNotFound
 	}
 	p := projectModel.Project{}
 	p.ID, p.Code = s.projectID, "stale"
@@ -185,7 +185,7 @@ func (s *routerScopeStore) FindByCode(context.Context, string) (projectModel.Pro
 
 func (s *routerScopeStore) FindMember(_ context.Context, _ uint, projectID uint) (projectModel.UserProject, error) {
 	if s.memberMissing || projectID != 1 {
-		return projectModel.UserProject{}, projectUsecase.ErrMemberNotFound
+		return projectModel.UserProject{}, projectService.ErrMemberNotFound
 	}
 	return projectModel.UserProject{ProjectRole: "viewer"}, nil
 }
