@@ -35,7 +35,7 @@
 
 ## API 设计契约
 
-- 前后端响应、分页、错误和兼容边界见 [接口契约提案](../frontend-backend/boundary.md)。#7 先补文档，不依赖结构迁移完成；当前行为、已确认决定和待确认提案分别标注，文档更新不触发 API 代码变更。
+- 前后端响应、分页、错误和兼容边界见 [接口接口契约](../frontend-backend/boundary.md)。#7 先补文档，不依赖结构迁移完成；当前行为、已确认决定和待确认提案分别标注，文档更新不触发 API 代码变更。
 - 统一前缀 `/api/v1/<module>/...`
 - 健康检查：`/api/v1/health`、`/api/v1/ping`（公开）
 - 鉴权：登录 `/api/v1/<module>/auth/login`（公开），其它路径走 JWT + Casbin RBAC（私有）
