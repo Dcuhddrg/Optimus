@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"optimus/server/service/system/infra/persistence"
-	systemUsecase "optimus/server/service/system/usecase"
+	systemService "optimus/server/service/system"
+	persistence "optimus/server/service/system/store"
 
 	"gorm.io/gorm"
 )
@@ -14,7 +14,7 @@ func startAuditRetentionWorker(ctx context.Context, db *gorm.DB, retentionDays i
 	if retentionDays <= 0 {
 		retentionDays = 90
 	}
-	svc := systemUsecase.NewAuditService(persistence.NewGormAuditStore(db))
+	svc := systemService.NewAuditService(persistence.NewGormAuditStore(db))
 	go runRetentionLoop(ctx, svc.PurgeBefore, retentionDays, nextDailyTick())
 }
 

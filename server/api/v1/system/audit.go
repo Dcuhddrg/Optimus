@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	systemUsecase "optimus/server/service/system/usecase"
+	systemService "optimus/server/service/system"
 
 	"github.com/gin-gonic/gin"
 )
@@ -61,7 +61,7 @@ func (h *AuditHandler) ExportAuditLogs(c *gin.Context) {
 	}
 }
 
-func parseAuditFilter(c *gin.Context) systemUsecase.AuditFilter {
+func parseAuditFilter(c *gin.Context) systemService.AuditFilter {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
 	if page < 1 {
@@ -71,7 +71,7 @@ func parseAuditFilter(c *gin.Context) systemUsecase.AuditFilter {
 		pageSize = 20
 	}
 
-	f := systemUsecase.AuditFilter{Page: page, PageSize: pageSize}
+	f := systemService.AuditFilter{Page: page, PageSize: pageSize}
 
 	if v := c.Query("actorUserId"); v != "" {
 		if id, err := strconv.ParseUint(v, 10, 64); err == nil {
