@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	cloudUsecase "optimus/server/service/cloud/usecase"
+	cloudService "optimus/server/service/cloud"
 	"optimus/server/utils"
 
 	"github.com/gin-gonic/gin"
@@ -13,13 +13,13 @@ import (
 
 // AccountHandler handles HTTP requests for cloud accounts.
 type AccountHandler struct {
-	accountSvc *cloudUsecase.CloudAccountService
-	assetSvc   *cloudUsecase.AssetRegistryService
+	accountSvc *cloudService.CloudAccountService
+	assetSvc   *cloudService.AssetRegistryService
 }
 
 // AssetHandler handles HTTP requests for cloud assets.
 type AssetHandler struct {
-	service *cloudUsecase.AssetRegistryService
+	service *cloudService.AssetRegistryService
 }
 
 // CloudHandlers groups all cloud HTTP handlers.
@@ -30,8 +30,8 @@ type CloudHandlers struct {
 
 // CloudHandlerDeps carries the services needed to build CloudHandlers.
 type CloudHandlerDeps struct {
-	Account *cloudUsecase.CloudAccountService
-	Asset   *cloudUsecase.AssetRegistryService
+	Account *cloudService.CloudAccountService
+	Asset   *cloudService.AssetRegistryService
 }
 
 func NewCloudHandlers(deps CloudHandlerDeps) *CloudHandlers {
@@ -47,28 +47,28 @@ func writeCloudServiceUnavailable(c *gin.Context, message string) {
 
 func writeCloudError(c *gin.Context, err error, fallback string) {
 	switch {
-	case errors.Is(err, cloudUsecase.ErrAccountNotFound):
+	case errors.Is(err, cloudService.ErrAccountNotFound):
 		c.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
-	case errors.Is(err, cloudUsecase.ErrProviderNotRegistered):
+	case errors.Is(err, cloudService.ErrProviderNotRegistered):
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"message": err.Error()})
-	case errors.Is(err, cloudUsecase.ErrInvalidTagKey),
-		errors.Is(err, cloudUsecase.ErrInvalidTagValue),
-		errors.Is(err, cloudUsecase.ErrTooManyTags),
-		errors.Is(err, cloudUsecase.ErrInvalidTagFilter):
+	case errors.Is(err, cloudService.ErrInvalidTagKey),
+		errors.Is(err, cloudService.ErrInvalidTagValue),
+		errors.Is(err, cloudService.ErrTooManyTags),
+		errors.Is(err, cloudService.ErrInvalidTagFilter):
 		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 	default:
 		c.JSON(http.StatusInternalServerError, gin.H{"message": fallback})
 	}
 }
 
-func parseTagFilters(c *gin.Context) ([]cloudUsecase.TagFilter, error) {
+func parseTagFilters(c *gin.Context) ([]cloudService.TagFilter, error) {
 	tokens := c.QueryArray("tag")
 	if len(tokens) == 0 {
 		return nil, nil
 	}
-	out := make([]cloudUsecase.TagFilter, 0, len(tokens))
+	out := make([]cloudService.TagFilter, 0, len(tokens))
 	for _, token := range tokens {
-		filter, err := cloudUsecase.ParseTagFilter(token)
+		filter, err := cloudService.ParseTagFilter(token)
 		if err != nil {
 			return nil, err
 		}

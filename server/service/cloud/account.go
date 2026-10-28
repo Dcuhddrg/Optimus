@@ -1,9 +1,10 @@
-package usecase
+package cloud
 
 import (
 	"context"
 	"encoding/json"
 	"errors"
+	cloudModel "optimus/server/model/cloud"
 	"regexp"
 	"strings"
 	"time"
@@ -94,41 +95,6 @@ type AccountRow struct {
 	LastSyncedAt   *time.Time
 }
 
-// AccountView is the API-safe representation (credential masked).
-type AccountView struct {
-	ID             uint              `json:"id"`
-	ProjectID      uint              `json:"projectId"`
-	Name           string            `json:"name"`
-	Provider       string            `json:"provider"`
-	AccountID      string            `json:"accountId"`
-	CredentialType string            `json:"credentialType"`
-	Credential     string            `json:"credential"`
-	Tags           map[string]string `json:"tags"`
-	Status         string            `json:"status"`
-	LastSyncedAt   *time.Time        `json:"lastSyncedAt"`
-}
-
-// CreateAccountRequest is the body for POST /cloud/accounts.
-type CreateAccountRequest struct {
-	Name           string            `json:"name" binding:"required"`
-	Provider       string            `json:"provider" binding:"required"`
-	AccountID      string            `json:"accountId" binding:"required"`
-	CredentialType string            `json:"credentialType" binding:"required"`
-	Credential     map[string]string `json:"credential" binding:"required"`
-	Tags           map[string]string `json:"tags"`
-}
-
-// UpdateAccountTagsRequest is the body for PUT /cloud/accounts/:id/tags.
-type UpdateAccountTagsRequest struct {
-	Tags map[string]string `json:"tags" binding:"required"`
-}
-
-// UpdateAccountRequest is the body for PUT /cloud/accounts/:id.
-type UpdateAccountRequest struct {
-	Name       *string           `json:"name"`
-	Credential map[string]string `json:"credential"`
-}
-
 // AccountStore is the persistence interface for cloud accounts.
 type AccountStore interface {
 	Create(ctx context.Context, projectID uint, row AccountRow) (AccountRow, error)
@@ -156,18 +122,18 @@ func NewCloudAccountService(store AccountStore, encKey []byte) (*CloudAccountSer
 	return &CloudAccountService{store: store, encKey: keyCopy}, nil
 }
 
-func (s *CloudAccountService) Create(ctx context.Context, projectID uint, req CreateAccountRequest) (AccountView, error) {
+func (s *CloudAccountService) Create(ctx context.Context, projectID uint, req cloudModel.CreateAccountRequest) (cloudModel.AccountView, error) {
 	credJSON, err := json.Marshal(req.Credential)
 	if err != nil {
-		return AccountView{}, err
+		return cloudModel.AccountView{}, err
 	}
 	encrypted, err := encryptAESGCM(s.encKey, string(credJSON))
 	if err != nil {
-		return AccountView{}, err
+		return cloudModel.AccountView{}, err
 	}
 	cleanedTags, err := ValidateTags(req.Tags)
 	if err != nil {
-		return AccountView{}, err
+		return cloudModel.AccountView{}, err
 	}
 	row := AccountRow{
 		ProjectID:      projectID,
@@ -180,60 +146,60 @@ func (s *CloudAccountService) Create(ctx context.Context, projectID uint, req Cr
 	}
 	saved, err := s.store.Create(ctx, projectID, row)
 	if err != nil {
-		return AccountView{}, err
+		return cloudModel.AccountView{}, err
 	}
 	return toAccountView(saved), nil
 }
 
 // Get returns ErrAccountNotFound if no account exists with the given id.
-func (s *CloudAccountService) Get(ctx context.Context, accessibleProjectIDs []uint, id uint) (AccountView, error) {
+func (s *CloudAccountService) Get(ctx context.Context, accessibleProjectIDs []uint, id uint) (cloudModel.AccountView, error) {
 	row, err := s.store.Get(ctx, accessibleProjectIDs, id)
 	if err != nil {
-		return AccountView{}, err
+		return cloudModel.AccountView{}, err
 	}
 	return toAccountView(row), nil
 }
 
-func (s *CloudAccountService) List(ctx context.Context, accessibleProjectIDs []uint, tagFilters []TagFilter) ([]AccountView, error) {
+func (s *CloudAccountService) List(ctx context.Context, accessibleProjectIDs []uint, tagFilters []TagFilter) ([]cloudModel.AccountView, error) {
 	rows, err := s.store.List(ctx, accessibleProjectIDs, tagFilters)
 	if err != nil {
 		return nil, err
 	}
-	views := make([]AccountView, len(rows))
+	views := make([]cloudModel.AccountView, len(rows))
 	for i, r := range rows {
 		views[i] = toAccountView(r)
 	}
 	return views, nil
 }
 
-func (s *CloudAccountService) Update(ctx context.Context, accessibleProjectIDs []uint, id uint, req UpdateAccountRequest) (AccountView, error) {
+func (s *CloudAccountService) Update(ctx context.Context, accessibleProjectIDs []uint, id uint, req cloudModel.UpdateAccountRequest) (cloudModel.AccountView, error) {
 	var encCredential *string
 	if len(req.Credential) > 0 {
 		credJSON, err := json.Marshal(req.Credential)
 		if err != nil {
-			return AccountView{}, err
+			return cloudModel.AccountView{}, err
 		}
 		enc, err := encryptAESGCM(s.encKey, string(credJSON))
 		if err != nil {
-			return AccountView{}, err
+			return cloudModel.AccountView{}, err
 		}
 		encCredential = &enc
 	}
 	row, err := s.store.Update(ctx, accessibleProjectIDs, id, req.Name, encCredential)
 	if err != nil {
-		return AccountView{}, err
+		return cloudModel.AccountView{}, err
 	}
 	return toAccountView(row), nil
 }
 
-func (s *CloudAccountService) UpdateTags(ctx context.Context, accessibleProjectIDs []uint, id uint, req UpdateAccountTagsRequest) (AccountView, error) {
+func (s *CloudAccountService) UpdateTags(ctx context.Context, accessibleProjectIDs []uint, id uint, req cloudModel.UpdateAccountTagsRequest) (cloudModel.AccountView, error) {
 	cleaned, err := ValidateTags(req.Tags)
 	if err != nil {
-		return AccountView{}, err
+		return cloudModel.AccountView{}, err
 	}
 	row, err := s.store.UpdateTags(ctx, accessibleProjectIDs, id, cleaned)
 	if err != nil {
-		return AccountView{}, err
+		return cloudModel.AccountView{}, err
 	}
 	return toAccountView(row), nil
 }
@@ -270,12 +236,12 @@ func (s *CloudAccountService) GetForSync(ctx context.Context, id uint) (SyncAcco
 	}, nil
 }
 
-func toAccountView(row AccountRow) AccountView {
+func toAccountView(row AccountRow) cloudModel.AccountView {
 	tags := row.Tags
 	if tags == nil {
 		tags = map[string]string{}
 	}
-	return AccountView{
+	return cloudModel.AccountView{
 		ID:             row.ID,
 		ProjectID:      row.ProjectID,
 		Name:           row.Name,

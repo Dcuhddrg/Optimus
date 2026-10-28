@@ -1,10 +1,10 @@
-package persistence
+package store
 
 import (
 	"context"
 	"testing"
 
-	"optimus/server/service/cloud/usecase"
+	cloudService "optimus/server/service/cloud"
 
 	"github.com/stretchr/testify/require"
 )
@@ -13,7 +13,7 @@ func TestGormAccountStoreCreateAndGet(t *testing.T) {
 	db := openCloudTestDB(t)
 	store := NewGormAccountStore(db)
 
-	row, err := store.Create(context.Background(), 7, usecase.AccountRow{
+	row, err := store.Create(context.Background(), 7, cloudService.AccountRow{
 		Name:           "prod",
 		Provider:       "aliyun",
 		AccountID:      "123",
@@ -37,14 +37,14 @@ func TestGormAccountStoreGetNotFoundReturnsErr(t *testing.T) {
 	store := NewGormAccountStore(db)
 
 	_, err := store.Get(context.Background(), []uint{7}, 9999)
-	require.ErrorIs(t, err, usecase.ErrAccountNotFound)
+	require.ErrorIs(t, err, cloudService.ErrAccountNotFound)
 }
 
 func TestGormAccountStoreUpdateName(t *testing.T) {
 	db := openCloudTestDB(t)
 	store := NewGormAccountStore(db)
 
-	row, err := store.Create(context.Background(), 7, usecase.AccountRow{
+	row, err := store.Create(context.Background(), 7, cloudService.AccountRow{
 		Name:           "old-name",
 		Provider:       "aliyun",
 		AccountID:      "123",
@@ -63,7 +63,7 @@ func TestGormAccountStoreSoftDelete(t *testing.T) {
 	db := openCloudTestDB(t)
 	store := NewGormAccountStore(db)
 
-	row, err := store.Create(context.Background(), 7, usecase.AccountRow{
+	row, err := store.Create(context.Background(), 7, cloudService.AccountRow{
 		Name:           "prod",
 		Provider:       "aliyun",
 		AccountID:      "123",
@@ -75,14 +75,14 @@ func TestGormAccountStoreSoftDelete(t *testing.T) {
 	require.NoError(t, store.Delete(context.Background(), []uint{7}, row.ID))
 
 	_, err = store.Get(context.Background(), []uint{7}, row.ID)
-	require.ErrorIs(t, err, usecase.ErrAccountNotFound)
+	require.ErrorIs(t, err, cloudService.ErrAccountNotFound)
 }
 
 func TestGormAccountStoreGetRejectsAccountInOtherProject(t *testing.T) {
 	db := openCloudTestDB(t)
 	store := NewGormAccountStore(db)
 
-	row, err := store.Create(context.Background(), 7, usecase.AccountRow{
+	row, err := store.Create(context.Background(), 7, cloudService.AccountRow{
 		Name:           "prod",
 		Provider:       "aliyun",
 		AccountID:      "123",
@@ -92,14 +92,14 @@ func TestGormAccountStoreGetRejectsAccountInOtherProject(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = store.Get(context.Background(), []uint{8}, row.ID)
-	require.ErrorIs(t, err, usecase.ErrAccountNotFound)
+	require.ErrorIs(t, err, cloudService.ErrAccountNotFound)
 }
 
 func TestGormAccountStoreUpdateTagsRoundTrip(t *testing.T) {
 	db := openCloudTestDB(t)
 	store := NewGormAccountStore(db)
 
-	row, err := store.Create(context.Background(), 1, usecase.AccountRow{
+	row, err := store.Create(context.Background(), 1, cloudService.AccountRow{
 		Name:           "n",
 		Provider:       "aliyun",
 		AccountID:      "a",
@@ -123,7 +123,7 @@ func TestGormAccountStoreListTagFilterEnvironmentProd(t *testing.T) {
 	db := openCloudTestDB(t)
 	store := NewGormAccountStore(db)
 
-	r1, err := store.Create(context.Background(), 1, usecase.AccountRow{
+	r1, err := store.Create(context.Background(), 1, cloudService.AccountRow{
 		Name:           "p1",
 		Provider:       "aliyun",
 		AccountID:      "a1",
@@ -134,7 +134,7 @@ func TestGormAccountStoreListTagFilterEnvironmentProd(t *testing.T) {
 	_, err = store.UpdateTags(context.Background(), []uint{1}, r1.ID, map[string]string{"environment": "prod"})
 	require.NoError(t, err)
 
-	r2, err := store.Create(context.Background(), 1, usecase.AccountRow{
+	r2, err := store.Create(context.Background(), 1, cloudService.AccountRow{
 		Name:           "p2",
 		Provider:       "aliyun",
 		AccountID:      "a2",
@@ -146,7 +146,7 @@ func TestGormAccountStoreListTagFilterEnvironmentProd(t *testing.T) {
 	require.NoError(t, err)
 
 	rows, err := store.List(context.Background(), []uint{1},
-		[]usecase.TagFilter{{Key: "environment", Value: "prod", Exists: true}})
+		[]cloudService.TagFilter{{Key: "environment", Value: "prod", Exists: true}})
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 	require.Equal(t, "p1", rows[0].Name)
@@ -156,7 +156,7 @@ func TestGormAccountStoreListTagFilterNoneKey(t *testing.T) {
 	db := openCloudTestDB(t)
 	store := NewGormAccountStore(db)
 
-	r1, err := store.Create(context.Background(), 1, usecase.AccountRow{
+	r1, err := store.Create(context.Background(), 1, cloudService.AccountRow{
 		Name:           "tagged",
 		Provider:       "aliyun",
 		AccountID:      "a1",
@@ -167,7 +167,7 @@ func TestGormAccountStoreListTagFilterNoneKey(t *testing.T) {
 	_, err = store.UpdateTags(context.Background(), []uint{1}, r1.ID, map[string]string{"environment": "prod"})
 	require.NoError(t, err)
 
-	_, err = store.Create(context.Background(), 1, usecase.AccountRow{
+	_, err = store.Create(context.Background(), 1, cloudService.AccountRow{
 		Name:           "untagged",
 		Provider:       "aliyun",
 		AccountID:      "a2",
@@ -177,7 +177,7 @@ func TestGormAccountStoreListTagFilterNoneKey(t *testing.T) {
 	require.NoError(t, err)
 
 	rows, err := store.List(context.Background(), []uint{1},
-		[]usecase.TagFilter{{Key: "environment", Exists: false}})
+		[]cloudService.TagFilter{{Key: "environment", Exists: false}})
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 	require.Equal(t, "untagged", rows[0].Name)

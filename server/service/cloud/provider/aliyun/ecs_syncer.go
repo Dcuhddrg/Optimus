@@ -8,7 +8,7 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
 
-	"optimus/server/service/cloud/usecase"
+	cloudService "optimus/server/service/cloud"
 )
 
 // ECSSyncer implements AssetSyncer for Aliyun ECS instances.
@@ -18,7 +18,7 @@ type ECSSyncer struct{}
 
 func NewECSSyncer() *ECSSyncer { return &ECSSyncer{} }
 
-func (s *ECSSyncer) Sync(ctx context.Context, account usecase.SyncAccount) ([]usecase.RawAsset, error) {
+func (s *ECSSyncer) Sync(ctx context.Context, account cloudService.SyncAccount) ([]cloudService.RawAsset, error) {
 	ak := account.Credential["access_key_id"]
 	sk := account.Credential["access_key_secret"]
 	region := account.Credential["region"]
@@ -35,7 +35,7 @@ func (s *ECSSyncer) Sync(ctx context.Context, account usecase.SyncAccount) ([]us
 		return nil, fmt.Errorf("aliyun ecs client: %w", err)
 	}
 
-	var assets []usecase.RawAsset
+	var assets []cloudService.RawAsset
 	pageNumber := 1
 	for {
 		if err := ctx.Err(); err != nil {
@@ -70,7 +70,7 @@ func (s *ECSSyncer) Sync(ctx context.Context, account usecase.SyncAccount) ([]us
 				return nil, fmt.Errorf("aliyun ecs marshal tags for %s: %w", inst.InstanceId, err)
 			}
 
-			assets = append(assets, usecase.RawAsset{
+			assets = append(assets, cloudService.RawAsset{
 				ResourceType: "ecs_instance",
 				ResourceID:   inst.InstanceId,
 				Name:         inst.InstanceName,

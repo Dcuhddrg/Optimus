@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	cloudUsecase "optimus/server/service/cloud/usecase"
+	cloudService "optimus/server/service/cloud"
 	"optimus/server/utils"
 
 	"github.com/gin-gonic/gin"
@@ -16,11 +16,11 @@ import (
 )
 
 type testAccountStore struct {
-	rows map[uint]cloudUsecase.AccountRow
+	rows map[uint]cloudService.AccountRow
 	next uint
 }
 
-func (s *testAccountStore) Create(_ context.Context, projectID uint, row cloudUsecase.AccountRow) (cloudUsecase.AccountRow, error) {
+func (s *testAccountStore) Create(_ context.Context, projectID uint, row cloudService.AccountRow) (cloudService.AccountRow, error) {
 	s.next++
 	row.ID = s.next
 	row.ProjectID = projectID
@@ -32,30 +32,30 @@ func (s *testAccountStore) Create(_ context.Context, projectID uint, row cloudUs
 	return row, nil
 }
 
-func (s *testAccountStore) Get(_ context.Context, _ []uint, id uint) (cloudUsecase.AccountRow, error) {
+func (s *testAccountStore) Get(_ context.Context, _ []uint, id uint) (cloudService.AccountRow, error) {
 	row, ok := s.rows[id]
 	if !ok {
-		return cloudUsecase.AccountRow{}, cloudUsecase.ErrAccountNotFound
+		return cloudService.AccountRow{}, cloudService.ErrAccountNotFound
 	}
 	return row, nil
 }
 
-func (s *testAccountStore) GetForSync(_ context.Context, id uint) (cloudUsecase.AccountRow, error) {
+func (s *testAccountStore) GetForSync(_ context.Context, id uint) (cloudService.AccountRow, error) {
 	return s.Get(context.Background(), nil, id)
 }
 
-func (s *testAccountStore) List(context.Context, []uint, []cloudUsecase.TagFilter) ([]cloudUsecase.AccountRow, error) {
+func (s *testAccountStore) List(context.Context, []uint, []cloudService.TagFilter) ([]cloudService.AccountRow, error) {
 	return nil, nil
 }
 
-func (s *testAccountStore) Update(context.Context, []uint, uint, *string, *string) (cloudUsecase.AccountRow, error) {
-	return cloudUsecase.AccountRow{}, nil
+func (s *testAccountStore) Update(context.Context, []uint, uint, *string, *string) (cloudService.AccountRow, error) {
+	return cloudService.AccountRow{}, nil
 }
 
-func (s *testAccountStore) UpdateTags(_ context.Context, _ []uint, id uint, tags map[string]string) (cloudUsecase.AccountRow, error) {
+func (s *testAccountStore) UpdateTags(_ context.Context, _ []uint, id uint, tags map[string]string) (cloudService.AccountRow, error) {
 	row, ok := s.rows[id]
 	if !ok {
-		return cloudUsecase.AccountRow{}, cloudUsecase.ErrAccountNotFound
+		return cloudService.AccountRow{}, cloudService.ErrAccountNotFound
 	}
 	row.Tags = tags
 	s.rows[id] = row
@@ -100,7 +100,7 @@ func TestAssetHandlerListReturnsServiceUnavailableWhenNil(t *testing.T) {
 
 func TestAccountHandlerCreateRequiresCurrentProject(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	accountSvc, err := cloudUsecase.NewCloudAccountService(&testAccountStore{rows: map[uint]cloudUsecase.AccountRow{}}, make([]byte, 32))
+	accountSvc, err := cloudService.NewCloudAccountService(&testAccountStore{rows: map[uint]cloudService.AccountRow{}}, make([]byte, 32))
 	require.NoError(t, err)
 	h := NewCloudHandlers(CloudHandlerDeps{Account: accountSvc})
 
@@ -117,8 +117,8 @@ func TestAccountHandlerCreateRequiresCurrentProject(t *testing.T) {
 
 func TestAccountHandlerCreateUsesCurrentProject(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	store := &testAccountStore{rows: map[uint]cloudUsecase.AccountRow{}}
-	accountSvc, err := cloudUsecase.NewCloudAccountService(store, make([]byte, 32))
+	store := &testAccountStore{rows: map[uint]cloudService.AccountRow{}}
+	accountSvc, err := cloudService.NewCloudAccountService(store, make([]byte, 32))
 	require.NoError(t, err)
 	h := NewCloudHandlers(CloudHandlerDeps{Account: accountSvc})
 
