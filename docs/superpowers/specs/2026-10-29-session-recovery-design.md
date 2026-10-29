@@ -1,7 +1,7 @@
 # 会话恢复错误分类修复
 
 - 关联：#27；范围由用户在本次评审后确认，授权修复。
-- 状态：用户已确认修复并授权提交 PR、合入 main；交付与验证记录见 #27，实现、测试与用户验收分别记录。
+- 状态：用户已验收，修复由 [PR #32](https://github.com/Dcuhddrg/Optimus/pull/32) 合入 main；交付与验证记录见 [#27](https://github.com/Dcuhddrg/Optimus/issues/27)，历史步骤见 [归档计划](../archive/plans/2026-10-29-session-recovery.md)。本文继续说明现行行为及修复边界，实现、测试与用户验收分别记录。
 
 ## 行为
 

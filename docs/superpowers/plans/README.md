@@ -1,6 +1,6 @@
 # 实施计划索引
 
-计划是特定阶段的实施记录。读取前先看 [AGENT.MD](../../../AGENT.MD)、关联 Issue 及其交付/验收记录；涉及旧代码路径时以当前代码与规范为准。下列条目尚未逐项核验交付状态。
+计划是特定阶段的实施记录。读取前先看 [AGENT.MD](../../../AGENT.MD)、关联 Issue 及其交付/验收记录；涉及旧代码路径时以当前代码与规范为准。保留在本目录不等于已排期，也不表示步骤仍可直接执行；逐项交付依据、验收缺口及保留原因见 [#10 核对记录](https://github.com/Dcuhddrg/Optimus/issues/10)。
 
 ## 云资源与项目
 
@@ -15,4 +15,6 @@
 
 ## 状态维护
 
-状态与归档遵循 [文档维护约定](../../relations/documentation-workflow.md#状态与事实)；现存计划的清理在 [#10](https://github.com/Dcuhddrg/Optimus/issues/10) 跟进。历史计划见 [archive/plans](../archive/plans/)。
+状态与归档遵循 [文档维护约定](../../relations/documentation-workflow.md#状态与事实)；现存计划的清理在 [#10](https://github.com/Dcuhddrg/Optimus/issues/10) 跟进。云资源基础规格相关核查按用户决定暂停，见 [#3](https://github.com/Dcuhddrg/Optimus/issues/3)；其余未取得验收依据的计划保留，不由文件日期或提交记录推定验收。
+
+历史计划见 [archive/plans](../archive/plans/)。已验收的 [会话恢复计划](../archive/plans/2026-10-29-session-recovery.md) 对应 [#27](https://github.com/Dcuhddrg/Optimus/issues/27) 与 [PR #32](https://github.com/Dcuhddrg/Optimus/pull/32)；归档不扩大其验证范围，后续补验另见 [#34](https://github.com/Dcuhddrg/Optimus/issues/34)。

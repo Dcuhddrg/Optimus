@@ -1,5 +1,7 @@
 # 会话恢复修复实施计划
 
+> 历史实施记录：用户已验收 [#27](https://github.com/Dcuhddrg/Optimus/issues/27)，修复由 [PR #32](https://github.com/Dcuhddrg/Optimus/pull/32) 合入 main。以下步骤与“本地验证”保留当时记录，不作为待执行清单；现行行为及范围见 [修复设计](../../specs/2026-10-29-session-recovery-design.md)，后续真实环境补验见 [#34](https://github.com/Dcuhddrg/Optimus/issues/34)。
+
 **Goal:** 修复 #27，保留非认证故障时的凭据并阻止未验证会话进入页面。
 
 **Architecture:** 沿用请求封装、AuthContext 和 RequireAuth；显式区分公开登录请求，集中处理有效私有请求的 401，以可重试错误状态隔离恢复失败。
