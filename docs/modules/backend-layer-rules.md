@@ -31,4 +31,8 @@ Router -> API -> Service -> Model
 - 每批结构迁移保持已有接口返回、HTTP 状态、权限和项目隔离行为；#7 的契约文档先行，响应协议代码改造另批实施，不与结构迁移混批。
 - 迁移结束须清除范围内旧目录、旧包导入及临时兼容入口，构建和隔离 MySQL 回归通过，再由用户验收。计划清单、逐项进度和剩余差异仅在 GitHub 跟进。
 
-2026-10-27 的盘点曾发现 system/project/cloud 旧目录；截至 2026-10-28，三批结构迁移已合入，system 批次及 #11 整体验收仍待完成。现行决定及旧决定的替代关系见 [ADR-002](../relations/decisions/ADR-002-backend-structure-migration.md)。
+2026-10-27 的盘点曾发现 system/project/cloud 旧目录；截至 2026-10-28，三批结构迁移已合入并由用户验收，#11 仍进行入口和证据收尾。现行决定及旧决定的替代关系见 [ADR-002](../relations/decisions/ADR-002-backend-structure-migration.md)。
+
+## 装配与注册入口
+
+`initialize/router.go` 创建各模块并注入 API handlers；`router/enter.go` 汇总模块 RouterGroup，各模块 `router/*/enter.go` 负责注册路由。当前 Service 通过各模块构造函数注入，API 使用模块 handlers；未使用的全局 ServiceGroup 已移除。后续如需统一 API/Service 的标准注册形式，应先明确设计并验证装配链，避免重复注册。
