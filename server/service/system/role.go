@@ -18,6 +18,7 @@ type RoleStore interface {
 	CreateRole(ctx context.Context, role systemModel.SystemRole) (systemModel.SystemRole, error)
 	UpdateRole(ctx context.Context, role systemModel.SystemRole) (systemModel.SystemRole, error)
 	PermissionsByCodes(ctx context.Context, codes []string) ([]systemModel.SystemPermission, error)
+	PermissionCodesForRole(ctx context.Context, roleID uint) ([]string, error)
 	ReplaceRolePermissions(ctx context.Context, roleID uint, permissionIDs []uint) error
 	WriteAudit(ctx context.Context, event AuditEvent) error
 }
@@ -45,7 +46,7 @@ func (s *RoleService) CreateRole(ctx context.Context, actorID uint, req systemMo
 	if err != nil {
 		return systemModel.SystemRole{}, err
 	}
-	_ = s.store.WriteAudit(ctx, AuditEvent{ActorUserID: actorID, ActorUsername: meta.ActorUsername, Action: "role.create", ResourceType: "role", ResourceID: resourceID(created.ID), Result: "success", IP: meta.IP, UserAgent: meta.UserAgent})
+	recordAudit(ctx, s.store, AuditEvent{ActorUserID: actorID, ActorUsername: meta.ActorUsername, Action: "role.create", ResourceType: "role", ResourceID: resourceID(created.ID), Result: "success", IP: meta.IP, UserAgent: meta.UserAgent})
 	return created, nil
 }
 
@@ -66,7 +67,7 @@ func (s *RoleService) UpdateRole(ctx context.Context, actorID uint, roleID uint,
 	if err != nil {
 		return systemModel.SystemRole{}, err
 	}
-	_ = s.store.WriteAudit(ctx, AuditEvent{ActorUserID: actorID, ActorUsername: meta.ActorUsername, Action: "role.update", ResourceType: "role", ResourceID: resourceID(roleID), Result: "success", IP: meta.IP, UserAgent: meta.UserAgent})
+	recordAudit(ctx, s.store, AuditEvent{ActorUserID: actorID, ActorUsername: meta.ActorUsername, Action: "role.update", ResourceType: "role", ResourceID: resourceID(roleID), Result: "success", IP: meta.IP, UserAgent: meta.UserAgent})
 	return updated, nil
 }
 
@@ -83,30 +84,43 @@ func (s *RoleService) UpdateRoleStatus(ctx context.Context, actorID uint, roleID
 	if err != nil {
 		return systemModel.SystemRole{}, err
 	}
-	_ = s.store.WriteAudit(ctx, AuditEvent{ActorUserID: actorID, ActorUsername: meta.ActorUsername, Action: "role.status.update", ResourceType: "role", ResourceID: resourceID(roleID), Result: "success", IP: meta.IP, UserAgent: meta.UserAgent})
+	recordAudit(ctx, s.store, AuditEvent{ActorUserID: actorID, ActorUsername: meta.ActorUsername, Action: "role.status.update", ResourceType: "role", ResourceID: resourceID(roleID), Result: "success", IP: meta.IP, UserAgent: meta.UserAgent})
 	return updated, nil
 }
 
 func (s *RoleService) UpdateRolePermissions(ctx context.Context, actorID uint, roleID uint, permissionCodes []string, meta AuditMeta) error {
+	event := failedAudit(actorID, meta, "role.permissions.update", "role", roleID)
+	defer func() { recordAudit(ctx, s.store, event) }()
 	role, err := s.store.FindRoleByID(ctx, roleID)
 	if err != nil {
+		event.Detail = auditDetails("target_lookup_failed", nil)
 		return err
 	}
 	if role.Code == "admin" && !containsAllCoreAdminPermissions(permissionCodes) {
+		event.Detail = auditDetails("admin_role_protected", nil)
 		return ErrProtectedAdminRole
 	}
 	permissions, err := s.store.PermissionsByCodes(ctx, permissionCodes)
 	if err != nil {
+		event.Detail = auditDetails("permission_lookup_failed", nil)
 		return err
 	}
 	permissionIDs := make([]uint, 0, len(permissions))
 	for _, permission := range permissions {
 		permissionIDs = append(permissionIDs, permission.ID)
 	}
+	before, beforeErr := s.store.PermissionCodesForRole(ctx, roleID)
 	if err := s.store.ReplaceRolePermissions(ctx, roleID, permissionIDs); err != nil {
+		event.Detail = auditDetails("update_failed", nil)
 		return err
 	}
-	_ = s.store.WriteAudit(ctx, AuditEvent{ActorUserID: actorID, ActorUsername: meta.ActorUsername, Action: "role.permissions.update", ResourceType: "role", ResourceID: resourceID(roleID), Result: "success", IP: meta.IP, UserAgent: meta.UserAgent})
+	after, afterErr := s.store.PermissionCodesForRole(ctx, roleID)
+	event.Result = "success"
+	if beforeErr != nil || afterErr != nil {
+		event.Detail = auditDetails("snapshot_unavailable", nil)
+	} else {
+		event.Detail = auditDetails("updated", map[string]auditChange{"permissionCodes": auditSetChange(before, after)})
+	}
 	return nil
 }
 

@@ -58,12 +58,12 @@ func (s *AuthService) Login(ctx context.Context, req systemModel.LoginRequest, m
 		if req.Username != defaultAdminUsername {
 			return s.loginLDAP(ctx, req, meta)
 		}
-		s.writeAudit(ctx, AuditEvent{Action: "auth.login.failure", Result: "failure", IP: meta.IP, UserAgent: meta.UserAgent, Detail: "user lookup failed"})
+		s.writeAudit(ctx, loginFailure(req.Username, meta, 0, "user_lookup_failed"))
 		return systemModel.LoginResult{}, ErrInvalidCredentials
 	}
 
 	if user.Status != defaultUserStatus {
-		s.writeAudit(ctx, AuditEvent{ActorUserID: user.ID, ActorUsername: user.Username, Action: "auth.login.failure", Result: "failure", IP: meta.IP, UserAgent: meta.UserAgent, Detail: "user disabled"})
+		s.writeAudit(ctx, loginFailure(req.Username, meta, user.ID, "user_disabled"))
 		return systemModel.LoginResult{}, ErrUserDisabled
 	}
 
@@ -71,37 +71,46 @@ func (s *AuthService) Login(ctx context.Context, req systemModel.LoginRequest, m
 		if user.Username != defaultAdminUsername {
 			return s.loginLDAP(ctx, req, meta)
 		}
-		s.writeAudit(ctx, AuditEvent{ActorUserID: user.ID, ActorUsername: user.Username, Action: "auth.login.failure", Result: "failure", IP: meta.IP, UserAgent: meta.UserAgent, Detail: "invalid credentials"})
+		s.writeAudit(ctx, loginFailure(req.Username, meta, user.ID, "invalid_credentials"))
 		return systemModel.LoginResult{}, ErrInvalidCredentials
 	}
 
-	return s.issueLoginResult(ctx, user, meta)
+	result, err := s.issueLoginResult(ctx, user, meta)
+	if err != nil {
+		s.writeAudit(ctx, loginFailure(req.Username, meta, user.ID, "session_issue_failed"))
+	}
+	return result, err
 }
 
 func (s *AuthService) loginLDAP(ctx context.Context, req systemModel.LoginRequest, meta AuditMeta) (systemModel.LoginResult, error) {
 	if s.ldap == nil {
-		s.writeAudit(ctx, AuditEvent{Action: "auth.login.failure", Result: "failure", IP: meta.IP, UserAgent: meta.UserAgent, Detail: "ldap client unavailable"})
+		s.writeAudit(ctx, loginFailure(req.Username, meta, 0, "ldap_unavailable"))
 		return systemModel.LoginResult{}, ErrInvalidCredentials
 	}
 	cfg, err := s.store.GetLDAPConfig(ctx)
 	if err != nil || !cfg.Enabled {
-		s.writeAudit(ctx, AuditEvent{Action: "auth.login.failure", Result: "failure", IP: meta.IP, UserAgent: meta.UserAgent, Detail: "ldap disabled"})
+		s.writeAudit(ctx, loginFailure(req.Username, meta, 0, "ldap_config_unavailable"))
 		return systemModel.LoginResult{}, ErrInvalidCredentials
 	}
 	ldapUser, err := s.ldap.Authenticate(ctx, ldapConnectionConfig(cfg), req.Username, req.Password)
 	if err != nil {
-		s.writeAudit(ctx, AuditEvent{Action: "auth.login.failure", Result: "failure", IP: meta.IP, UserAgent: meta.UserAgent, Detail: "ldap authentication failed"})
+		s.writeAudit(ctx, loginFailure(req.Username, meta, 0, "ldap_authentication_failed"))
 		return systemModel.LoginResult{}, ErrInvalidCredentials
 	}
 	user, err := s.store.SyncLDAPUser(ctx, ldapUser)
 	if err != nil {
+		s.writeAudit(ctx, loginFailure(req.Username, meta, 0, "user_sync_failed"))
 		return systemModel.LoginResult{}, err
 	}
 	if user.Status != defaultUserStatus {
-		s.writeAudit(ctx, AuditEvent{ActorUserID: user.ID, ActorUsername: user.Username, Action: "auth.login.failure", Result: "failure", IP: meta.IP, UserAgent: meta.UserAgent, Detail: "user disabled"})
+		s.writeAudit(ctx, loginFailure(req.Username, meta, user.ID, "user_disabled"))
 		return systemModel.LoginResult{}, ErrUserDisabled
 	}
-	return s.issueLoginResult(ctx, user, meta)
+	result, err := s.issueLoginResult(ctx, user, meta)
+	if err != nil {
+		s.writeAudit(ctx, loginFailure(req.Username, meta, user.ID, "session_issue_failed"))
+	}
+	return result, err
 }
 
 func (s *AuthService) issueLoginResult(ctx context.Context, user systemModel.SystemUser, meta AuditMeta) (systemModel.LoginResult, error) {
@@ -173,7 +182,7 @@ func (s *AuthService) Logout(ctx context.Context, userID uint, meta AuditMeta) e
 }
 
 func (s *AuthService) writeAudit(ctx context.Context, event AuditEvent) {
-	_ = s.store.WriteAudit(ctx, event)
+	recordAudit(ctx, s.store, event)
 }
 
 func summarizeUser(user systemModel.SystemUser) systemModel.SystemUserSummary {

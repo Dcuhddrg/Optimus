@@ -66,3 +66,10 @@ func (s *GormRoleStore) ReplaceRolePermissions(ctx context.Context, roleID uint,
 func (s *GormRoleStore) WriteAudit(ctx context.Context, event systemService.AuditEvent) error {
 	return NewGormAuthStore(s.db).WriteAudit(ctx, event)
 }
+
+func (s *GormRoleStore) PermissionCodesForRole(ctx context.Context, roleID uint) ([]string, error) {
+	permissionIDs := s.db.WithContext(ctx).Model(&systemModel.SystemRolePermission{}).Select("permission_id").Where("role_id = ?", roleID)
+	codes := make([]string, 0)
+	err := s.db.WithContext(ctx).Model(&systemModel.SystemPermission{}).Where("id IN (?)", permissionIDs).Order("code").Pluck("code", &codes).Error
+	return codes, err
+}
