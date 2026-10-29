@@ -1,6 +1,7 @@
-import { apiRequest } from './client';
+import { apiDownloadCSV, apiRequest } from './client';
 import type {
-  AuditLog,
+  AuditLogFilter,
+  AuditLogPage,
   CurrentUserResponse,
   LDAPConfig,
   ListResponse,
@@ -70,6 +71,22 @@ export function testLDAPConfig(config: LDAPConfig & { useSavedBindPassword?: boo
   });
 }
 
-export function listAuditLogs() {
-  return apiRequest<ListResponse<AuditLog>>('/system/audit-logs');
+function auditQuery(filters: AuditLogFilter, paginated: boolean) {
+  const params = new URLSearchParams();
+  const keys: (keyof AuditLogFilter)[] = ['actorUserId', 'action', 'resourceType', 'result', 'startTime', 'endTime', 'keyword'];
+  if (paginated) keys.push('page', 'pageSize');
+  for (const key of keys) {
+    const value = filters[key];
+    if (value !== undefined && value !== '') params.set(key, String(value));
+  }
+  const query = params.toString();
+  return query ? `?${query}` : '';
+}
+
+export function listAuditLogs(filters: AuditLogFilter = {}, signal?: AbortSignal) {
+  return apiRequest<AuditLogPage>(`/system/audit-logs${auditQuery(filters, true)}`, { signal });
+}
+
+export function exportAuditLogs(filters: AuditLogFilter = {}, signal?: AbortSignal) {
+  return apiDownloadCSV(`/system/audit-logs/export${auditQuery(filters, false)}`, { signal });
 }

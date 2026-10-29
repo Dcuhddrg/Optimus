@@ -45,10 +45,10 @@ export class ApiError extends Error {
 
 type RequestOptions = RequestInit & { auth?: 'required' | 'none' };
 
-export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
+async function requestResponse(path: string, options: RequestOptions, accept: string): Promise<Response> {
   const { auth = 'required', ...requestOptions } = options;
   const headers = new Headers(options.headers);
-  headers.set('Accept', 'application/json');
+  headers.set('Accept', accept);
 
   if (options.body && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
@@ -75,17 +75,40 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     onUnauthorized?.();
   }
 
+  if (!response.ok) {
+    let message = `Request failed with ${response.status}`;
+    try {
+      const data = JSON.parse(await response.text());
+      if (typeof data?.message === 'string') message = data.message;
+    } catch {
+      // Non-JSON error bodies still retain their HTTP status.
+    }
+    throw new ApiError(message, response.status, 'http');
+  }
+  return response;
+}
+
+export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const response = await requestResponse(path, options, 'application/json');
   let data;
   try {
     const text = await response.text();
     data = text ? JSON.parse(text) : undefined;
   } catch {
-    throw new ApiError(`Request failed with ${response.status}`, response.status, response.ok ? 'protocol' : 'http');
-  }
-
-  if (!response.ok) {
-    throw new ApiError(typeof data?.message === 'string' ? data.message : `Request failed with ${response.status}`, response.status, 'http');
+    throw new ApiError(`Request failed with ${response.status}`, response.status, 'protocol');
   }
 
   return data as T;
+}
+
+export async function apiDownloadCSV(path: string, options: RequestOptions = {}): Promise<Blob> {
+  const response = await requestResponse(path, options, 'text/csv');
+  if (!/^text\/csv(?:\s*;|$)/i.test(response.headers.get('Content-Type') ?? '')) {
+    throw new ApiError('Expected a CSV response', response.status, 'protocol');
+  }
+  try {
+    return await response.blob();
+  } catch {
+    throw new ApiError('Unable to read the CSV response', response.status, 'network');
+  }
 }

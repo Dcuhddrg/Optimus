@@ -54,6 +54,7 @@ export interface LDAPConfig {
 export interface AuditLog {
   id: number;
   actorUserId: number;
+  actorUsername: string;
   action: string;
   resourceType: string;
   resourceId: string;
@@ -62,6 +63,24 @@ export interface AuditLog {
   userAgent: string;
   detail: string;
   createdAt: string;
+}
+
+export interface AuditLogFilter {
+  actorUserId?: number;
+  action?: string;
+  resourceType?: string;
+  result?: string;
+  startTime?: string;
+  endTime?: string;
+  /** Matches the recorded detail text, not usernames or all columns. */
+  keyword?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface AuditLogPage extends ListResponse<AuditLog> {
+  page: number;
+  pageSize: number;
 }
 
 export interface ListResponse<T> {

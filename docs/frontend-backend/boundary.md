@@ -37,7 +37,7 @@
 | 权限树 | `{items}` | 树形集合不自动改为分页 |
 | 项目、成员列表 | 服务端 `{items}`；客户端 ListResponse 额外要求 total | 修正真实类型或明确服务端新契约，不能编造已有字段 |
 | 云账号列表 | `{items,total}`，当前不是分页查询 | 保留筛选和计数含义 |
-| 云资产、审计查询 | `{items,total,page,pageSize}` | 迁移 items/list 时同步参数、类型及页面；审计客户端尚无分页参数入口 |
+| 云资产、审计查询 | `{items,total,page,pageSize}` | 迁移 items/list 时同步参数、类型及页面；#28 已接入审计分页、筛选和类型，用户验收通过，交付记录见对应 Issue；未实施 envelope 迁移 |
 | 删除、登出等提示 | 部分返回 `{message}` | 明确无业务数据操作的目标 data 值 |
 | 错误 | HTTP 4xx/5xx 与 `{message}` | 当前客户端只读 message，以 HTTP 状态判断失败 |
 | CSV、探活 | CSV 文本与现有 health/ping 小响应 | 保留内容类型、下载和探活调用 |
@@ -106,6 +106,7 @@
 ## 7. CSV、探活与无正文例外
 
 - CSV 成功响应保留 text/csv 和 Content-Disposition，不包 JSON envelope。导出使用明确的下载适配器，先检查 HTTP 状态及 Content-Type；失败可能是 JSON，不能将错误内容当文件或对 CSV 无条件 JSON.parse。
+- #28 的审计导出通过模块 API 和公共认证请求层处理，复用已应用筛选并排除分页参数，提示后端现有 10000 条上限。下载适配检查 text/csv；403 显示权限错误而不清理凭据，401 沿用 #27 规则。具体范围与验证见 [审计查询设计](../superpowers/specs/2026-10-29-audit-query-experience-design.md)，用户已验收，交付记录见 #28。
 - health/ping 保留现有响应和探活行为，不随业务 envelope 批量改造。
 - 其他上传、流式或非 JSON 接口存在时，必须独立声明内容类型及错误方式，本提案不假定这些能力已实现。
 - 已声明的 JSON 操作不通过省略整个响应正文代替 data；若保留 204 等无正文响应，应明确列为例外并使用相应适配器。

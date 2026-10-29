@@ -1,6 +1,16 @@
 .page {
   display: grid;
   gap: 20px;
+
+}
+
+.header, .pagination, .actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+
 }
 
 .title {
@@ -8,26 +18,211 @@
   font-size: 2rem;
   line-height: 1.08;
   color: var(--text-primary);
+
 }
 
-.list {
-  display: grid;
-  gap: 8px;
+.muted {
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+  font-size: .875rem;
+
 }
 
-.item {
+.filters {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 120px;
-  gap: 6px 12px;
-  padding: 14px 16px;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 14px;
+  padding: 18px;
   border: 1px solid var(--shell-border);
   border-radius: 14px;
   background: var(--shell-surface);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.42);
+
 }
 
-.item p {
-  grid-column: 1 / -1;
-  margin: 2px 0 0;
+.page label {
+  display: grid;
+  gap: 6px;
+  font-size: .875rem;
   color: var(--text-secondary);
+
+}
+
+.page input, .page select {
+  min-height: 36px;
+  width: 100%;
+  min-width: 0;
+  padding: 6px 10px;
+  border: 1px solid var(--shell-border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  background: var(--shell-surface);
+  font: inherit;
+
+}
+
+.page button {
+  min-height: 34px;
+  padding: 6px 14px;
+  border: 1px solid var(--shell-border);
+  border-radius: 999px;
+  color: var(--shell-control-active-bg);
+  background: var(--shell-surface);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+
+}
+
+.page button:hover:not(:disabled) {
+  background: var(--shell-surface-strong);
+  border-color: var(--shell-border-strong);
+
+}
+
+.page button:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+
+}
+
+.page :is(button, input, select):focus-visible {
+  outline: 2px solid var(--shell-control-focus);
+  outline-offset: 2px;
+
+}
+
+.actions {
+  justify-content: flex-start;
+  align-self: end;
+
+}
+
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid var(--shell-border);
+  border-radius: 14px;
+  background: var(--shell-surface);
+
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .875rem;
+
+}
+
+.table th, .table td {
+  padding: 14px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--shell-border);
+  vertical-align: top;
+  overflow-wrap: anywhere;
+
+}
+
+.table th {
+  color: var(--text-secondary);
+  font-weight: 500;
+  white-space: nowrap;
+
+}
+
+.table tr:last-child td {
+  border-bottom: 0;
+
+}
+
+.table time {
+  display: block;
+  min-width: 145px;
+
+}
+
+.table button {
+  white-space: nowrap;
+
+}
+
+.empty {
+  padding: 20px;
+  color: var(--text-secondary);
+  text-align: center;
+
+}
+
+.error {
+  color: var(--status-danger-text, #a83232);
+
+}
+
+.failure, .success {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+
+}
+
+.failure {
+  color: var(--status-danger-text, #a83232);
+  background: var(--status-danger-bg, #fceaea);
+
+}
+
+.success {
+  color: var(--status-success-text, #257050);
+  background: var(--status-success-bg, #e8f4ed);
+
+}
+
+.detail {
+  padding: 20px;
+  border: 1px solid var(--shell-border);
+  border-radius: 14px;
+  background: var(--shell-surface);
+
+}
+
+.detail h2 {
+  font-size: 1.125rem;
+  margin: 0;
+
+}
+
+.detail dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+
+}
+
+.detail dt {
+  color: var(--text-secondary);
+  font-size: .875rem;
+
+}
+
+.detail dd {
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+
+}
+
+.detail pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: .875rem;
+
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+
 }
