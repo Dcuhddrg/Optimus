@@ -31,7 +31,7 @@ Router -> API -> Service -> Model
 - 结构调整保持已有接口返回、HTTP 状态、权限和项目隔离行为；响应协议改造由 #18 独立实施。
 - 结构调整须清除临时兼容入口，并按影响范围验证构建和隔离 MySQL 回归；进度与剩余差异在 GitHub 跟进。
 
-2026-10-27 的盘点曾发现 system/project/cloud 旧目录；截至 2026-10-28，三批结构迁移已合入并由用户验收，入口清理已合入，#11 已关闭。现行决定及旧决定的替代关系见 [ADR-002](../memory/decisions/ADR-002-backend-structure-migration.md)。
+2026-10-27 的盘点曾发现 system/project/cloud 旧目录；截至 2026-10-28，三批结构迁移已合入并由用户验收，入口清理已合入，#11 已关闭。现行决定及旧决定的替代关系见 [ADR-002](../memory/long-term/decisions/ADR-002-backend-structure-migration.md)。
 
 ## 装配与注册入口
 

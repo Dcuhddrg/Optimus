@@ -8,4 +8,4 @@
 - [工程操作参考](engineering-workflow.md)：图谱查询、运行和验证步骤。
 - [文档维护约定](documentation-workflow.md)：Issue、文档状态与证据规则。
 
-模块职责见 [modules](../modules/README.md)，重要决定见 [memory/decisions](../memory/decisions/README.md)。
+模块职责见 [modules](../modules/README.md)，重要决定见 [memory/long-term/decisions](../memory/long-term/decisions/README.md)。

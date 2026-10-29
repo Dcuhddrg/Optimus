@@ -2,7 +2,7 @@
 
 **Goal:** 在保持现有调用契约和隔离语义下，修复项目作用域过宽及路由前缀与权限键不一致。
 
-**Architecture:** 沿用 Router → API → Service → Model。仅收敛中间件装配及权限查询前缀，不迁移服务内部目录。设计见 [首批规格](../specs/2026-10-27-backend-boundary-remediation-design.md)。
+**Architecture:** 沿用 Router → API → Service → Model。仅收敛中间件装配及权限查询前缀，不迁移服务内部目录。设计见 [首批规格](../../specs/2026-10-27-backend-boundary-remediation-design.md)。
 
 **Tech Stack:** Go、Gin、现有 testify/httptest 与 MySQL 测试夹具，无新增依赖。
 

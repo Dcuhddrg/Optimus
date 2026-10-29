@@ -1,7 +1,7 @@
 # 项目画像与运行边界
 
 > 规范依据：[AGENT.MD](../../AGENT.MD) 是项目规则唯一正文；本文展开其架构职责和边界，发生冲突时以根规则为准。
-> 最近决策更新：2026-10-27，现行依据为 [ADR-002](../memory/decisions/ADR-002-backend-structure-migration.md)，三模块结构迁移已验收，记录见 [Issue #11](https://github.com/Dcuhddrg/Optimus/issues/11)。真实外部系统及端到端验证仍有未覆盖项。
+> 最近决策更新：2026-10-27，现行依据为 [ADR-002](../memory/long-term/decisions/ADR-002-backend-structure-migration.md)，三模块结构迁移已验收，记录见 [Issue #11](https://github.com/Dcuhddrg/Optimus/issues/11)。真实外部系统及端到端验证仍有未覆盖项。
 
 > 本文件维护项目定位、技术栈与运行时边界；系统结构和工程操作分别见 [系统关系图](system-map.md) 与 [工程操作参考](engineering-workflow.md)。
 
@@ -19,7 +19,7 @@ Optimus 以治理、云资源、运维和成本能力为长期方向；当前实
 
 ## API 设计契约
 
-- 前后端响应、分页、错误和兼容边界见 [接口契约](../frontend-backend/boundary.md)。#7 先补文档，不依赖结构迁移完成；当前行为、已确认决定和待确认提案分别标注，文档更新不触发 API 代码变更。
+- 前后端响应、分页、错误和兼容边界见 [接口契约](../frontend-backend/boundary.md)。#7 契约已确认；当前行为与目标规范分别标注，代码迁移由 #18 跟进。
 - 统一前缀 `/api/v1/<module>/...`
 - 健康检查：`/api/v1/health`、`/api/v1/ping`（公开）
 - 鉴权：登录 `/api/v1/<module>/auth/login`（公开），其它路径走 JWT + Casbin RBAC（私有）
@@ -68,4 +68,4 @@ Optimus 以治理、云资源、运维和成本能力为长期方向；当前实
 
 最近状态核查：2026-10-26。历史阶段完成标记不替代当前验收证据。
 
-长期阶段见 [路线图](../memory/platform-roadmap.md)，当前实现及验证状态统一见 [能力状态](../project-status.md)，决策理由见 [决策索引](../memory/decisions/README.md)。本文件维护架构契约，不重复维护项目进度。
+长期阶段见 [路线图](../memory/long-term/platform-roadmap.md)，当前实现及验证状态统一见 [能力状态](../project-status.md)，决策理由见 [决策索引](../memory/long-term/decisions/README.md)。本文件维护架构契约，不重复维护项目进度。

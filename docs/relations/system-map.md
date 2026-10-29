@@ -41,4 +41,4 @@ router → view / components → api → 后端
 
 - 运行时、接口与技术栈：[当前架构](repo-profile.md)。
 - 后端模块分层：[模块与分层](../modules/README.md)。
-- 重要决定：[决策索引](../memory/decisions/README.md)。
+- 重要决定：[决策索引](../memory/long-term/decisions/README.md)。
