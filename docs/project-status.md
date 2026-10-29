@@ -11,6 +11,7 @@
 | 能力 | 实现状态 | 当前依据及限制 | 验证状态 / 下一步 |
 | --- | --- | --- | --- |
 | 系统身份、角色、权限、审计 | 已接后端；业务验收待核实 | [架构约定](relations/repo-profile.md)；后端单元/持久化测试通过，系统入口与项目解析故障的解耦已补回归 | 测试基线见 [#2](https://github.com/Dcuhddrg/Optimus/issues/2)；外部认证、真实会话及审计页面等仍需按场景验收 |
+| 前端会话恢复与凭据处理 | #27 修复；用户验收通过 | 2026-10-29，修改基于 `dd709e6`；[修复设计](superpowers/specs/2026-10-29-session-recovery-design.md)。真实请求封装、React Provider 和路由守卫配合模拟 fetch 的 21 项回归通过，TypeScript 与 Vite 构建通过 | 网络/403/5xx/协议异常保留凭据并阻止页面放行；401 统一失效、登录失败不注销已有会话，支持重试。用户确认修复，交付及验收记录见 #27；助手未独立进行真实认证联调、部署或浏览器端到端验证；前端全量测试仍被 #4 相关的既有缺失模块阻塞 |
 | 云账号、资产、项目隔离 | 已接后端；真实云联调待核实 | [账号资产设计](superpowers/specs/2026-05-13-cloud-account-asset-registry-design.md)、[隔离计划](superpowers/plans/2026-05-16-sp2-cloud-project-binding.md)；隔离库持久化、成员授权和新增路由隔离回归通过 | 证据见 [#2](https://github.com/Dcuhddrg/Optimus/issues/2)、[#11](https://github.com/Dcuhddrg/Optimus/issues/11)；真实云同步、部署行为和产品验收未覆盖 |
 | 服务门户与工单 | 前端 mock，完整性待验证 | [服务门户设计](superpowers/specs/2026-05-28-service-portal-design.md)；[mock 引擎](../web/src/view/service/data/ticketMockEngine.ts) 中 schedule 仍以定时器推进 submitted→approving→processing | 本轮仅源码抽查；未验收完整 UI、刷新及存储异常行为 |
 | 运维任务与工单联动 | 前端 mock，核心联动已见源码 | [taskStore](../web/src/view/service/data/taskStore.ts) 的 complete 将任务置 done 并调用 ticketStore.advance(processing, done)；[引擎](../web/src/view/service/data/ticketMockEngine.ts) 已无自动 done 定时器；提交 `193e026` 有关联展示改动 | 源码抽查，非运行验证；完整链路按 [#2](https://github.com/Dcuhddrg/Optimus/issues/2) 补验 |

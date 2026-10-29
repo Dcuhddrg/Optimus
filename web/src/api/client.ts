@@ -31,9 +31,22 @@ export function setStoredProjectCode(code: string | null) {
 
 export function setUnauthorizedHandler(handler: () => void) {
   onUnauthorized = handler;
+  return () => {
+    if (onUnauthorized === handler) onUnauthorized = undefined;
+  };
 }
 
-export async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
+export class ApiError extends Error {
+  constructor(message: string, public readonly status: number | undefined, public readonly kind: 'http' | 'network' | 'protocol') {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
+type RequestOptions = RequestInit & { auth?: 'required' | 'none' };
+
+export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const { auth = 'required', ...requestOptions } = options;
   const headers = new Headers(options.headers);
   headers.set('Accept', 'application/json');
 
@@ -41,7 +54,7 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
     headers.set('Content-Type', 'application/json');
   }
 
-  const token = getStoredToken();
+  const token = auth === 'required' ? getStoredToken() : null;
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
   }
@@ -49,21 +62,29 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
     headers.set('X-Project-Code', currentProjectCode);
   }
 
-  const response = await fetch(`/api/v1${path}`, {
-    ...options,
-    headers,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`/api/v1${path}`, { ...requestOptions, headers });
+  } catch {
+    throw new ApiError('Unable to reach the server', undefined, 'network');
+  }
 
-  if (response.status === 401) {
+  // A cancelled request or a response for an older token cannot expire the current session.
+  if (response.status === 401 && token && token === getStoredToken() && !options.signal?.aborted) {
     clearStoredToken();
     onUnauthorized?.();
   }
 
-  const text = await response.text();
-  const data = text ? JSON.parse(text) : undefined;
+  let data;
+  try {
+    const text = await response.text();
+    data = text ? JSON.parse(text) : undefined;
+  } catch {
+    throw new ApiError(`Request failed with ${response.status}`, response.status, response.ok ? 'protocol' : 'http');
+  }
 
   if (!response.ok) {
-    throw new Error(data?.message || `Request failed with ${response.status}`);
+    throw new ApiError(typeof data?.message === 'string' ? data.message : `Request failed with ${response.status}`, response.status, 'http');
   }
 
   return data as T;
