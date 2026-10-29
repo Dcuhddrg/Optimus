@@ -12,6 +12,7 @@ import type {
 
 export function login(username: string, password: string) {
   return apiRequest<LoginResponse>('/system/auth/login', {
+    auth: 'none',
     method: 'POST',
     body: JSON.stringify({ username, password }),
   });
@@ -21,8 +22,8 @@ export function logout() {
   return apiRequest<{ message: string }>('/system/auth/logout', { method: 'POST' });
 }
 
-export function currentUser() {
-  return apiRequest<CurrentUserResponse>('/system/auth/me');
+export function currentUser(signal?: AbortSignal) {
+  return apiRequest<CurrentUserResponse>('/system/auth/me', { signal });
 }
 
 export function listUsers() {
