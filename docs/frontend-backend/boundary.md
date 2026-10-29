@@ -1,7 +1,7 @@
 # 前后端协作与接口契约
 
 - 日期：2026-10-27；关联 [Issue #7](https://github.com/Dcuhddrg/Optimus/issues/7)。
-- 状态：契约文档已确认；确认范围见[第 11 节](#11-已确认决定与实施边界)，实施与验证情况见 [能力状态](../project-status.md)。
+- 状态：契约文档已确认；确认范围见[第 11 节](#11-已确认决定与实施边界)，协议迁移见 [#18](https://github.com/Dcuhddrg/Optimus/issues/18)，会话恢复修复与验证见 [#27](https://github.com/Dcuhddrg/Optimus/issues/27)。
 
 ## 1. 来源与适用范围
 

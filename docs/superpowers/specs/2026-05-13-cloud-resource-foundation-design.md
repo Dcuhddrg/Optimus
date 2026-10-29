@@ -256,7 +256,7 @@ Project scope and access constraints are described in [Permission Model](2026-05
 
 ## Sync and Lifecycle Model
 
-The account and asset design describes [sync architecture](2026-05-13-cloud-account-asset-registry-design.md#sync-architecture) and [data model](2026-05-13-cloud-account-asset-registry-design.md#data-model). Actual provider behavior and lifecycle coverage require verification; refer to [project status](../../project-status.md).
+The account and asset design describes [sync architecture](2026-05-13-cloud-account-asset-registry-design.md#sync-architecture) and [data model](2026-05-13-cloud-account-asset-registry-design.md#data-model). Actual provider behavior and lifecycle coverage require verification; refer to [verification evidence in #2](https://github.com/Dcuhddrg/Optimus/issues/2).
 
 ## API and Module Boundaries
 
@@ -264,7 +264,7 @@ The [account and asset API design](2026-05-13-cloud-account-asset-registry-desig
 
 ## Delivery Slices
 
-The [project isolation decomposition](2026-05-14-multi-project-cloud-isolation-design.md#sub-project-decomposition) describes the historical SP1–SP4 slices. Implementation and acceptance are separate; consult [project status](../../project-status.md) and relevant GitHub issues.
+The [project isolation decomposition](2026-05-14-multi-project-cloud-isolation-design.md#sub-project-decomposition) describes the historical SP1–SP4 slices. Implementation and acceptance are separate; consult [verification evidence in #2](https://github.com/Dcuhddrg/Optimus/issues/2) and relevant GitHub issues.
 
 ## Testing and Verification Strategy
 

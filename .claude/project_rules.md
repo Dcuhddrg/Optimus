@@ -15,7 +15,7 @@ structured_context: /docs
 
 1. `/AGENT.MD`
 2. `/docs/README.md`
-3. `/docs/project-status.md`、`/docs/relations/`、`/docs/memory/`、`/docs/modules/`、`/docs/frontend-backend/`、`/docs/superpowers/specs/`、`/docs/superpowers/plans/` 中与当前任务相关的文件
+3. `/docs/relations/`、`/docs/memory/`、`/docs/modules/`、`/docs/frontend-backend/`、`/docs/superpowers/specs/`、`/docs/superpowers/plans/` 中与当前任务相关的文件
 
 ## 适配层约束
 
