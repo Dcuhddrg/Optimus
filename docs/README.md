@@ -1,46 +1,23 @@
-# Optimus 项目文档入口
+# Optimus 文档入口
 
-最近架构规范整理：2026-10-27。能力核查范围和证据见状态表，文档整理不代表代码迁移或业务验收。
+先读 [AGENT.MD](../AGENT.MD)，再按任务选择相关文档，不必通读整个目录。规则冲突时以根规则和用户当前指令为准。
 
-项目规则唯一正文：[AGENT.MD](../AGENT.MD)。`.claude/project_rules.md` 和 `.codex/project_rules.md` 仅为工具兼容适配层，负责指向统一规则和按需读取项目上下文，不保存独立规则副本。
+## 工程上下文
 
-## 从哪里开始
+| 目录 | 内容 |
+| --- | --- |
+| [relations](relations/README.md) | 项目画像、系统关系、开发流程和工程操作 |
+| [modules](modules/README.md) | 模块职责与后端分层 |
+| [frontend-backend](frontend-backend/README.md) | 前后端协作、接口契约与前端规范 |
+| [examples](examples/README.md) | 开发示例入口；示例完善在 #8 跟进 |
+| [memory](memory/README.md) | 项目长期方向与重要决策 |
 
-| 你要了解的内容          | 阅读入口                                                        | 维护职责                      |
-| ---------------- | ----------------------------------------------------------- | ------------------------- |
-| 长期方向、阶段依赖        | [平台路线图](memory/platform-roadmap.md)         | 用户确定目标与优先级，助手维护依据         |
-| 当前实现到哪、哪些仍是 mock | [能力状态](project-status.md)                                   | 助手按代码和验证结果更新              |
-| 统一架构与存量迁移要求       | [架构约定](relations/current-architecture.md)                | 遵循根规则，区分目标与实现；迁移和验收在 #11 跟进 |
-| 前后端协作与接口契约       | [接口契约](frontend-backend/boundary.md)                    | #7 文档先行；当前行为、目标规范与待确认项分开说明 |
-| 当初为什么这样设计        | [决策索引](relations/decisions/README.md)                    | 维护原始理由和后续替代关系             |
-| 问题、反馈和待决策事项      | [GitHub Issues](https://github.com/Dcuhddrg/Optimus/issues) | 用户决定取舍，助手持续跟进             |
-| 文档状态、冲突与更新规则     | [文档维护约定](relations/documentation-workflow.md)                       | 每次工作均遵守                   |
-| 图谱工具用法、运行与条件验证步骤 | [工程操作参考](relations/engineering-workflow.md)                         | 按任务触发读取                   |
+## 产品与实施
 
-后端新旧模块统一采用 `Router -> API -> Service -> Model`，保留 `enter.go` 注册和组合入口。存量 `usecase/infra` 必须按 [ADR-002](relations/decisions/ADR-002-backend-structure-migration.md) 的目标分批迁移，范围、进度和验收在 [#11](https://github.com/Dcuhddrg/Optimus/issues/11) 跟进；当前文档不宣称代码迁移已完成。
+- [能力状态](project-status.md)：当前实现与验证证据；与产品验收分开记录。
+- [平台路线图](memory/long-term/platform-roadmap.md)：长期方向与阶段依赖。
+- [设计](superpowers/specs/)：[云资源基础](superpowers/specs/2026-05-13-cloud-resource-foundation-design.md)、[账号资产](superpowers/specs/2026-05-13-cloud-account-asset-registry-design.md)、[项目隔离](superpowers/specs/2026-05-14-multi-project-cloud-isolation-design.md)、[服务门户](superpowers/specs/2026-05-28-service-portal-design.md)、[任务管理](superpowers/specs/2026-06-02-ops-center-tasks-design.md)和[审批链](superpowers/specs/2026-06-04-ticket-approval-chain-design.md)。设计状态不等于实际交付。
+- [实施计划索引](superpowers/plans/README.md)：计划范围、当前状态与按需读取说明；[历史归档](superpowers/archive/)不代表已经完成验收。
+- [GitHub Issues](https://github.com/Dcuhddrg/Optimus/issues)：需求、反馈、问题、优先级和进度的唯一跟踪入口。
 
-## 按主题读取工程上下文
-
-参考 gin-vue-admin 的组织方式，按任务选择入口，不需要通读所有目录：
-
-- [relations](relations/README.md)：系统结构、技术栈及运行边界。
-- [modules](modules/README.md)：模块职责、后端分层与迁移规则。
-- [frontend-backend](frontend-backend/README.md)：前后端契约、前端规范与复用。
-- [examples](examples/README.md)：基于已验证实现的开发示例入口。
-- [memory](memory/README.md)：长期规则、能力证据与 GitHub Issue 入口。
-
-架构决策维护在 [relations/decisions](relations/decisions/README.md)，产品设计、计划和路线图保留各自职责。旧架构入口已删除；现行系统架构和后端分层分别从 relations 与 modules 读取。
-
-## 功能设计与计划
-
-- 云资源：[基础设计](superpowers/specs/2026-05-13-cloud-resource-foundation-design.md)、[账号与资产](superpowers/specs/2026-05-13-cloud-account-asset-registry-design.md)、[项目隔离](superpowers/specs/2026-05-14-multi-project-cloud-isolation-design.md)。
-- 运维中心：[服务门户](superpowers/specs/2026-05-28-service-portal-design.md)、[任务管理](superpowers/specs/2026-06-02-ops-center-tasks-design.md)、[审批链](superpowers/specs/2026-06-04-ticket-approval-chain-design.md)。
-- 对应实施步骤在 [plans](superpowers/plans/)；历史设计在 [archive](superpowers/archive/)。目录归档位置不等于功能已验证。
-
-## 开始和结束一项工作
-
-开始时读取项目规则和本入口，再按任务读取相关能力行、Issue 正文/必要评论及适用设计；不通读全部文档或全部 Issues。代码发现优先走 codebase-memory，并确认索引状态；图谱不是测试或验收证据。
-
-结束时记录实际改动、验证结果、剩余问题及相关编号。涉及行为或边界演进时更新设计关联。需要用户决策的事项保留待评估，不由助手补造结论。
-
-新问题统一在 GitHub 提出，进度和讨论在对应 Issue 维护；docs 保存产品、架构和能力证据。本地不再维护问题台账或编号映射正文。聊天中形成的重要结论须写入对应 Issue 或设计文档，才能作为长期依据。
+结束工作时记录实际变更、验证结果及未覆盖项；文档和 Issue 的维护规则见 [文档维护约定](relations/documentation-workflow.md)。

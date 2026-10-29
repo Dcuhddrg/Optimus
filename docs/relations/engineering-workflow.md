@@ -18,6 +18,8 @@
 | 死代码、高扇入/扇出及重构候选 | `search_graph` 配合 `max_degree` / `min_degree` |
 | 不熟悉图谱结构 | 先 `get_graph_schema()` |
 
+路由端点可通过 `query_graph("MATCH (n)-[r:HANDLES]->(p) RETURN n.name, r.method, r.url_path")` 按需查询；图谱结果需结合实际实现核对。
+
 ### 索引与回退
 
 - 状态不明时，先用 `index_status(project="home-lilin-trae-project-Optimus")` 确认 ready。
@@ -27,7 +29,7 @@
 
 ## 验证步骤
 
-基础命令见 [根规则验证章节](../../AGENT.MD#验证)。以下步骤按任务触发；部署地址和代理契约统一以 [当前架构](current-architecture.md) 为准。
+基础命令见 [根规则验证章节](../../AGENT.MD#验证)。以下步骤按任务触发；部署地址和代理契约统一以 [当前架构](repo-profile.md) 为准。
 
 ### 依赖准备
 
