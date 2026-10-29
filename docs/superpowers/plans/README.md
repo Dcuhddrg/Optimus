@@ -1,6 +1,6 @@
 # 实施计划索引
 
-计划是特定阶段的实施记录，不等于当前架构或产品验收。读取前先看 [AGENT.MD](../../../AGENT.MD)、关联 Issue 和 [能力状态](../../project-status.md)；涉及旧代码路径时以当前代码与规范为准。下列条目尚未逐项核验交付状态，不能凭日期或复选框判断完成。
+计划是特定阶段的实施记录。读取前先看 [AGENT.MD](../../../AGENT.MD)、关联 Issue 和 [能力状态](../../project-status.md)；涉及旧代码路径时以当前代码与规范为准。下列条目尚未逐项核验交付状态。
 
 ## 云资源与项目
 
@@ -15,4 +15,4 @@
 
 ## 状态维护
 
-逐项核对代码、设计和用户验收后才能更新状态或归档；现存计划的清理在 [#10](https://github.com/Dcuhddrg/Optimus/issues/10) 跟进。已验收的历史计划位于 [archive/plans](../archive/plans/)，但归档本身不代表全部业务能力已验证。
+状态与归档遵循 [文档维护约定](../../relations/documentation-workflow.md#状态与事实)；现存计划的清理在 [#10](https://github.com/Dcuhddrg/Optimus/issues/10) 跟进。历史计划见 [archive/plans](../archive/plans/)。
