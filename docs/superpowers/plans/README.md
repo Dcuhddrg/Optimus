@@ -16,6 +16,7 @@
 ## 系统治理
 
 - [审计查询与阅读体验](2026-10-29-audit-query-experience.md)：分页、筛选、现有字段详情及 CSV 导出，关联 [#28](https://github.com/Dcuhddrg/Optimus/issues/28)。
+- [审计记录质量](2026-10-29-audit-record-quality.md)：关键事件摘要、未认证账号线索及写入失败可观测性，关联 [#36](https://github.com/Dcuhddrg/Optimus/issues/36)。
 
 ## 状态维护
 

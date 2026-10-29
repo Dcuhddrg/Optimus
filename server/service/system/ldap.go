@@ -59,7 +59,9 @@ func (s *LDAPService) GetConfig(ctx context.Context) (systemModel.LDAPConfigResu
 }
 
 func (s *LDAPService) SaveConfig(ctx context.Context, actorID uint, req systemModel.LDAPConfigRequest, meta AuditMeta) (systemModel.LDAPConfigResult, error) {
-	current, _ := s.store.GetLDAPConfig(ctx)
+	event := failedAudit(actorID, meta, "ldap.config.update", "ldap", 0)
+	defer func() { recordAudit(ctx, s.store, event) }()
+	current, currentErr := s.store.GetLDAPConfig(ctx)
 	cfg := systemModel.SystemLDAPConfig{
 		ID:              current.ID,
 		Enabled:         req.Enabled,
@@ -77,23 +79,39 @@ func (s *LDAPService) SaveConfig(ctx context.Context, actorID uint, req systemMo
 	}
 	saved, err := s.store.SaveLDAPConfig(ctx, cfg)
 	if err != nil {
+		event.Detail = auditDetails("update_failed", nil)
 		return systemModel.LDAPConfigResult{}, err
 	}
-	_ = s.store.WriteAudit(ctx, AuditEvent{ActorUserID: actorID, ActorUsername: meta.ActorUsername, Action: "ldap.config.update", ResourceType: "ldap", Result: "success", IP: meta.IP, UserAgent: meta.UserAgent})
+	event.ResourceID = resourceID(saved.ID)
+	event.Result = "success"
+	if currentErr != nil {
+		event.Detail = auditDetails("snapshot_unavailable", nil)
+	} else {
+		event.Detail = auditDetails("updated", map[string]auditChange{
+			"enabled":             {Before: current.Enabled, After: saved.Enabled},
+			"connectionChanged":   {Before: false, After: current.URL != saved.URL || current.BaseDN != saved.BaseDN || current.BindDN != saved.BindDN},
+			"mappingChanged":      {Before: false, After: current.UserFilter != saved.UserFilter || current.UsernameAttr != saved.UsernameAttr || current.DisplayNameAttr != saved.DisplayNameAttr || current.EmailAttr != saved.EmailAttr},
+			"bindPasswordChanged": {Before: false, After: current.BindPassword != saved.BindPassword},
+		})
+	}
 	return ldapConfigResult(saved), nil
 }
 
 func (s *LDAPService) TestConfig(ctx context.Context, actorID uint, req systemModel.LDAPTestRequest, meta AuditMeta) (systemModel.LDAPTestResult, error) {
 	cfg, err := s.connectionConfig(ctx, req)
 	if err != nil {
-		_ = s.store.WriteAudit(ctx, AuditEvent{ActorUserID: actorID, ActorUsername: meta.ActorUsername, Action: "ldap.test.failure", ResourceType: "ldap", Result: "failure", IP: meta.IP, UserAgent: meta.UserAgent, Detail: err.Error()})
+		event := failedAudit(actorID, meta, "ldap.test.failure", "ldap", 0)
+		event.Detail = auditDetails("invalid_config", nil)
+		recordAudit(ctx, s.store, event)
 		return systemModel.LDAPTestResult{}, err
 	}
 	if err := s.client.Test(ctx, cfg); err != nil {
-		_ = s.store.WriteAudit(ctx, AuditEvent{ActorUserID: actorID, ActorUsername: meta.ActorUsername, Action: "ldap.test.failure", ResourceType: "ldap", Result: "failure", IP: meta.IP, UserAgent: meta.UserAgent, Detail: err.Error()})
+		event := failedAudit(actorID, meta, "ldap.test.failure", "ldap", 0)
+		event.Detail = auditDetails("connection_test_failed", nil)
+		recordAudit(ctx, s.store, event)
 		return systemModel.LDAPTestResult{}, err
 	}
-	_ = s.store.WriteAudit(ctx, AuditEvent{ActorUserID: actorID, ActorUsername: meta.ActorUsername, Action: "ldap.test.success", ResourceType: "ldap", Result: "success", IP: meta.IP, UserAgent: meta.UserAgent})
+	recordAudit(ctx, s.store, AuditEvent{ActorUserID: actorID, ActorUsername: meta.ActorUsername, Action: "ldap.test.success", ResourceType: "ldap", Result: "success", IP: meta.IP, UserAgent: meta.UserAgent, Detail: auditDetails("connection_test_passed", nil)})
 	return systemModel.LDAPTestResult{Success: true, Message: "LDAP connection test passed"}, nil
 }
 
