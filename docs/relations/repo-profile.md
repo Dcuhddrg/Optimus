@@ -1,7 +1,7 @@
 # 项目画像与运行边界
 
 > 规范依据：[AGENT.MD](../../AGENT.MD) 是项目规则唯一正文；本文展开其架构职责和边界，发生冲突时以根规则为准。
-> 现行架构依据见 [ADR-002](../memory/long-term/decisions/ADR-002-backend-structure-migration.md)，迁移结果及验证范围见 [能力状态](../project-status.md)。
+> 现行架构依据见 [ADR-002](../memory/long-term/decisions/ADR-002-backend-structure-migration.md)，迁移结果见 [#11](https://github.com/Dcuhddrg/Optimus/issues/11)，历史验证基线见 [#2](https://github.com/Dcuhddrg/Optimus/issues/2)。
 
 > 本文件维护项目定位、技术栈与运行时边界；系统结构和工程操作分别见 [系统关系图](system-map.md) 与 [工程操作参考](engineering-workflow.md)。
 
@@ -9,7 +9,7 @@
 
 ## 项目定位
 
-Optimus 以治理、云资源、运维和成本能力为长期方向；当前实现与验证边界见 [能力状态](../project-status.md)，不能依据路线图推断功能已交付。
+Optimus 以治理、云资源、运维和成本能力为长期方向；当前实现与验证边界以相关 Issue/PR 的记录为依据，历史基线见 [#2](https://github.com/Dcuhddrg/Optimus/issues/2)，不能依据路线图推断功能已交付。
 
 ## 系统关系
 
@@ -66,4 +66,4 @@ Optimus 以治理、云资源、运维和成本能力为长期方向；当前实
 
 ## Platform Roadmap
 
-长期阶段见 [路线图](../memory/long-term/platform-roadmap.md)，当前实现及验证状态统一见 [能力状态](../project-status.md)，决策理由见 [决策索引](../memory/long-term/decisions/README.md)。本文件维护架构契约，不重复维护项目进度。
+长期阶段见 [路线图](../memory/long-term/platform-roadmap.md)，各功能实现、验证及验收结果在对应 [GitHub Issue](https://github.com/Dcuhddrg/Optimus/issues) 中跟进，决策理由见 [决策索引](../memory/long-term/decisions/README.md)。本文件维护架构契约，不重复维护项目进度。

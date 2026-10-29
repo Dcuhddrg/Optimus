@@ -9,7 +9,7 @@
 
 1. `AGENT.MD`。
 2. [docs/README.md](docs/README.md)。
-3. 按任务读取相关 GitHub Issue、能力状态、架构、模块设计及实施计划，不加载全部上下文。
+3. 按任务读取相关 GitHub Issue、架构、模块设计及实施计划，不加载全部上下文。
 4. 仅在当前工具确实依赖时，读取工具目录下的适配文件。
 
 ## 仓库概览
@@ -37,7 +37,7 @@
 - 保持统一分页结构：`{ page, pageSize, total, list }`。
 - 前后端字段名、数据类型和错误处理保持一致；接口变更同步调用方和文档。
 - 请求通过 `web/src/api/` 封装，view 不直接 `fetch`；优先复用 `web/src/utils/` 的工具及现有组件。
-- 跨栈边界变更同步相关模块设计、接口约定和能力证据；未要求行为变化时保留业务逻辑。
+- 跨栈边界变更同步相关模块设计、接口约定及 Issue 中的验证记录；未要求行为变化时保留业务逻辑。
 
 ### 插件与模块
 
@@ -57,7 +57,7 @@
 - 用户负责产品目标、需求优先级和架构取舍；助手负责基于实际代码与证据完成核查、拆解、设计、实现、验证和记录。反馈不等于批准的需求，需要业务验收的成果由用户确认。
 - 长期维护优先保持架构与文档整洁、明确；参考框架或设计文档不能作为功能已实现的依据。
 - 每项业务需求、问题和反馈在 [GitHub Issues](https://github.com/Dcuhddrg/Optimus/issues) 记录、讨论和跟进；业务需求包括模块、接口、页面、流程、业务规则及插件能力的新增或修改。
-- 长期稳定偏好提炼到本文件或对应设计，不只留在聊天中；Issue 记录单项需求，docs 保存确定后的设计和能力证据，不双写问题状态。
+- 长期稳定偏好提炼到本文件或对应设计，不只留在聊天中；Issue/PR 记录单项需求、交付、验证与验收证据；docs 保存稳定规范、已确认设计和决策，不另建状态汇总表或双写问题状态。
 - README、映射文件只承担入口和索引职责；更新具体 Issue 或相关文档，不用重写汇总正文覆盖历史记录。远端不可用时说明阻塞。
 
 ### 范围与执行
@@ -82,7 +82,7 @@
 
 ## 文档索引
 
-- [文档入口](docs/README.md) · [能力状态](docs/project-status.md) · [平台路线图](docs/memory/long-term/platform-roadmap.md)
+- [文档入口](docs/README.md) · [平台路线图](docs/memory/long-term/platform-roadmap.md)
 - [系统关系](docs/relations/README.md) · [模块与分层](docs/modules/README.md) · [前后端协作](docs/frontend-backend/README.md) · [决策索引](docs/memory/long-term/decisions/README.md)
 - [文档维护](docs/relations/documentation-workflow.md) · [工程操作](docs/relations/engineering-workflow.md)
 - [设计](docs/superpowers/specs/) · [计划](docs/superpowers/plans/) · [归档](docs/superpowers/archive/)

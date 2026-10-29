@@ -3,7 +3,7 @@
 - 日期：2026-06-02
 - 范围：运维中心前端「任务管理」模块（前端优先，无后端）
 - 状态：原文记录已通过设计评审；[实施计划已存在](../plans/2026-06-02-ops-center-tasks.md)，有实现提交，交付验收待核实。
-- 最近核查：2026-10-26；证据与后续验证见 [能力状态](../../project-status.md) 和 [#2](https://github.com/Dcuhddrg/Optimus/issues/2)。
+- 最近核查：2026-10-26；证据与后续验证见 [#2](https://github.com/Dcuhddrg/Optimus/issues/2)。
 
 > 演进关系：本文取代早期 [服务门户设计](2026-05-28-service-portal-design.md) 的 processing 定时自动 done 行为。以下“背景”保留设计时事实；当前引擎已删除自动 done 定时器，任务完成调用工单推进（本轮仅源码抽查）。后续 [审批链设计](2026-06-04-ticket-approval-chain-design.md) 规划改变审批节奏，但尚未完整落地。
 

@@ -1,6 +1,6 @@
 # 架构决策索引
 
-此处索引决定、依据和适用范围；实现与验证情况见 [能力状态](../../../project-status.md)，状态含义见 [文档维护约定](../../../relations/documentation-workflow.md#状态与事实)。
+此处索引决定、依据和适用范围；实现与验证情况见对应 Issue/PR，历史验证基线见 [#2](https://github.com/Dcuhddrg/Optimus/issues/2)，状态含义见 [文档维护约定](../../../relations/documentation-workflow.md#状态与事实)。
 
 ## 当前依据
 

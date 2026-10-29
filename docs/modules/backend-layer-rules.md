@@ -31,7 +31,7 @@ Router -> API -> Service -> Model
 - 结构调整保持已有接口返回、HTTP 状态、权限和项目隔离行为；响应协议改造由 #18 独立实施。
 - 结构调整须清除临时兼容入口，并按影响范围验证构建和隔离 MySQL 回归；进度与剩余差异在 GitHub 跟进。
 
-现行决定及替代关系见 [ADR-002](../memory/long-term/decisions/ADR-002-backend-structure-migration.md)，迁移结果及验证依据见 [能力状态](../project-status.md)。
+现行决定及替代关系见 [ADR-002](../memory/long-term/decisions/ADR-002-backend-structure-migration.md)，迁移结果及验证依据见 [结构迁移 #11](https://github.com/Dcuhddrg/Optimus/issues/11)。
 
 ## 装配与注册入口
 
