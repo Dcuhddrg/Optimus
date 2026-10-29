@@ -13,6 +13,10 @@
 - [服务门户](2026-05-28-service-portal.md)、[卡片尺寸](2026-05-31-service-card-sizing.md)、[门户头部](2026-05-31-service-portal-header.md)。
 - [任务管理](2026-06-02-ops-center-tasks.md)、[多级审批链](2026-06-04-ticket-approval-chain.md)。审批链尚未完成，见 [#4](https://github.com/Dcuhddrg/Optimus/issues/4)。
 
+## 系统治理
+
+- [审计查询与阅读体验](2026-10-29-audit-query-experience.md)：分页、筛选、现有字段详情及 CSV 导出，关联 [#28](https://github.com/Dcuhddrg/Optimus/issues/28)。
+
 ## 状态维护
 
 状态与归档遵循 [文档维护约定](../../relations/documentation-workflow.md#状态与事实)；现存计划的清理在 [#10](https://github.com/Dcuhddrg/Optimus/issues/10) 跟进。云资源基础规格相关核查按用户决定暂停，见 [#3](https://github.com/Dcuhddrg/Optimus/issues/3)；其余未取得验收依据的计划保留，不由文件日期或提交记录推定验收。
