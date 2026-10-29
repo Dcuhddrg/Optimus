@@ -6,7 +6,7 @@
 
 | 主题 | 原始依据 | 适用范围与核查说明 |
 | --- | --- | --- |
-| 新旧模块的分层、结构迁移与装配 | [ADR-002](ADR-002-backend-structure-migration.md)、[当前架构约定](../current-architecture.md) | 统一 Router → API → Service → Model，存量 usecase/infra 必须分批迁移；方向已确认，实现及验收在 #11 跟进 |
+| 新旧模块的分层、结构迁移与装配 | [ADR-002](ADR-002-backend-structure-migration.md)、[当前架构约定](../../relations/repo-profile.md) | 统一 Router → API → Service → Model，存量 usecase/infra 必须分批迁移；三模块迁移和用户验收已完成，记录见 #11 |
 | 前后端接口契约 | [接口契约](../../frontend-backend/boundary.md) | HTTP 4xx/5xx、成功0/失败7、空数据及分模块切换方向已确认；细则供后续分批实施，文档先行不代表代码已迁移 |
 | 账号同步、凭证加密、资产软删除、Provider 注册 | [账号资产设计的 Architecture Decisions](../../superpowers/specs/2026-05-13-cloud-account-asset-registry-design.md) | 原文标为 Approved；凭证与同步的实际安全性尚未在本轮验证 |
 | 项目角色、资源归属与请求项目上下文 | [项目隔离设计的 Architecture Decisions](../../superpowers/specs/2026-05-14-multi-project-cloud-isolation-design.md) | 复用原文理由；保留 Open Questions，不能推断全部已解决 |
@@ -14,10 +14,6 @@
 | 多级审批链与当前审批人展示 | [审批链设计](../../superpowers/specs/2026-06-04-ticket-approval-chain-design.md) | 已有设计与计划，部分实现；逐级审批目标尚不能替代当前引擎事实 |
 
 历史 spec / plan 保留当时的业务决定和交付证据；其分层及“保留旧结构”的约定不再产生当前豁免，现行要求以 ADR-002 为准。
-
-## 已取代的历史记录
-
-- [ADR-001](archive/ADR-001-backend-layering.md)：已被 ADR-002 取代，仅在追溯历史时读取。仅保留归档原文，不纳入当前规范。
 
 ## 以后如何记录重大决定
 

@@ -10,14 +10,14 @@
 | ---------------- | ----------------------------------------------------------- | ------------------------- |
 | 长期方向、阶段依赖        | [平台路线图](memory/platform-roadmap.md)         | 用户确定目标与优先级，助手维护依据         |
 | 当前实现到哪、哪些仍是 mock | [能力状态](project-status.md)                                   | 助手按代码和验证结果更新              |
-| 统一架构与存量迁移要求       | [架构约定](relations/current-architecture.md)                | 遵循根规则，区分目标与实现；迁移和验收在 #11 跟进 |
+| 统一架构与存量迁移要求       | [架构约定](relations/repo-profile.md)                | 遵循根规则；结构迁移已验收，详情见 #11 |
 | 前后端协作与接口契约       | [接口契约](frontend-backend/boundary.md)                    | #7 文档先行；当前行为、目标规范与待确认项分开说明 |
-| 当初为什么这样设计        | [决策索引](relations/decisions/README.md)                    | 维护原始理由和后续替代关系             |
+| 当初为什么这样设计        | [决策索引](memory/decisions/README.md)                    | 维护原始理由和后续替代关系             |
 | 问题、反馈和待决策事项      | [GitHub Issues](https://github.com/Dcuhddrg/Optimus/issues) | 用户决定取舍，助手持续跟进             |
 | 文档状态、冲突与更新规则     | [文档维护约定](relations/documentation-workflow.md)                       | 每次工作均遵守                   |
 | 图谱工具用法、运行与条件验证步骤 | [工程操作参考](relations/engineering-workflow.md)                         | 按任务触发读取                   |
 
-后端新旧模块统一采用 `Router -> API -> Service -> Model`，保留 `enter.go` 注册和组合入口。存量 `usecase/infra` 必须按 [ADR-002](relations/decisions/ADR-002-backend-structure-migration.md) 的目标分批迁移，范围、进度和验收在 [#11](https://github.com/Dcuhddrg/Optimus/issues/11) 跟进；当前文档不宣称代码迁移已完成。
+后端统一采用 `Router -> API -> Service -> Model`。project、cloud、system 的结构迁移已通过 [#11](https://github.com/Dcuhddrg/Optimus/issues/11) 验收；路由与依赖装配的现状见 [后端分层规则](modules/backend-layer-rules.md)，接口响应迁移由 #18 单独跟进。
 
 ## 按主题读取工程上下文
 
@@ -29,7 +29,7 @@
 - [examples](examples/README.md)：基于已验证实现的开发示例入口。
 - [memory](memory/README.md)：长期规则、能力证据与 GitHub Issue 入口。
 
-架构决策维护在 [relations/decisions](relations/decisions/README.md)，产品设计、计划和路线图保留各自职责。旧架构入口已删除；现行系统架构和后端分层分别从 relations 与 modules 读取。
+架构决策维护在 [memory/decisions](memory/decisions/README.md)，产品设计、计划和路线图保留各自职责。旧架构入口已删除；现行系统架构和后端分层分别从 relations 与 modules 读取。
 
 ## 功能设计与计划
 

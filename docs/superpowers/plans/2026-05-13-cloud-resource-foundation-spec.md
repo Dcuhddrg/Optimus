@@ -1,4 +1,4 @@
-> 历史路径说明：本计划中 `docs/architecture/current-architecture.md` 和 `docs/roadmaps/finops-devops-platform-roadmap.md` 为当时路径，已迁移；现行架构见 [系统架构](../../relations/current-architecture.md) 、[后端分层规则](../../modules/backend-layer-rules.md) 和 [平台路线图](../../memory/platform-roadmap.md)。历史命令保留原样，不应作为当前操作步骤。
+> 历史路径说明：本计划中 `docs/architecture/current-architecture.md` 和 `docs/roadmaps/finops-devops-platform-roadmap.md` 为当时路径，已迁移；现行架构见 [系统架构](../../relations/repo-profile.md) 、[后端分层规则](../../modules/backend-layer-rules.md) 和 [平台路线图](../../memory/platform-roadmap.md)。历史命令保留原样，不应作为当前操作步骤。
 
 # Cloud Resource Foundation Spec Implementation Plan
 

@@ -2,7 +2,7 @@
 
 - 日期：2026-10-27。
 - 状态：规范方向已由用户明确确认；迁移实施和验收见 [Issue #11](https://github.com/Dcuhddrg/Optimus/issues/11)，本记录不宣称代码迁移已完成。
-- 取代：[ADR-001](archive/ADR-001-backend-layering.md) 中将旧 usecase/infra 长期作为 Service 内部组织保留、仅统一文档而不要求迁移存量的约定。
+- 背景：统一后端结构，历史变更可通过 Git 和 [Issue #11](https://github.com/Dcuhddrg/Optimus/issues/11) 追溯。
 - 规则入口：[AGENT.MD](../../../AGENT.MD)；职责与路径要求：[当前架构](../../modules/backend-layer-rules.md#后端分层契约)。
 
 ## 决定

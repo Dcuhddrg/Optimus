@@ -24,7 +24,7 @@
 ### 架构
 
 - 新模块与存量模块统一采用 `Router -> API -> Service -> Model`，同时统一目录、包依赖与注册入口。
-- 旧 `usecase/infra` 必须纳入 [#11](https://github.com/Dcuhddrg/Optimus/issues/11) 的迁移清单，不再作为长期可选结构保留；目标与验收边界见 [ADR-002](docs/relations/decisions/ADR-002-backend-structure-migration.md)。
+- 禁止新建或长期保留旧 `usecase/infra` 结构；既有三模块迁移和验收见 [#11](https://github.com/Dcuhddrg/Optimus/issues/11)，决定依据见 [ADR-002](docs/memory/decisions/ADR-002-backend-structure-migration.md)。
 - 结构迁移保持现有接口及权限行为，接口协议变更按独立 Issue 实施，不与结构迁移混批。
 - `enter.go` 继续作为分组注册与组合入口。
 - API 层处理 HTTP 相关逻辑，Service 层不要依赖 `gin.Context`。
@@ -81,7 +81,7 @@
 ## 文档索引
 
 - [文档入口](docs/README.md) · [能力状态](docs/project-status.md) · [平台路线图](docs/memory/platform-roadmap.md)
-- [系统关系](docs/relations/README.md) · [模块与分层](docs/modules/README.md) · [前后端协作](docs/frontend-backend/README.md) · [决策索引](docs/relations/decisions/README.md)
+- [系统关系](docs/relations/README.md) · [模块与分层](docs/modules/README.md) · [前后端协作](docs/frontend-backend/README.md) · [决策索引](docs/memory/decisions/README.md)
 - [文档维护](docs/relations/documentation-workflow.md) · [工程操作](docs/relations/engineering-workflow.md)
 - [设计](docs/superpowers/specs/) · [计划](docs/superpowers/plans/) · [归档](docs/superpowers/archive/)
 
