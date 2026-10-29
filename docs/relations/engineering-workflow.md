@@ -1,10 +1,12 @@
 # 工程操作参考
 
-最近整理：2026-10-26。由 [AGENT.MD](../../AGENT.MD) 引用，承接原规则中的工具用法和验证步骤；行为边界以根规则为准。按当前任务读取对应章节。
+最近整理：2026-10-29。由 [AGENT.MD](../../AGENT.MD) 引用，承接原规则中的工具用法和验证步骤；行为边界以根规则为准。按当前任务读取对应章节。
 
 ## 图谱查询
 
 项目名：`home-lilin-trae-project-Optimus`；本机路径：`/home/lilin/trae-project/Optimus`。
+
+本节工具均指 `codebase-memory-mcp` 的能力；根据任务使用 `search_code`、`search_graph`、`get_code_snippet`、`trace_path` 等具体工具，不能以其他 MCP 服务代替代码层级的工具要求。
 
 | 目标 | 工具 |
 | --- | --- |
@@ -25,7 +27,8 @@
 - 状态不明时，先用 `index_status(project="home-lilin-trae-project-Optimus")` 确认 ready。
 - 拉取主干、大重构或批量新增后执行 `detect_changes()`；明显落后时用 `index_repository`，必要时清理后重建。清理操作仍受根规则的授权边界约束。
 - 文本工具回退仅用于：非代码文件（如 `.md`、`.yaml`、`.json`、`.toml`、`.env*`）；配置值、注释、字符串字面量或错误文案；`.claude/`、`docs/`、`deploy/` 等非源码目录；先经 `detect_changes` 确认未被图谱覆盖的新文件。
-- 派发子代理时传递图谱优先及回退条件；定向查询并限制输出，不以固定 Token 数字推断工具成本。
+- 使用文本工具处理源码前，必须核实符合上条列出的回退条件，并说明依据；否则继续使用 `codebase-memory-mcp`。已知路径、已定位符号或进入实现阶段，均不构成回退条件。
+- 派发子代理时传递 `codebase-memory-mcp` 使用要求及回退条件；定向查询并限制输出，不以固定 Token 数字推断工具成本。
 
 ## 验证步骤
 

@@ -69,8 +69,9 @@
 
 ### 代码读取约束
 
-- 代码探索优先 codebase-memory-mcp，项目为 `home-lilin-trae-project-Optimus`；状态不明先查 `index_status`，拉取主干、大重构或批量新增后用 `detect_changes` 核对漂移并更新落后索引。
-- 探索前读取 [图谱操作参考](docs/relations/engineering-workflow.md#图谱查询)；文本工具仅用于非代码文件、文字查找或确认图谱未覆盖的新文件，不先宽泛扫描源码。派发子代理须传递相同要求。
+- 代码层级的搜索、符号定位、源码读取、调用关系及影响分析，统一使用 `codebase-memory-mcp`。已知文件路径、已定位符号或进入实现阶段，不构成使用文本工具的回退理由。
+- 项目为 `home-lilin-trae-project-Optimus`；状态不明先查 `index_status`，拉取主干、大重构或批量新增后用 `detect_changes` 核对漂移并更新落后索引。
+- 探索前读取 [图谱操作参考](docs/relations/engineering-workflow.md#图谱查询)；文本工具仅按该文档列明的条件回退，处理源码前必须核实适用条件并说明依据，不先宽泛扫描源码。派发子代理须传递相同要求。
 - 不直接读取 `node_modules/` 中的实现代码；第三方行为先看项目调用、锁文件、配置、官方文档和公开类型/说明，不逐文件翻依赖实现。
 
 ### 验证
