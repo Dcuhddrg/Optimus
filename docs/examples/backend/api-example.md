@@ -1,7 +1,5 @@
 # API 示例
 
-> 改写自 [gin-vue-admin / backend/api-example.md](https://github.com/flipped-aurora/gin-vue-admin/blob/cee04b08d1262036ca33e3026e1e13d29471c7d5/aiDoc/examples/backend/api-example.md)（`cee04b08`）。2026-10-30 适配 Optimus：保留上游讲解结构，代码、路径及现状说明已修改；上游许可见 [LICENSE.gin-vue-admin](../LICENSE.gin-vue-admin)。
-
 ## 这个文件负责什么
 
 API 接收 HTTP 输入、校验来源、调用 Service 并组织响应；Swagger 需准确描述实际路由和格式。

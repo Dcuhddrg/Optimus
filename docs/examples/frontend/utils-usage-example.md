@@ -1,7 +1,5 @@
 # 工具函数使用示例
 
-> 改写自 [gin-vue-admin / frontend/utils-usage-example.md](https://github.com/flipped-aurora/gin-vue-admin/blob/cee04b08d1262036ca33e3026e1e13d29471c7d5/aiDoc/examples/frontend/utils-usage-example.md)（`cee04b08`）。2026-10-30 适配 Optimus：保留上游讲解结构，代码、路径及现状说明已修改；上游许可见 [LICENSE.gin-vue-admin](../LICENSE.gin-vue-admin)。
-
 ## 这个文件负责什么
 
 优先复用已有公共能力，但不能把上游 utils 清单当成 Optimus 已安装的工具库。通用能力确有重复使用再抽取。

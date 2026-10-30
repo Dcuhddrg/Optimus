@@ -1,7 +1,5 @@
 # 开发示例
 
-> 改写自 [gin-vue-admin / README.md](https://github.com/flipped-aurora/gin-vue-admin/blob/cee04b08d1262036ca33e3026e1e13d29471c7d5/aiDoc/examples/README.md)（`cee04b08`）。2026-10-30 适配 Optimus：保留上游讲解结构，代码、路径及现状说明已修改；上游许可见 [LICENSE.gin-vue-admin](LICENSE.gin-vue-admin)。
-
 ## 读取建议
 
 ### 新增后端能力时
@@ -10,7 +8,7 @@
 
 ### 新增前端能力时
 
-按 [API](frontend/api-example.md) → [状态管理](frontend/state-example.md) → [View](frontend/view-example.md) → [工具复用](frontend/utils-usage-example.md) 阅读。`state-example.md` 对应上游 `pinia-example.md`，适配为 React Context。
+按 [API](frontend/api-example.md) → [状态管理](frontend/state-example.md) → [View](frontend/view-example.md) → [工具复用](frontend/utils-usage-example.md) 阅读。状态管理示例使用 React Context。
 
 ### 新增插件时
 
@@ -24,7 +22,6 @@
 - 当前审计 JSON 是 `{items,total,page,pageSize}`，公共请求返回原始 DTO；`{code,data,msg}` 是已确认的迁移目标，代码迁移由 [#18](https://github.com/Dcuhddrg/Optimus/issues/18) 跟进。CSV 不包 JSON。
 - 上游的 `GVA_MODEL`、`global.GVA_DB`、全局 ServiceGroupApp、Vue/Pinia、Element Plus 和插件注册 SDK 均不自动成为本仓库现有能力。
 - 示例参考基线为 `44d1940`：审计查询及记录链路的实现与验证分别见 [#28](https://github.com/Dcuhddrg/Optimus/issues/28)、[#36](https://github.com/Dcuhddrg/Optimus/issues/36)。路径、差异和本轮核查限制见 [#8](https://github.com/Dcuhddrg/Optimus/issues/8)，源码变更后通过 codebase-memory-mcp 重新核对，不把教学片段当作完整实现。
-- 本目录保留原作者来源及许可文本，仅适配示例，不更改仓库其他代码或文档的许可。
 
 ## 验证清单
 
