@@ -16,7 +16,7 @@ export function SystemUsersPage() {
 
   async function loadUsers() {
     const result = await listUsers();
-    setUsers(result.items);
+    setUsers(result.list);
   }
 
   useEffect(() => {
