@@ -9,7 +9,7 @@
 | [relations](relations/README.md) | 项目画像、系统关系、开发流程和工程操作 |
 | [modules](modules/README.md) | 模块职责与后端分层 |
 | [frontend-backend](frontend-backend/README.md) | 前后端协作、接口契约与前端规范 |
-| [examples](examples/README.md) | 开发示例入口；示例完善在 #8 跟进 |
+| [examples](examples/README.md) | 后端、React 前端和插件边界的开发示例；沿用 gin-vue-admin 讲解结构并适配本项目 |
 | [memory](memory/README.md) | 项目长期方向与重要决策 |
 
 ## 产品与实施
