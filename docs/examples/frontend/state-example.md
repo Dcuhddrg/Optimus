@@ -1,6 +1,4 @@
-# 状态管理示例（对应上游 Pinia）
-
-> 改写自 [gin-vue-admin / frontend/pinia-example.md](https://github.com/flipped-aurora/gin-vue-admin/blob/cee04b08d1262036ca33e3026e1e13d29471c7d5/aiDoc/examples/frontend/pinia-example.md)（`cee04b08`）。2026-10-30 适配 Optimus：保留上游讲解结构，代码、路径及现状说明已修改；上游许可见 [LICENSE.gin-vue-admin](../LICENSE.gin-vue-admin)。
+# 状态管理示例
 
 ## 这个文件负责什么
 
@@ -14,7 +12,7 @@
 
 ## 推荐写法示例
 
-上游 Pinia 对应现有 AuthContext。真实消费 hook 摘录（AuthContext、useContext 来自所在文件）：
+共享身份状态使用现有 AuthContext。真实消费 hook 摘录（AuthContext、useContext 来自所在文件）：
 
 ```tsx
 export function useAuth() {

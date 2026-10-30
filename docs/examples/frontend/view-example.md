@@ -1,7 +1,5 @@
 # View 示例
 
-> 改写自 [gin-vue-admin / frontend/view-example.md](https://github.com/flipped-aurora/gin-vue-admin/blob/cee04b08d1262036ca33e3026e1e13d29471c7d5/aiDoc/examples/frontend/view-example.md)（`cee04b08`）。2026-10-30 适配 Optimus：保留上游讲解结构，代码、路径及现状说明已修改；上游许可见 [LICENSE.gin-vue-admin](../LICENSE.gin-vue-admin)。
-
 ## 这个文件负责什么
 
 页面组织查询表单、表格/列表、详情与交互状态；不重写公共认证请求，也不把 UI 隐藏当成服务端授权。

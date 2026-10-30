@@ -1,7 +1,5 @@
 # Request 示例
 
-> 改写自 [gin-vue-admin / backend/request-example.md](https://github.com/flipped-aurora/gin-vue-admin/blob/cee04b08d1262036ca33e3026e1e13d29471c7d5/aiDoc/examples/backend/request-example.md)（`cee04b08`）。2026-10-30 适配 Optimus：保留上游讲解结构，代码、路径及现状说明已修改；上游许可见 [LICENSE.gin-vue-admin](../LICENSE.gin-vue-admin)。
-
 ## 这个文件负责什么
 
 请求结构负责描述输入，查询条件负责表达筛选与分页，不负责数据库关联或业务编排。Optimus 请求/响应 DTO 当前位于 `server/model/<module>/dto.go`，不是上游独立的 `request/` 包。

@@ -1,14 +1,12 @@
 # 完整插件示例（目录与装配边界）
 
-> 改写自 [gin-vue-admin / plugin/full-plugin-example.md](https://github.com/flipped-aurora/gin-vue-admin/blob/cee04b08d1262036ca33e3026e1e13d29471c7d5/aiDoc/examples/plugin/full-plugin-example.md)（`cee04b08`）。2026-10-30 适配 Optimus：保留上游讲解结构，代码、路径及现状说明已修改；上游许可见 [LICENSE.gin-vue-admin](../LICENSE.gin-vue-admin)。
-
 ## 这个文件负责什么
 
-保留上游完整插件的讲解位置，说明前后端文件职责和实施顺序。本页是设计参照，不宣称 Optimus 已有完整插件注册框架或已验证业务样板。
+说明前后端文件职责和实施顺序。本页是设计参照，不宣称 Optimus 已有完整插件注册框架或已验证业务样板。
 
 ## 推荐目录结构
 
-下面是按上游职责适配的候选布局，`<name>` 是占位名，不代表已存在的文件；真正创建前先确认设计与装配入口：
+下面是按职责划分的候选布局，`<name>` 是占位名，不代表已存在的文件；真正创建前先确认设计与装配入口：
 
 ```text
 server/plugin/<name>/
@@ -38,7 +36,7 @@ web/src/plugin/<name>/
 
 ## 为什么这样写
 
-沿用上游按职责组织的思路，入口保持薄；构造、注册接口和自动加载若需要新增，先形成明确设计，不在示例中暗中引入。
+按职责组织，入口保持薄；构造、注册接口和自动加载若需要新增，先形成明确设计，不在示例中暗中引入。
 
 ## 常见错误
 
@@ -49,5 +47,4 @@ web/src/plugin/<name>/
 ## 真实参考文件
 
 - Optimus 当前可参照 [模块装配](../../../server/initialize/system_module.go)、[启动路由](../../../server/initialize/router.go)、[系统路由](../../../server/router/system/enter.go)，但它们不是完整插件实现。
-- 上游真实插件参照：[announcement/plugin.go](https://github.com/flipped-aurora/gin-vue-admin/blob/cee04b08d1262036ca33e3026e1e13d29471c7d5/server/plugin/announcement/plugin.go)。这是上游文件，不是 Optimus 文件。
 - 本项目完整插件样板的存在与运行尚未核实，不提供伪造的本地 SDK/业务文件链接；现行目录边界见 [根规则](../../../AGENT.MD#插件与模块)。

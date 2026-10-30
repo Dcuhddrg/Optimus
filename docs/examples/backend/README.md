@@ -1,7 +1,5 @@
 # 后端示例
 
-> 改写自 [gin-vue-admin / backend/README.md](https://github.com/flipped-aurora/gin-vue-admin/blob/cee04b08d1262036ca33e3026e1e13d29471c7d5/aiDoc/examples/backend/README.md)（`cee04b08`）。2026-10-30 适配 Optimus：保留上游讲解结构，代码、路径及现状说明已修改；上游许可见 [LICENSE.gin-vue-admin](../LICENSE.gin-vue-admin)。
-
 ## 包含内容
 
 - [Request](request-example.md)：请求来源、DTO 与查询条件。

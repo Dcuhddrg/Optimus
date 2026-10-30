@@ -1,7 +1,5 @@
 # Model 示例
 
-> 改写自 [gin-vue-admin / backend/model-example.md](https://github.com/flipped-aurora/gin-vue-admin/blob/cee04b08d1262036ca33e3026e1e13d29471c7d5/aiDoc/examples/backend/model-example.md)（`cee04b08`）。2026-10-30 适配 Optimus：保留上游讲解结构，代码、路径及现状说明已修改；上游许可见 [LICENSE.gin-vue-admin](../LICENSE.gin-vue-admin)。
-
 ## 这个文件负责什么
 
 Model 描述实体、请求/响应结构和持久化映射；不承担 Service 的业务编排。字段必须与客户端类型及真实存储一致。
