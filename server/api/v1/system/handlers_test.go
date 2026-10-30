@@ -22,7 +22,7 @@ func TestAuthHandlerLoginReturnsServiceUnavailableWhenServiceMissing(t *testing.
 	handler.Login(ctx)
 
 	require.Equal(t, http.StatusServiceUnavailable, recorder.Code)
-	require.JSONEq(t, `{"message":"auth service is not available"}`, recorder.Body.String())
+	require.JSONEq(t, `{"code":7,"data":{},"msg":"auth service is not available"}`, recorder.Body.String())
 }
 
 func TestAuditHandlerQueryAuditLogsReturnsServiceUnavailableWhenServiceMissing(t *testing.T) {

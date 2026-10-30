@@ -7,6 +7,7 @@ import { RequireAuth } from './RequireAuth';
 import { LanguageProvider } from '../locale/LanguageProvider';
 
 const user = { user: { id: 1, username: 'tester' }, roles: [], menuPermissions: [] };
+const success = (data: unknown) => JSON.stringify({ code: 0, data, msg: 'success' });
 let root: Root;
 let container: HTMLDivElement;
 let auth: ReturnType<typeof useAuth>;
@@ -47,7 +48,7 @@ describe('session recovery through real requests and route guard', () => {
     fetcher.mockImplementationOnce(() => new Promise<Response>((r) => { resolve = r; }));
     await act(async () => retry!.click());
     expect(container.textContent).not.toContain('PROTECTED');
-    await act(async () => resolve(new Response(JSON.stringify(user))));
+    await act(async () => resolve(new Response(success(user))));
     expect(container.textContent).toContain('PROTECTED');
     expect(fetcher).toHaveBeenCalledTimes(2);
   });
@@ -62,7 +63,7 @@ describe('session recovery through real requests and route guard', () => {
   });
 
   it('keeps a validated session on failed login and still clears it on explicit logout', async () => {
-    const fetcher = vi.fn().mockImplementation(() => Promise.resolve(new Response(JSON.stringify(user))));
+    const fetcher = vi.fn().mockImplementation(() => Promise.resolve(new Response(success(user))));
     vi.stubGlobal('fetch', fetcher); await mount();
     fetcher.mockResolvedValueOnce(new Response('{"message":"bad login"}', { status: 401 }));
     await act(async () => { await expect(auth.login('user', 'wrong')).rejects.toMatchObject({ status: 401 }); });
@@ -75,7 +76,7 @@ describe('session recovery through real requests and route guard', () => {
   it('does not restore or expire an old request after logout', async () => {
     let respond!: (response: Response) => void;
     const fetcher = vi.fn().mockImplementationOnce(() => new Promise<Response>((r) => { respond = r; }))
-      .mockImplementation(() => Promise.resolve(new Response('{}')));
+      .mockImplementation(() => Promise.resolve(new Response(success({}))));
     vi.stubGlobal('fetch', fetcher); await mount();
     await act(async () => auth.logout());
     localStorage.setItem('optimus.token', 'another-session');
@@ -100,9 +101,9 @@ describe('session recovery through real requests and route guard', () => {
   it.each(['existing', 'new-session'])('completes login while recovery is pending with token %s', async (newToken) => {
     let respond!: (response: Response) => void;
     const fetcher = vi.fn().mockImplementationOnce(() => new Promise<Response>((r) => { respond = r; }))
-      .mockImplementation(() => Promise.resolve(new Response(JSON.stringify(user))));
+      .mockImplementation(() => Promise.resolve(new Response(success(user))));
     vi.stubGlobal('fetch', fetcher); await mount();
-    fetcher.mockResolvedValueOnce(new Response(JSON.stringify({ ...user, token: newToken })));
+    fetcher.mockResolvedValueOnce(new Response(success({ ...user, token: newToken })));
     await act(async () => auth.login('tester', 'password'));
     expect(auth.loading).toBe(false); expect(auth.token).toBe(newToken);
     expect(container.textContent).toContain('PROTECTED');

@@ -32,9 +32,12 @@ func Routers() *gin.Engine {
 	engine.Use(middleware.Logger(), middleware.Recovery())
 	// 公共路由
 	publicGroup := engine.Group(routerPrefix())
+	publicGroup.Use(response.EnvelopeForRoutes(publicGroup.BasePath(), []response.Route{{Method: "POST", Path: "/system/auth/login"}}))
 	// 私有路由
 	privateGroup := engine.Group(routerPrefix())
 	privateGroup.Use(response.EnvelopeForRoutes(privateGroup.BasePath(), []response.Route{
+		{Method: "GET", Path: "/system/auth/me"},
+		{Method: "POST", Path: "/system/auth/logout"},
 		{Method: "GET", Path: "/system/audit-logs"},
 		{Method: "GET", Path: "/system/audit-logs/export"},
 	}), middleware.JWTAuth(), middleware.CasbinHandlerWithPrefix(

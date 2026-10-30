@@ -32,14 +32,14 @@
 
 | 场景 | 当前行为 | 迁移时需要保护的调用 |
 | --- | --- | --- |
-| 登录、当前用户 | 原始 DTO，未套统一 envelope | 登录结果的 token、用户及权限字段，现有会话读取 |
+| 登录、当前用户 | `{code,data,msg}`，data 为原有 DTO | 登录结果的 token、用户及权限字段，现有会话读取 |
 | 用户、角色列表 | `{items,total}` | 不因存在 total 就宣称支持分页 |
 | 权限树 | `{items}` | 树形集合不自动改为分页 |
 | 项目、成员列表 | 服务端 `{items}`；客户端 ListResponse 额外要求 total | 修正真实类型或明确服务端新契约，不能编造已有字段 |
 | 云账号列表 | `{items,total}`，当前不是分页查询 | 保留筛选和计数含义 |
 | 云资产查询 | `{items,total,page,pageSize}`，仍为旧协议 | 后续按云模块同批迁移 items/list、API 类型与页面 |
-| 审计查询 | #18 首批本地实现：`{code,data:{list,total,page,pageSize},msg}` | 模块 API 显式选择 envelope 并返回 data，分页类型/页面已同步；待提交与用户验收 |
-| 删除、登出等提示 | 部分返回 `{message}` | 明确无业务数据操作的目标 data 值 |
+| 审计查询 | `{code,data:{list,total,page,pageSize},msg}` | 模块 API 显式选择 envelope 并返回 data，分页类型/页面已同步 |
+| 删除、登出等提示 | 登出返回统一响应及空对象 data，其他操作仍有 `{message}` | 明确无业务数据操作的目标 data 值 |
 | 错误 | 未迁移端点保留 `{message}`；首批审计请求为 `{code:7,data,msg}` | HTTP 非 2xx 始终失败，错误提示兼容 msg/message；保留可用业务码 |
 | CSV、探活 | CSV 文本与现有 health/ping 小响应 | 保留内容类型、下载和探活调用 |
 

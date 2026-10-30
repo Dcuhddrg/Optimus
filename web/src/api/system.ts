@@ -12,7 +12,7 @@ import type {
 } from '../types/system';
 
 export function login(username: string, password: string) {
-  return apiRequest<LoginResponse>('/system/auth/login', {
+  return apiRequestEnvelope<LoginResponse>('/system/auth/login', {
     auth: 'none',
     method: 'POST',
     body: JSON.stringify({ username, password }),
@@ -20,11 +20,11 @@ export function login(username: string, password: string) {
 }
 
 export function logout() {
-  return apiRequest<{ message: string }>('/system/auth/logout', { method: 'POST' });
+  return apiRequestEnvelope<Record<string, never>>('/system/auth/logout', { method: 'POST' });
 }
 
 export function currentUser(signal?: AbortSignal) {
-  return apiRequest<CurrentUserResponse>('/system/auth/me', { signal });
+  return apiRequestEnvelope<CurrentUserResponse>('/system/auth/me', { signal });
 }
 
 export function listUsers() {
