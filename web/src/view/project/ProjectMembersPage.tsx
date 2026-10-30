@@ -37,7 +37,7 @@ export function ProjectMembersPage() {
   async function loadUsers() {
     try {
       const result = await listUsers();
-      setUsers(result.items);
+      setUsers(result.list);
       setUsersUnavailable(false);
     } catch {
       setUsers([]);

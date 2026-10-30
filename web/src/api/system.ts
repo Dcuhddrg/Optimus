@@ -28,11 +28,11 @@ export function currentUser(signal?: AbortSignal) {
 }
 
 export function listUsers() {
-  return apiRequest<ListResponse<SystemUser>>('/system/users');
+  return apiRequestEnvelope<{ list: SystemUser[]; total: number }>('/system/users');
 }
 
 export function updateUserStatus(id: number, status: string) {
-  return apiRequest<SystemUser>(`/system/users/${id}/status`, {
+  return apiRequestEnvelope<SystemUser>(`/system/users/${id}/status`, {
     method: 'PATCH',
     body: JSON.stringify({ status }),
   });
