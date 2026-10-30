@@ -47,7 +47,7 @@ func TestRoutersUseInjectedSystemHandlersForAuthRoutes(t *testing.T) {
 	engine.ServeHTTP(recorder, req)
 
 	require.Equal(t, http.StatusUnauthorized, recorder.Code)
-	require.JSONEq(t, `{"message":"username or password is incorrect"}`, recorder.Body.String())
+	require.JSONEq(t, `{"code":7,"data":null,"msg":"username or password is incorrect"}`, recorder.Body.String())
 }
 
 func TestRoutersUseInjectedRBACCapability(t *testing.T) {

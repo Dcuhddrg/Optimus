@@ -7,6 +7,7 @@ import (
 
 	systemService "optimus/server/service/system"
 	"optimus/server/utils"
+	"optimus/server/utils/response"
 
 	"github.com/gin-gonic/gin"
 )
@@ -14,11 +15,11 @@ import (
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req systemModel.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid login request"})
+		response.Failure(c, http.StatusBadRequest, "invalid login request")
 		return
 	}
 	if h.service == nil {
-		writeServiceUnavailable(c, "auth service is not available")
+		response.Failure(c, http.StatusServiceUnavailable, "auth service is not available")
 		return
 	}
 
@@ -30,36 +31,36 @@ func (h *AuthHandler) Login(c *gin.Context) {
 			status = http.StatusForbidden
 			message = "account is disabled"
 		}
-		c.JSON(status, gin.H{"message": message})
+		response.Failure(c, status, message)
 		return
 	}
 
-	c.JSON(http.StatusOK, result)
+	response.Success(c, http.StatusOK, result)
 }
 
 func (h *AuthHandler) CurrentUser(c *gin.Context) {
 	claims, ok := c.Get(utils.ClaimsContextKey)
 	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"message": "claims are required"})
+		response.Failure(c, http.StatusUnauthorized, "claims are required")
 		return
 	}
 	customClaims, ok := claims.(*utils.CustomClaims)
 	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"message": "invalid claims"})
+		response.Failure(c, http.StatusUnauthorized, "invalid claims")
 		return
 	}
 	if h.service == nil {
-		writeServiceUnavailable(c, "auth service is not available")
+		response.Failure(c, http.StatusServiceUnavailable, "auth service is not available")
 		return
 	}
 
 	result, err := h.service.CurrentUser(c.Request.Context(), customClaims.BaseClaims.ID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to load current user"})
+		response.Failure(c, http.StatusInternalServerError, "failed to load current user")
 		return
 	}
 
-	c.JSON(http.StatusOK, result)
+	response.Success(c, http.StatusOK, result)
 }
 
 func (h *AuthHandler) Logout(c *gin.Context) {
@@ -69,5 +70,5 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 			_ = h.service.Logout(c.Request.Context(), customClaims.BaseClaims.ID, auditMeta(c))
 		}
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "logged out"})
+	response.Success(c, http.StatusOK, nil)
 }
