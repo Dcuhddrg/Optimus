@@ -34,7 +34,7 @@ export function SystemAuditLogsPage() {
     download.current?.abort(); setExporting(false); setExportError(null);
     void listAuditLogs(query, controller.signal).then((result) => {
       if (controller.signal.aborted) return;
-      if (!Array.isArray(result?.items) || !Number.isFinite(result.total) || result.total < 0) {
+      if (!Array.isArray(result?.list) || !Number.isFinite(result.total) || result.total < 0) {
         throw new ApiError('Invalid audit page', 200, 'protocol');
       }
       const lastPage = Math.max(1, Math.ceil(result.total / query.pageSize));
@@ -131,7 +131,7 @@ export function SystemAuditLogsPage() {
           <table className={styles.table}>
             <caption className={styles.srOnly}>{t('system.audit.title')}</caption>
             <thead><tr>{(['time', 'actor', 'action', 'resource', 'result', 'ip', 'details'] as const).map(key => <th scope="col" key={key}>{t(`system.audit.${key}`)}</th>)}</tr></thead>
-            <tbody>{data?.items.map(log => <tr key={log.id}>
+            <tbody>{data?.list.map(log => <tr key={log.id}>
               <td><time dateTime={log.createdAt}>{timestamp(log.createdAt)}</time></td>
               <td>{actorName(log)}</td><td>{getAuditActionLabel(log.action, locale)}</td>
               <td>{[getAuditResourceTypeLabel(log.resourceType, locale), log.resourceId].filter(Boolean).join(' ') || t('system.audit.notRecorded')}</td>
@@ -140,7 +140,7 @@ export function SystemAuditLogsPage() {
               <td><button type="button" aria-expanded={selected?.id === log.id} aria-controls="audit-log-detail" onClick={() => setSelected(selected?.id === log.id ? null : log)}>{t('system.audit.details')}</button></td>
             </tr>)}</tbody>
           </table>
-          {data?.items.length === 0 && <p className={styles.empty}>{t('system.audit.empty')}</p>}
+          {data?.list.length === 0 && <p className={styles.empty}>{t('system.audit.empty')}</p>}
         </div>}
       <div className={styles.pagination}>
         <span>{t('system.audit.total')}: {data?.total ?? '—'}</span>

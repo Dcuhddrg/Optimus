@@ -37,7 +37,7 @@ export function setUnauthorizedHandler(handler: () => void) {
 }
 
 export class ApiError extends Error {
-  constructor(message: string, public readonly status: number | undefined, public readonly kind: 'http' | 'network' | 'protocol') {
+  constructor(message: string, public readonly status: number | undefined, public readonly kind: 'http' | 'network' | 'protocol' | 'business', public readonly code?: number) {
     super(message);
     this.name = 'ApiError';
   }
@@ -77,19 +77,26 @@ async function requestResponse(path: string, options: RequestOptions, accept: st
 
   if (!response.ok) {
     let message = `Request failed with ${response.status}`;
+    let code: number | undefined;
     try {
       const data = JSON.parse(await response.text());
-      if (typeof data?.message === 'string') message = data.message;
+      if (typeof data?.msg === 'string') message = data.msg;
+      else if (typeof data?.message === 'string') message = data.message;
+      if (Number.isInteger(data?.code)) code = data.code;
     } catch {
       // Non-JSON error bodies still retain their HTTP status.
     }
-    throw new ApiError(message, response.status, 'http');
+    throw new ApiError(message, response.status, 'http', code);
   }
   return response;
 }
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const response = await requestResponse(path, options, 'application/json');
+  return await parseJSONResponse(response) as T;
+}
+
+async function parseJSONResponse(response: Response): Promise<unknown> {
   let data;
   try {
     const text = await response.text();
@@ -98,7 +105,24 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     throw new ApiError(`Request failed with ${response.status}`, response.status, 'protocol');
   }
 
-  return data as T;
+  return data;
+}
+
+// Only migrated module functions select this adapter; legacy payloads stay raw.
+export async function apiRequestEnvelope<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const response = await requestResponse(path, options, 'application/json');
+  const value = await parseJSONResponse(response);
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new ApiError('Invalid response envelope', response.status, 'protocol');
+  }
+  const body = value as Record<string, unknown>;
+  if (!Number.isInteger(body.code) || typeof body.msg !== 'string' || !Object.prototype.hasOwnProperty.call(body, 'data')) {
+    throw new ApiError('Invalid response envelope', response.status, 'protocol');
+  }
+  if (body.code !== 0) {
+    throw new ApiError(body.msg, response.status, 'business', body.code as number);
+  }
+  return body.data as T;
 }
 
 export async function apiDownloadCSV(path: string, options: RequestOptions = {}): Promise<Blob> {

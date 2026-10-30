@@ -29,7 +29,7 @@ export function AuditListExample() {
   useEffect(() => {
     const controller = new AbortController();
     void listAuditLogs({ page: 1, pageSize: 20 }, controller.signal)
-      .then(page => { if (!controller.signal.aborted) setItems(page.items); })
+      .then(page => { if (!controller.signal.aborted) setItems(page.list); })
       .catch(() => { if (!controller.signal.aborted) setFailed(true); })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();

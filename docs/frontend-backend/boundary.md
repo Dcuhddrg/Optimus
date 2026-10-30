@@ -37,16 +37,17 @@
 | 权限树 | `{items}` | 树形集合不自动改为分页 |
 | 项目、成员列表 | 服务端 `{items}`；客户端 ListResponse 额外要求 total | 修正真实类型或明确服务端新契约，不能编造已有字段 |
 | 云账号列表 | `{items,total}`，当前不是分页查询 | 保留筛选和计数含义 |
-| 云资产、审计查询 | `{items,total,page,pageSize}` | 迁移 items/list 时同步参数、类型及页面；#28 已接入审计分页、筛选和类型，用户验收通过，交付记录见对应 Issue；未实施 envelope 迁移 |
+| 云资产查询 | `{items,total,page,pageSize}`，仍为旧协议 | 后续按云模块同批迁移 items/list、API 类型与页面 |
+| 审计查询 | #18 首批本地实现：`{code,data:{list,total,page,pageSize},msg}` | 模块 API 显式选择 envelope 并返回 data，分页类型/页面已同步；待提交与用户验收 |
 | 删除、登出等提示 | 部分返回 `{message}` | 明确无业务数据操作的目标 data 值 |
-| 错误 | HTTP 4xx/5xx 与 `{message}` | 当前客户端只读 message，以 HTTP 状态判断失败 |
+| 错误 | 未迁移端点保留 `{message}`；首批审计请求为 `{code:7,data,msg}` | HTTP 非 2xx 始终失败，错误提示兼容 msg/message；保留可用业务码 |
 | CSV、探活 | CSV 文本与现有 health/ping 小响应 | 保留内容类型、下载和探活调用 |
 
-当前 `apiRequest` 原样返回 JSON，尚不理解 envelope 的 code/msg。#27 的修复已将登录声明为公开请求；仅携带当前凭据且未取消的私有请求返回 401 时清理会话，错误保留 HTTP 状态和网络/协议分类；用户验收已通过，交付记录见 #27。后续 envelope 适配不能通过 `body.data ?? body` 猜测协议，业务数据可能含有同名字段，data 也可能为 null、0 或 false。
+旧 `apiRequest` 原样返回 JSON；#18 首批本地实现新增显式 `apiRequestEnvelope`，严格检查 code/data/msg 并返回 data，审计模块已选用，其他调用不自动切换。#27 的修复已将登录声明为公开请求；仅携带当前凭据且未取消的私有请求返回 401 时清理会话，错误保留 HTTP 状态和网络/协议分类；用户验收已通过，交付记录见 #27。后续 envelope 适配不能通过 `body.data ?? body` 猜测协议，业务数据可能含有同名字段，data 也可能为 null、0 或 false。
 
 ## 4. 目标响应与 HTTP 语义
 
-以下为拟实施契约，**不是当前所有接口的返回格式**。
+以下为统一目标契约。#18 审计首批已有本地实现，但待交付和用户验收，**其他接口尚未统一**。
 
 | 字段 | 目标约定 |
 | --- | --- |
@@ -75,7 +76,7 @@
 - 保留已有成功 HTTP 状态和各接口业务含义；错误不改为 HTTP 200 来掩盖失败。
 - 400 表示请求不合法，401 表示认证失败，403 表示无权限，404 表示资源不存在，409 表示冲突；已有 422、500、503 等语义继续按实际场景使用，不机械改码。
 - 已迁移 JSON 接口的成功响应同时满足 HTTP 2xx 与 code=0；非 2xx 始终失败。意外出现 HTTP 2xx/code=7 也必须拒绝，不能误当成功。
-- JSON 解析失败、字段缺失或类型不符按协议错误处理，不冒充正常业务数据。错误对象应保留 HTTP 状态和可用业务码，便于上层分类。
+- JSON 解析失败、字段缺失或类型不符按协议错误处理，不冒充正常业务数据。错误对象保留 HTTP 状态和可用业务码；首批将错误分为 http/network/protocol/business，HTTP 2xx/code非0属于业务失败。
 - msg 不是状态码，也不是默认的 i18n key；前端用自身语言资源处理通用 fallback。
 
 ## 5. 集合、分页与字段
@@ -105,7 +106,7 @@
 
 ## 7. CSV、探活与无正文例外
 
-- CSV 成功响应保留 text/csv 和 Content-Disposition，不包 JSON envelope。导出使用明确的下载适配器，先检查 HTTP 状态及 Content-Type；失败可能是 JSON，不能将错误内容当文件或对 CSV 无条件 JSON.parse。
+- CSV 成功响应保留 text/csv 和 Content-Disposition，不包 JSON envelope。导出使用明确的下载适配器，先检查 HTTP 状态及 Content-Type；失败可能是 JSON，不能将错误内容当文件或对 CSV 无条件 JSON.parse。#18 首批审计导出 JSON 失败同样使用 envelope，CSV 成功、文件名及现有条数限制不变。
 - #28 的审计导出通过模块 API 和公共认证请求层处理，复用已应用筛选并排除分页参数，提示后端现有 10000 条上限。下载适配检查 text/csv；403 显示权限错误而不清理凭据，401 沿用 #27 规则。具体范围与验证见 [审计查询设计](../superpowers/specs/2026-10-29-audit-query-experience-design.md)，用户已验收，交付记录见 #28。
 - health/ping 保留现有响应和探活行为，不随业务 envelope 批量改造。
 - 其他上传、流式或非 JSON 接口存在时，必须独立声明内容类型及错误方式，本提案不假定这些能力已实现。

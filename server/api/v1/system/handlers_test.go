@@ -35,7 +35,7 @@ func TestAuditHandlerQueryAuditLogsReturnsServiceUnavailableWhenServiceMissing(t
 	handler.QueryAuditLogs(ctx)
 
 	require.Equal(t, http.StatusServiceUnavailable, recorder.Code)
-	require.JSONEq(t, `{"message":"audit service is not available"}`, recorder.Body.String())
+	require.JSONEq(t, `{"code":7,"data":{},"msg":"audit service is not available"}`, recorder.Body.String())
 }
 
 func TestAuditHandlerExportAuditLogsReturnsServiceUnavailableWhenServiceMissing(t *testing.T) {
