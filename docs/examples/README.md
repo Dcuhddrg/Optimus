@@ -19,9 +19,9 @@
 - 优先参考下面链接的真实文件，再参考教学片段；片段说明所在函数/文件上下文，不是可整目录复制的新业务模块。
 - 规范来源仍是 [AGENT.MD](../../AGENT.MD)、[后端分层](../modules/backend-layer-rules.md)、[接口契约](../frontend-backend/boundary.md) 和 [前端规则](../frontend-backend/frontend-rules.md)，示例不维护第二套规则。
 - 本组主要以系统审计查询为贯穿实例：Model → Store/Service → API → Router/initialize → 前端 API → 页面与语言资源；它已包含真实分页和 CSV，不用上游订单业务代替项目事实。
-- 当前审计 JSON 是 `{items,total,page,pageSize}`，公共请求返回原始 DTO；`{code,data,msg}` 是已确认的迁移目标，代码迁移由 [#18](https://github.com/Dcuhddrg/Optimus/issues/18) 跟进。CSV 不包 JSON。
+- 审计查询的本地迁移已使用 `{code,data:{list,total,page,pageSize},msg}`，模块 API 显式解包为分页 data；其他旧接口仍返回原始 DTO。已迁移范围及交付以 [#18](https://github.com/Dcuhddrg/Optimus/issues/18) 为准，CSV 成功不包 JSON。
 - 上游的 `GVA_MODEL`、`global.GVA_DB`、全局 ServiceGroupApp、Vue/Pinia、Element Plus 和插件注册 SDK 均不自动成为本仓库现有能力。
-- 示例参考基线为 `44d1940`：审计查询及记录链路的实现与验证分别见 [#28](https://github.com/Dcuhddrg/Optimus/issues/28)、[#36](https://github.com/Dcuhddrg/Optimus/issues/36)。路径、差异和本轮核查限制见 [#8](https://github.com/Dcuhddrg/Optimus/issues/8)，源码变更后通过 codebase-memory-mcp 重新核对，不把教学片段当作完整实现。
+- 示例随对应接口变更同步；审计协议首批迁移见 [#18](https://github.com/Dcuhddrg/Optimus/issues/18)，原审计查询及记录链路的实现与验证分别见 [#28](https://github.com/Dcuhddrg/Optimus/issues/28)、[#36](https://github.com/Dcuhddrg/Optimus/issues/36)。路径、差异和本轮核查限制见 [#8](https://github.com/Dcuhddrg/Optimus/issues/8)，源码变更后通过 codebase-memory-mcp 重新核对，不把教学片段当作完整实现。
 
 ## 验证清单
 

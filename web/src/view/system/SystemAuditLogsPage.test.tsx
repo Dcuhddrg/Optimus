@@ -5,7 +5,7 @@ import { LanguageProvider } from '../../locale/LanguageProvider';
 import { SystemAuditLogsPage } from './SystemAuditLogsPage';
 
 const entry = { id: 1, actorUserId: 7, actorUsername: 'alice', action: 'role.permissions.update', resourceType: 'role', resourceId: '3', result: 'success', ip: '192.0.2.1', userAgent: 'test-browser', detail: '{"note":"<script>unsafe</script>"}', createdAt: '2026-10-29T03:00:00Z' };
-const page = (items = [entry], total = 45) => new Response(JSON.stringify({ items, total, page: 1, pageSize: 20 }));
+const page = (list = [entry], total = 45) => new Response(JSON.stringify({ code: 0, data: { list, total, page: 1, pageSize: 20 }, msg: 'success' }));
 let container: HTMLDivElement; let root: Root; let fetcher: ReturnType<typeof vi.fn>;
 const button = (text: string) => Array.from(container.querySelectorAll('button')).find(b => b.textContent === text)!;
 async function click(text: string) { const b = button(text); expect(b).toBeTruthy(); await act(async () => b.click()); }

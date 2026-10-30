@@ -12,24 +12,28 @@ API 接收 HTTP 输入、校验来源、调用 Service 并组织响应；Swagger
 
 ## 推荐写法示例
 
-审计 handler 真实摘录（所在文件已有 Gin/http 导入）：
+审计 handler 真实摘录（所在文件已有 Gin/http、systemModel 及 response 导入）：
 
 ```go
 func (h *AuditHandler) QueryAuditLogs(c *gin.Context) {
-    if h.service == nil {
-        writeServiceUnavailable(c, "audit service is not available")
-        return
-    }
-    result, err := h.service.QueryLogs(c.Request.Context(), parseAuditFilter(c))
-    if err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to query audit logs"})
-        return
-    }
-    c.JSON(http.StatusOK, result)
+	if h.service == nil {
+		response.Failure(c, http.StatusServiceUnavailable, "audit service is not available")
+		return
+	}
+	result, err := h.service.QueryLogs(c.Request.Context(), parseAuditFilter(c))
+	if err != nil {
+		response.Failure(c, http.StatusInternalServerError, "failed to query audit logs")
+		return
+	}
+	list := result.Items
+	if list == nil {
+		list = make([]systemModel.AuditLogEntry, 0)
+	}
+	response.Success(c, http.StatusOK, systemModel.AuditListData{List: list, Total: result.Total, Page: result.Page, PageSize: result.PageSize})
 }
 ```
 
-Query 用 `c.Query`/`DefaultQuery`，JSON body 才用 `ShouldBindJSON`，路径用 `c.Param`；Header/表单/文件按实际协议选择。当前 handler 的 c.JSON 是存量实现，不是上游 response 包示例。当前成功 JSON 是原始审计分页 DTO，错误 `{message}`；Swagger 完整性仍应逐端点核对，不能把上面没有注释的摘录当成已完成 Swagger 的证明。
+Query 用 `c.Query`/`DefaultQuery`，JSON body 才用 `ShouldBindJSON`，路径用 `c.Param`；Header/表单/文件按实际协议选择。审计 handler 使用本仓库新增的 `utils/response`，成功为 `{code:0,data:{list,total,page,pageSize},msg}`，失败保留 HTTP 状态并输出 envelope。CSV 成功仍为文本；其他未登记端点继续使用旧格式。完整 Swagger 注释见源文件，摘录省略注释不代表所有端点均已核查。
 
 ## 为什么这样写
 
@@ -43,5 +47,5 @@ Query 用 `c.Query`/`DefaultQuery`，JSON body 才用 `ShouldBindJSON`，路径�
 
 ## 真实参考文件
 
-- [审计 API](../../../server/api/v1/system/audit.go)、[handler 构造](../../../server/api/v1/system/handlers.go)。
+- [审计 API](../../../server/api/v1/system/audit.go)、[handler 构造](../../../server/api/v1/system/handlers.go)、[公共响应工具](../../../server/utils/response/response.go)。
 - [handler 回归](../../../server/api/v1/system/handlers_test.go)、[接口契约](../../frontend-backend/boundary.md)。

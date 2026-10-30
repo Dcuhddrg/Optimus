@@ -1,4 +1,4 @@
-import { apiDownloadCSV, apiRequest } from './client';
+import { ApiError, apiDownloadCSV, apiRequest, apiRequestEnvelope } from './client';
 import type {
   AuditLogFilter,
   AuditLogPage,
@@ -83,8 +83,22 @@ function auditQuery(filters: AuditLogFilter, paginated: boolean) {
   return query ? `?${query}` : '';
 }
 
-export function listAuditLogs(filters: AuditLogFilter = {}, signal?: AbortSignal) {
-  return apiRequest<AuditLogPage>(`/system/audit-logs${auditQuery(filters, true)}`, { signal });
+function validAuditPage(value: unknown): value is AuditLogPage {
+  if (typeof value !== 'object' || value === null) return false;
+  const data = value as Record<string, unknown>;
+  if (!Array.isArray(data.list) || !Number.isInteger(data.total) || (data.total as number) < 0
+    || !Number.isInteger(data.page) || (data.page as number) < 1
+    || !Number.isInteger(data.pageSize) || (data.pageSize as number) < 1 || (data.pageSize as number) > 200) return false;
+  return data.list.every(row => typeof row === 'object' && row !== null
+    && Number.isInteger(row.id) && row.id >= 0 && Number.isInteger(row.actorUserId) && row.actorUserId >= 0
+    && ['actorUsername', 'action', 'resourceType', 'resourceId', 'result', 'ip', 'userAgent', 'detail', 'createdAt']
+      .every(key => typeof row[key] === 'string'));
+}
+
+export async function listAuditLogs(filters: AuditLogFilter = {}, signal?: AbortSignal) {
+  const data = await apiRequestEnvelope<unknown>(`/system/audit-logs${auditQuery(filters, true)}`, { signal });
+  if (!validAuditPage(data)) throw new ApiError('Invalid audit page data', 200, 'protocol');
+  return data;
 }
 
 export function exportAuditLogs(filters: AuditLogFilter = {}, signal?: AbortSignal) {

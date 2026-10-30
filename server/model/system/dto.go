@@ -111,6 +111,15 @@ type AuditPage struct {
 	PageSize int             `json:"pageSize"`
 }
 
+// AuditListData is the HTTP data payload for migrated audit queries.
+// AuditPage remains the internal Service/Store contract.
+type AuditListData struct {
+	List     []AuditLogEntry `json:"list"`
+	Total    int64           `json:"total"`
+	Page     int             `json:"page"`
+	PageSize int             `json:"pageSize"`
+}
+
 type AuditLogEntry struct {
 	ID            uint      `json:"id"`
 	ActorUserID   uint      `json:"actorUserId"`

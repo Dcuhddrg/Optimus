@@ -6,9 +6,19 @@ beforeEach(() => { localStorage.clear(); setStoredToken('test-token'); });
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 describe('audit queries and CSV downloads', () => {
+  it.each([
+    { list: [], total: 0 },
+    { list: [], total: -1, page: 1, pageSize: 20 },
+    { list: [], total: 0, page: '1', pageSize: 20 },
+    { list: [], total: 0, page: 1, pageSize: 0 },
+    { list: [null], total: 1, page: 1, pageSize: 20 },
+  ])('rejects malformed migrated page data: %j', async data => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ code: 0, data, msg: 'success' }))));
+    await expect(listAuditLogs()).rejects.toMatchObject({ status: 200, kind: 'protocol' });
+  });
   it('encodes all filters and preserves real pagination fields', async () => {
-    const page = { items: [], total: 42, page: 2, pageSize: 20 };
-    const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify(page)));
+    const page = { list: [], total: 42, page: 2, pageSize: 20 };
+    const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({ code: 0, data: page, msg: 'success' })));
     vi.stubGlobal('fetch', fetcher);
     expect(await listAuditLogs({ page: 2, pageSize: 20, actorUserId: 7, action: 'user.update', resourceType: 'user', result: 'failure', keyword: 'a & b', startTime: '2026-10-28T00:00:00.000Z', endTime: '2026-10-29T00:00:00.000Z' })).toEqual(page);
     const url = new URL(fetcher.mock.calls[0][0], 'http://test');

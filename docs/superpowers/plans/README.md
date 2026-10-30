@@ -18,6 +18,8 @@
 - [审计查询与阅读体验](2026-10-29-audit-query-experience.md)：分页、筛选、现有字段详情及 CSV 导出，关联 [#28](https://github.com/Dcuhddrg/Optimus/issues/28)。
 - [审计记录质量](2026-10-29-audit-record-quality.md)：关键事件摘要、未认证账号线索及写入失败可观测性，关联 [#36](https://github.com/Dcuhddrg/Optimus/issues/36)。
 
+- [响应协议迁移首批](2026-10-30-response-contract-migration.md)：公共严格适配和审计样板，关联 [#18](https://github.com/Dcuhddrg/Optimus/issues/18)，其他模块不自动切换。
+
 ## 状态维护
 
 状态与归档遵循 [文档维护约定](../../relations/documentation-workflow.md#状态与事实)；现存计划的清理在 [#10](https://github.com/Dcuhddrg/Optimus/issues/10) 跟进。云资源基础规格相关核查按用户决定暂停，见 [#3](https://github.com/Dcuhddrg/Optimus/issues/3)；其余未取得验收依据的计划保留，不由文件日期或提交记录推定验收。

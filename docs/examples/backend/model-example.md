@@ -30,7 +30,7 @@ type SystemAuditLog struct {
 }
 ```
 
-`AuditPage`/`AuditLogEntry` 单独定义在 `dto.go`，由 Store 映射返回；不导入上游 `global.GVA_MODEL`。
+`AuditPage`/`AuditLogEntry` 单独定义在 `dto.go`，供 Store/Service 使用；HTTP 的 `AuditListData` 将 items 映射为 list；不导入上游 `global.GVA_MODEL`。
 
 ## 为什么这样写
 
