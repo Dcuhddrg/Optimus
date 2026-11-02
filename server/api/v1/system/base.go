@@ -10,6 +10,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type BaseApi struct{}
+
 func (h *BaseApi) Ping(c *gin.Context) {
 	service := systemServices.Status
 	if service == nil {

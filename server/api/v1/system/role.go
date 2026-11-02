@@ -10,6 +10,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type RoleApi struct{}
+
 func (h *RoleApi) Roles(c *gin.Context) {
 	if systemServices.RoleService == nil {
 		writeServiceUnavailable(c, "role service is not available")
@@ -64,9 +66,7 @@ func (h *RoleApi) UpdateRoleStatus(c *gin.Context) {
 	if !ok {
 		return
 	}
-	var req struct {
-		Status string `json:"status"`
-	}
+	var req systemRequest.UpdateRoleStatusRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid status request"})
 		return
@@ -84,9 +84,7 @@ func (h *RoleApi) UpdateRolePermissions(c *gin.Context) {
 	if !ok {
 		return
 	}
-	var req struct {
-		PermissionCodes []string `json:"permissionCodes"`
-	}
+	var req systemRequest.UpdateRolePermissionsRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid permissions request"})
 		return

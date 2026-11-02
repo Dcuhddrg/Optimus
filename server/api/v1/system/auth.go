@@ -12,6 +12,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type AuthApi struct{}
+
 func (h *AuthApi) Login(c *gin.Context) {
 	var req systemRequest.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

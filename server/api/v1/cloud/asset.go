@@ -2,6 +2,7 @@ package cloud
 
 import (
 	"net/http"
+	cloudRequest "optimus/server/model/cloud/request"
 	commonRequest "optimus/server/model/common/request"
 	"strconv"
 
@@ -9,6 +10,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 )
+
+// AssetApi handles HTTP requests for cloud assets.
+type AssetApi struct{}
 
 func (h *AssetApi) ListAssets(c *gin.Context) {
 	if cloudServices.AssetRegistryService == nil {
@@ -41,7 +45,7 @@ func parseAssetFilter(c *gin.Context) (cloudService.AssetFilter, error) {
 	}
 	pagination := commonRequest.PageInfo{Page: page, PageSize: pageSize}
 	pagination.Normalize()
-	f := cloudService.AssetFilter{Page: pagination.Page, PageSize: pagination.PageSize}
+	f := cloudRequest.AssetSearch{PageInfo: pagination, Tags: c.QueryArray("tag")}
 
 	if v := c.Query("accountId"); v != "" {
 		if n, err := strconv.ParseUint(v, 10, 64); err == nil {
@@ -64,10 +68,13 @@ func parseAssetFilter(c *gin.Context) (cloudService.AssetFilter, error) {
 	if v := c.Query("keyword"); v != "" {
 		f.Keyword = &v
 	}
-	tagFilters, err := parseTagFilters(c)
+	tagFilters, err := parseTagFilterTokens(f.Tags)
 	if err != nil {
 		return cloudService.AssetFilter{}, err
 	}
-	f.Tags = tagFilters
-	return f, nil
+	return cloudService.AssetFilter{
+		AccountID: f.AccountID, Provider: f.Provider, Region: f.Region,
+		ResourceType: f.ResourceType, Status: f.Status, Keyword: f.Keyword,
+		Tags: tagFilters, Page: f.Page, PageSize: f.PageSize,
+	}, nil
 }

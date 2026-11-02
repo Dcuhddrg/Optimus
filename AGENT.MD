@@ -28,6 +28,8 @@
 - 结构迁移保持现有接口及权限行为，接口协议变更按独立 Issue 实施，不与结构迁移混批。
 - 所有后端模块（含插件、新增与存量模块）统一按职责拆分子 Router，由模块 `enter.go` 的 `RouterGroup` 匿名嵌入聚合，并通过模块级入口协调注册；具体端点绑定放在对应职责文件。API/Service 统一参考 gin-vue-admin 的根级与模块级 GroupApp 聚合，由 initialize 在启动期完成依赖装配；保留现有授权和接口行为，详见 [Router 组织约定](docs/modules/backend-layer-rules.md#router-组织约定)。存量差异按迁移清单分批整改，不构成规范豁免。
 - API 层处理 HTTP 相关逻辑，Service 层不要依赖 `gin.Context`。
+- HTTP 请求体和查询条件使用 `model/<module>/request/` 的命名 DTO；状态、角色、权限等操作也不得在 API 内保留匿名请求结构。分页查询 DTO 复用公共 PageInfo，再由 API 显式映射为内部 Service 条件，保留既有参数解析行为。
+- 各层 `enter.go` 只声明对应 Group 聚合类型并集中维护必要别名；职责 API、Service、Router 的具体类型和支持接口定义放在对应职责文件，不能把类型声明全部堆到聚合入口。
 - 对外接口的 Swagger 注释必须和真实行为保持一致。
 - 优先沿用 optimus 现有模式，复用已有模块和基础设施，不做无关大改。
 

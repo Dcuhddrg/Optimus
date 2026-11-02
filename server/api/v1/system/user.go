@@ -14,6 +14,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type UserApi struct{}
+
 func (h *UserApi) Users(c *gin.Context) {
 	if systemServices.UserService == nil {
 		response.Failure(c, http.StatusServiceUnavailable, "user service is not available")
@@ -54,9 +56,7 @@ func (h *UserApi) UpdateUserStatus(c *gin.Context) {
 	if !ok {
 		return
 	}
-	var req struct {
-		Status string `json:"status"`
-	}
+	var req systemRequest.UpdateUserStatusRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.Failure(c, http.StatusBadRequest, "invalid status request")
 		return
@@ -74,9 +74,7 @@ func (h *UserApi) UpdateUserRoles(c *gin.Context) {
 	if !ok {
 		return
 	}
-	var req struct {
-		RoleIDs []uint `json:"roleIds"`
-	}
+	var req systemRequest.UpdateUserRolesRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.Failure(c, http.StatusBadRequest, "invalid role request")
 		return

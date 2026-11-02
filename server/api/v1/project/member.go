@@ -7,6 +7,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type MemberApi struct{}
+
 func (h *MemberApi) ListMembers(c *gin.Context) {
 	if projectServices.ProjectService == nil {
 		writeProjectServiceUnavailable(c)

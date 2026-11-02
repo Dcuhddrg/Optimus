@@ -32,7 +32,10 @@ func writeCloudError(c *gin.Context, err error, fallback string) {
 }
 
 func parseTagFilters(c *gin.Context) ([]cloudService.TagFilter, error) {
-	tokens := c.QueryArray("tag")
+	return parseTagFilterTokens(c.QueryArray("tag"))
+}
+
+func parseTagFilterTokens(tokens []string) ([]cloudService.TagFilter, error) {
 	if len(tokens) == 0 {
 		return nil, nil
 	}

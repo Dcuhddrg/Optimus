@@ -10,6 +10,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type HealthApi struct{}
+
 func (h *HealthApi) Health(c *gin.Context) {
 	service := systemServices.Status
 	if service == nil {

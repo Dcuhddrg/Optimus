@@ -4,6 +4,7 @@ import (
 	"encoding/csv"
 	"net/http"
 	commonRequest "optimus/server/model/common/request"
+	systemRequest "optimus/server/model/system/request"
 	systemResponse "optimus/server/model/system/response"
 	"strconv"
 	"time"
@@ -14,6 +15,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 )
+
+type AuditApi struct{}
 
 // QueryAuditLogs returns the migrated audit pagination contract.
 // @Tags System Audit
@@ -113,7 +116,7 @@ func parseAuditFilter(c *gin.Context) systemService.AuditFilter {
 	pagination := commonRequest.PageInfo{Page: page, PageSize: pageSize}
 	pagination.Normalize()
 
-	f := systemService.AuditFilter{Page: pagination.Page, PageSize: pagination.PageSize}
+	f := systemRequest.AuditSearch{PageInfo: pagination}
 
 	if v := c.Query("actorUserId"); v != "" {
 		if id, err := strconv.ParseUint(v, 10, 64); err == nil {
@@ -143,5 +146,9 @@ func parseAuditFilter(c *gin.Context) systemService.AuditFilter {
 	if v := c.Query("keyword"); v != "" {
 		f.Keyword = &v
 	}
-	return f
+	return systemService.AuditFilter{
+		ActorUserID: f.ActorUserID, Action: f.Action, ResourceType: f.ResourceType,
+		Result: f.Result, StartTime: f.StartTime, EndTime: f.EndTime, Keyword: f.Keyword,
+		Page: f.Page, PageSize: f.PageSize,
+	}
 }

@@ -10,6 +10,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type LDAPApi struct{}
+
 func (h *LDAPApi) LDAPConfig(c *gin.Context) {
 	if systemServices.LDAPService == nil {
 		writeServiceUnavailable(c, "ldap service is not available")

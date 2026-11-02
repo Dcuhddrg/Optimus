@@ -37,6 +37,10 @@ Router -> API -> Service -> Model
 
 用户已确认后端迁移参考 gin-vue-admin。目标为 `service/enter.go` 的 ServiceGroupApp、`api/v1/enter.go` 的 ApiGroupApp 与 `router/enter.go` 的 RouterGroupApp 根级聚合；各模块 `enter.go` 聚合职责 Service/API/Router。API 通过模块统一别名访问 ServiceGroup，Router 通过统一别名访问 ApiGroup，具体路径绑定放在职责文件。请求 DTO 进入 `model/<module>/request/`，公共请求/响应进入 `model/common/request/` 与 `model/common/response/`。详细生命周期、兼容边界与批次见[迁移设计](../superpowers/specs/2026-11-02-gva-backend-migration-design.md)。
 
+聚合与职责声明须分开：enter.go 中仅定义 ApiGroup、ServiceGroup 或 RouterGroup；AuthApi/UserApi 等职责类型位于 auth.go/user.go 等对应文件，Authorizer、StatusService 等支持接口也归对应职责文件。行为测试通过不等于组织方式对齐，验收同时检查声明位置与聚合边界。
+
+HTTP 输入包括完整表单、局部状态/角色/权限操作和查询条件，均使用模块 request 包中的命名类型。审计、资产等分页查询 DTO 内嵌公共 PageInfo；API 负责按既有协议解析并映射到内部 Service 过滤器。Service 条件可保留项目范围等业务字段，但不能用它代替 HTTP request DTO，也不接受客户端伪造的已授权项目列表。
+
 `main` 与 `initialize` 仍负责启动、配置和基础设施准备，再装配唯一的 ServiceGroup，最后注册路由。依赖只在启动期初始化，GroupApp 的发布对象和集中别名保持稳定；请求处理不得重新装配全局依赖，测试须隔离并恢复共享状态。数据库与外部客户端按生命周期由 initialize 传入或从现有 global 入口取得，构造函数可以用于组内部依赖创建，不再作为 Router 逐次注入 handlers 的并行生产入口。
 
 当前生产装配已切换为 `initialize.InitializeServices → ServiceGroupApp → ApiGroupApp → RouterGroupApp`；旧 `New*Module/New*Handlers` 入口已删除，审计清理任务与 HTTP API 使用同一 AuditService。现有 GroupApp 是 #45 按上游组织方式落地的新入口，不恢复 #11 已清理的旧 usecase/infra。模块内仍可使用构造函数和 Store 接口初始化依赖，不再保留第二条生产路由注入链。HTTP 状态、字段、分页、表结构和删除行为维持已确认契约；插件注册框架另行设计。

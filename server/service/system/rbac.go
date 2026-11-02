@@ -2,6 +2,11 @@ package system
 
 import "context"
 
+// Authorizer is service-owned to avoid importing HTTP middleware into Service.
+type Authorizer interface {
+	AuthorizeAPI(context.Context, string, string, []uint) (bool, error)
+}
+
 type RBACStore interface {
 	FindAPIPermission(ctx context.Context, method string, path string) (SystemPermissionSummary, bool, error)
 	RoleHasPermission(ctx context.Context, roleID uint, permissionID uint) (bool, error)

@@ -7,6 +7,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// AccountApi handles HTTP requests for cloud accounts.
+type AccountApi struct{}
+
 func (h *AccountApi) ListAccounts(c *gin.Context) {
 	if cloudServices.CloudAccountService == nil {
 		writeCloudServiceUnavailable(c, "cloud account service is not available")

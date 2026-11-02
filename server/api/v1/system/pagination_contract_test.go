@@ -29,3 +29,25 @@ func TestAuditPaginationPreservesPermissiveQueryParsing(t *testing.T) {
 		})
 	}
 }
+
+func TestAuditSearchMapsAllQueryFieldsToService(t *testing.T) {
+	c, _ := gin.CreateTestContext(httptest.NewRecorder())
+	c.Request = httptest.NewRequest("GET", "/?page=2&pageSize=50&actorUserId=7&action=user.update&resourceType=user&result=success&keyword=hello%20world&startTime=2026-01-01T00:00:00Z&endTime=2026-01-02T00:00:00Z", nil)
+	f := parseAuditFilter(c)
+	require.Equal(t, 2, f.Page)
+	require.Equal(t, 50, f.PageSize)
+	require.NotNil(t, f.ActorUserID)
+	require.Equal(t, uint(7), *f.ActorUserID)
+	require.NotNil(t, f.Action)
+	require.Equal(t, "user.update", *f.Action)
+	require.NotNil(t, f.ResourceType)
+	require.Equal(t, "user", *f.ResourceType)
+	require.NotNil(t, f.Result)
+	require.Equal(t, "success", *f.Result)
+	require.NotNil(t, f.Keyword)
+	require.Equal(t, "hello world", *f.Keyword)
+	require.NotNil(t, f.StartTime)
+	require.Equal(t, "2026-01-01T00:00:00Z", f.StartTime.Format("2006-01-02T15:04:05Z07:00"))
+	require.NotNil(t, f.EndTime)
+	require.Equal(t, "2026-01-02T00:00:00Z", f.EndTime.Format("2006-01-02T15:04:05Z07:00"))
+}
