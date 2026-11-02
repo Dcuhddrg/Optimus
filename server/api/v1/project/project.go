@@ -7,12 +7,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (h *ProjectHandlers) ListProjects(c *gin.Context) {
-	if h.svc == nil {
+func (h *ProjectApi) ListProjects(c *gin.Context) {
+	if projectServices.ProjectService == nil {
 		writeProjectServiceUnavailable(c)
 		return
 	}
-	views, err := h.svc.List(c.Request.Context(), projectActorID(c))
+	views, err := projectServices.ProjectService.List(c.Request.Context(), projectActorID(c))
 	if err != nil {
 		writeProjectError(c, err)
 		return
@@ -20,8 +20,8 @@ func (h *ProjectHandlers) ListProjects(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"items": views})
 }
 
-func (h *ProjectHandlers) CreateProject(c *gin.Context) {
-	if h.svc == nil {
+func (h *ProjectApi) CreateProject(c *gin.Context) {
+	if projectServices.ProjectService == nil {
 		writeProjectServiceUnavailable(c)
 		return
 	}
@@ -30,7 +30,7 @@ func (h *ProjectHandlers) CreateProject(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid project payload"})
 		return
 	}
-	view, err := h.svc.Create(c.Request.Context(), projectActorID(c), req)
+	view, err := projectServices.ProjectService.Create(c.Request.Context(), projectActorID(c), req)
 	if err != nil {
 		writeProjectError(c, err)
 		return
@@ -38,12 +38,12 @@ func (h *ProjectHandlers) CreateProject(c *gin.Context) {
 	c.JSON(http.StatusCreated, view)
 }
 
-func (h *ProjectHandlers) GetProject(c *gin.Context) {
-	if h.svc == nil {
+func (h *ProjectApi) GetProject(c *gin.Context) {
+	if projectServices.ProjectService == nil {
 		writeProjectServiceUnavailable(c)
 		return
 	}
-	view, err := h.svc.Get(c.Request.Context(), projectActorID(c), c.Param("code"))
+	view, err := projectServices.ProjectService.Get(c.Request.Context(), projectActorID(c), c.Param("code"))
 	if err != nil {
 		writeProjectError(c, err)
 		return
@@ -51,8 +51,8 @@ func (h *ProjectHandlers) GetProject(c *gin.Context) {
 	c.JSON(http.StatusOK, view)
 }
 
-func (h *ProjectHandlers) UpdateProject(c *gin.Context) {
-	if h.svc == nil {
+func (h *ProjectApi) UpdateProject(c *gin.Context) {
+	if projectServices.ProjectService == nil {
 		writeProjectServiceUnavailable(c)
 		return
 	}
@@ -61,7 +61,7 @@ func (h *ProjectHandlers) UpdateProject(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid project payload"})
 		return
 	}
-	view, err := h.svc.Update(c.Request.Context(), projectActorID(c), c.Param("code"), req)
+	view, err := projectServices.ProjectService.Update(c.Request.Context(), projectActorID(c), c.Param("code"), req)
 	if err != nil {
 		writeProjectError(c, err)
 		return
@@ -69,12 +69,12 @@ func (h *ProjectHandlers) UpdateProject(c *gin.Context) {
 	c.JSON(http.StatusOK, view)
 }
 
-func (h *ProjectHandlers) DeleteProject(c *gin.Context) {
-	if h.svc == nil {
+func (h *ProjectApi) DeleteProject(c *gin.Context) {
+	if projectServices.ProjectService == nil {
 		writeProjectServiceUnavailable(c)
 		return
 	}
-	if err := h.svc.Delete(c.Request.Context(), projectActorID(c), c.Param("code")); err != nil {
+	if err := projectServices.ProjectService.Delete(c.Request.Context(), projectActorID(c), c.Param("code")); err != nil {
 		writeProjectError(c, err)
 		return
 	}

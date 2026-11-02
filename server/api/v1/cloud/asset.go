@@ -10,8 +10,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (h *AssetHandler) ListAssets(c *gin.Context) {
-	if h.service == nil {
+func (h *AssetApi) ListAssets(c *gin.Context) {
+	if cloudServices.AssetRegistryService == nil {
 		writeCloudServiceUnavailable(c, "asset registry service is not available")
 		return
 	}
@@ -22,7 +22,7 @@ func (h *AssetHandler) ListAssets(c *gin.Context) {
 		return
 	}
 	f.AccessibleProjectIDs = scope.AccessibleProjectIDs
-	page, err := h.service.QueryAssets(c.Request.Context(), f)
+	page, err := cloudServices.AssetRegistryService.QueryAssets(c.Request.Context(), f)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to query assets"})
 		return

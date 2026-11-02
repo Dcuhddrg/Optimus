@@ -11,18 +11,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type ProjectHandlers struct {
-	svc *projectService.ProjectService
-}
-
-type ProjectHandlerDeps struct {
-	Service *projectService.ProjectService
-}
-
-func NewProjectHandlers(deps ProjectHandlerDeps) *ProjectHandlers {
-	return &ProjectHandlers{svc: deps.Service}
-}
-
 func writeProjectServiceUnavailable(c *gin.Context) {
 	c.JSON(http.StatusServiceUnavailable, gin.H{"message": "project service is not available"})
 }

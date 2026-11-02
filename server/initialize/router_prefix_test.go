@@ -4,17 +4,16 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"optimus/server/service"
 	"testing"
 	"time"
 
-	systemApi "optimus/server/api/v1/system"
 	"optimus/server/config"
 	"optimus/server/global"
 	systemService "optimus/server/service/system"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
-	"gorm.io/gorm"
 )
 
 // Keep permission keys identical to the real seeds while exercising Routers,
@@ -54,22 +53,17 @@ func TestRoutersAuthorizeCanonicalPermissionWithConfiguredPrefix(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			gin.SetMode(gin.TestMode)
 			previousConfig, previousDB := global.OPTIMUS_CONFIG, global.OPTIMUS_DB
-			previousBuilder := newSystemModule
+			previousServices := *service.ServiceGroupApp
 			t.Cleanup(func() {
 				global.OPTIMUS_CONFIG, global.OPTIMUS_DB = previousConfig, previousDB
-				newSystemModule = previousBuilder
+				*service.ServiceGroupApp = previousServices
 			})
 			global.OPTIMUS_DB = nil
 			global.OPTIMUS_CONFIG.System.RouterPrefix = tt.prefix
 			global.OPTIMUS_CONFIG.JWT = config.JWT{SigningKey: "prefix-test-key", ExpiresTime: 3600, Issuer: "prefix-test"}
 			store := &routerPrefixPermissionStore{}
-			newSystemModule = func(_ *gorm.DB, cfg config.Config) *SystemModule {
-				return &SystemModule{
-					Handlers:     systemApi.NewSystemHandlers(systemApi.SystemHandlerDeps{}),
-					Capabilities: &SystemCapabilities{RBAC: systemService.NewRBACService(store)},
-					cfg:          cfg,
-				}
-			}
+			InitializeServices(nil, global.OPTIMUS_CONFIG)
+			service.ServiceGroupApp.SystemServiceGroup.RBAC = systemService.NewRBACService(store)
 			token, err := systemService.IssueJWT(systemService.TokenSubject{ID: 1, RoleIDs: []uint{7}}, global.OPTIMUS_CONFIG.JWT, time.Now())
 			require.NoError(t, err)
 			request := httptest.NewRequest(tt.method, tt.requestPath, nil)

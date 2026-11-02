@@ -39,7 +39,7 @@ Router -> API -> Service -> Model
 
 `main` 与 `initialize` 仍负责启动、配置和基础设施准备，再装配唯一的 ServiceGroup，最后注册路由。依赖只在启动期初始化，GroupApp 的发布对象和集中别名保持稳定；请求处理不得重新装配全局依赖，测试须隔离并恢复共享状态。数据库与外部客户端按生命周期由 initialize 传入或从现有 global 入口取得，构造函数可以用于组内部依赖创建，不再作为 Router 逐次注入 handlers 的并行生产入口。
 
-当前实现仍是 `New*Module → New*Handlers` 的构造注入链，现有全局 ServiceGroup 曾按 #11 清理；以上是 #45 新确认的迁移目标，并不代表已经实现或推翻 #11 对旧 usecase/infra 的清理。各批次须同步切换调用方、权限能力和测试，并删除对应旧入口。HTTP 状态、字段、分页、表结构和删除行为维持已确认契约；插件注册框架另行设计。
+当前生产装配已切换为 `initialize.InitializeServices → ServiceGroupApp → ApiGroupApp → RouterGroupApp`；旧 `New*Module/New*Handlers` 入口已删除，审计清理任务与 HTTP API 使用同一 AuditService。现有 GroupApp 是 #45 按上游组织方式落地的新入口，不恢复 #11 已清理的旧 usecase/infra。模块内仍可使用构造函数和 Store 接口初始化依赖，不再保留第二条生产路由注入链。HTTP 状态、字段、分页、表结构和删除行为维持已确认契约；插件注册框架另行设计。
 
 ### Router 组织约定
 

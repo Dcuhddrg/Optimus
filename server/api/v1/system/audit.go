@@ -35,12 +35,12 @@ import (
 // @Failure 500 {object} response.Envelope
 // @Failure 503 {object} response.Envelope
 // @Router /system/audit-logs [get]
-func (h *AuditHandler) QueryAuditLogs(c *gin.Context) {
-	if h.service == nil {
+func (h *AuditApi) QueryAuditLogs(c *gin.Context) {
+	if systemServices.AuditService == nil {
 		response.Failure(c, http.StatusServiceUnavailable, "audit service is not available")
 		return
 	}
-	result, err := h.service.QueryLogs(c.Request.Context(), parseAuditFilter(c))
+	result, err := systemServices.AuditService.QueryLogs(c.Request.Context(), parseAuditFilter(c))
 	if err != nil {
 		response.Failure(c, http.StatusInternalServerError, "failed to query audit logs")
 		return
@@ -70,12 +70,12 @@ func (h *AuditHandler) QueryAuditLogs(c *gin.Context) {
 // @Failure 500 {object} response.Envelope
 // @Failure 503 {object} response.Envelope
 // @Router /system/audit-logs/export [get]
-func (h *AuditHandler) ExportAuditLogs(c *gin.Context) {
-	if h.service == nil {
+func (h *AuditApi) ExportAuditLogs(c *gin.Context) {
+	if systemServices.AuditService == nil {
 		response.Failure(c, http.StatusServiceUnavailable, "audit service is not available")
 		return
 	}
-	entries, err := h.service.ExportLogs(c.Request.Context(), parseAuditFilter(c))
+	entries, err := systemServices.AuditService.ExportLogs(c.Request.Context(), parseAuditFilter(c))
 	if err != nil {
 		response.Failure(c, http.StatusInternalServerError, "failed to export audit logs")
 		return

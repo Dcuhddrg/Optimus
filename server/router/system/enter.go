@@ -1,38 +1,44 @@
 package system
 
 import (
-	systemApi "optimus/server/api/v1/system"
-
 	"github.com/gin-gonic/gin"
+	api "optimus/server/api/v1"
 )
 
 type RouterGroup struct{}
 
-func (r *RouterGroup) InitSystemRouter(publicGroup *gin.RouterGroup, privateGroup *gin.RouterGroup, handlers *systemApi.SystemHandlers) {
-	if handlers == nil {
-		handlers = systemApi.NewSystemHandlers(systemApi.SystemHandlerDeps{})
-	}
+var (
+	healthApi = &api.ApiGroupApp.SystemApiGroup.HealthApi
+	baseApi   = &api.ApiGroupApp.SystemApiGroup.BaseApi
+	authApi   = &api.ApiGroupApp.SystemApiGroup.AuthApi
+	userApi   = &api.ApiGroupApp.SystemApiGroup.UserApi
+	roleApi   = &api.ApiGroupApp.SystemApiGroup.RoleApi
+	ldapApi   = &api.ApiGroupApp.SystemApiGroup.LDAPApi
+	auditApi  = &api.ApiGroupApp.SystemApiGroup.AuditApi
+)
 
-	publicGroup.GET("/health", handlers.Health.Health)
-	publicGroup.GET("/ping", handlers.Base.Ping)
-	publicGroup.GET("/base/ping", handlers.Base.Ping)
-	publicGroup.POST("/system/auth/login", handlers.Auth.Login)
+func (r *RouterGroup) InitSystemRouter(publicGroup *gin.RouterGroup, privateGroup *gin.RouterGroup) {
 
-	privateGroup.GET("/system/auth/me", handlers.Auth.CurrentUser)
-	privateGroup.POST("/system/auth/logout", handlers.Auth.Logout)
-	privateGroup.GET("/system/users", handlers.User.Users)
-	privateGroup.PUT("/system/users/:id", handlers.User.UpdateUser)
-	privateGroup.PATCH("/system/users/:id/status", handlers.User.UpdateUserStatus)
-	privateGroup.PUT("/system/users/:id/roles", handlers.User.UpdateUserRoles)
-	privateGroup.GET("/system/roles", handlers.Role.Roles)
-	privateGroup.POST("/system/roles", handlers.Role.CreateRole)
-	privateGroup.PUT("/system/roles/:id", handlers.Role.UpdateRole)
-	privateGroup.PATCH("/system/roles/:id/status", handlers.Role.UpdateRoleStatus)
-	privateGroup.PUT("/system/roles/:id/permissions", handlers.Role.UpdateRolePermissions)
-	privateGroup.GET("/system/permissions/tree", handlers.Role.PermissionTree)
-	privateGroup.GET("/system/ldap/config", handlers.LDAP.LDAPConfig)
-	privateGroup.PUT("/system/ldap/config", handlers.LDAP.UpdateLDAPConfig)
-	privateGroup.POST("/system/ldap/test", handlers.LDAP.TestLDAPConfig)
-	privateGroup.GET("/system/audit-logs", handlers.Audit.QueryAuditLogs)
-	privateGroup.GET("/system/audit-logs/export", handlers.Audit.ExportAuditLogs)
+	publicGroup.GET("/health", healthApi.Health)
+	publicGroup.GET("/ping", baseApi.Ping)
+	publicGroup.GET("/base/ping", baseApi.Ping)
+	publicGroup.POST("/system/auth/login", authApi.Login)
+
+	privateGroup.GET("/system/auth/me", authApi.CurrentUser)
+	privateGroup.POST("/system/auth/logout", authApi.Logout)
+	privateGroup.GET("/system/users", userApi.Users)
+	privateGroup.PUT("/system/users/:id", userApi.UpdateUser)
+	privateGroup.PATCH("/system/users/:id/status", userApi.UpdateUserStatus)
+	privateGroup.PUT("/system/users/:id/roles", userApi.UpdateUserRoles)
+	privateGroup.GET("/system/roles", roleApi.Roles)
+	privateGroup.POST("/system/roles", roleApi.CreateRole)
+	privateGroup.PUT("/system/roles/:id", roleApi.UpdateRole)
+	privateGroup.PATCH("/system/roles/:id/status", roleApi.UpdateRoleStatus)
+	privateGroup.PUT("/system/roles/:id/permissions", roleApi.UpdateRolePermissions)
+	privateGroup.GET("/system/permissions/tree", roleApi.PermissionTree)
+	privateGroup.GET("/system/ldap/config", ldapApi.LDAPConfig)
+	privateGroup.PUT("/system/ldap/config", ldapApi.UpdateLDAPConfig)
+	privateGroup.POST("/system/ldap/test", ldapApi.TestLDAPConfig)
+	privateGroup.GET("/system/audit-logs", auditApi.QueryAuditLogs)
+	privateGroup.GET("/system/audit-logs/export", auditApi.ExportAuditLogs)
 }

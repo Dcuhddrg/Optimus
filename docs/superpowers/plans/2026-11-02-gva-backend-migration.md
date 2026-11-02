@@ -38,11 +38,11 @@
 
 **文件边界：** `server/service/enter.go`、各模块 `service/*/enter.go`；`api/v1/enter.go`、各模块 `api/v1/*/enter.go` 与 `handlers.go`；`initialize/router.go`、`initialize/system_module.go`、`initialize/{project,cloud}/module.go`；所有依赖这些入口的路由、中间件、后台任务及测试。
 
-- [ ] 先写 GroupApp 实际消费、启动初始化顺序、缺依赖503、真实路由注入替身及恢复测试；先失败再切换入口。
-- [ ] 根级具名聚合、模块级职责聚合，并把真正生产消费改到 ApiGroupApp/ServiceGroupApp；别名引用稳定对象，禁止复制装配前的有状态服务值。
-- [ ] 现有构造逻辑进入统一服务组装配，保留配置、密钥处理、SDK registry、RBAC、ProjectScope、审计清理及依赖失败行为；不顺带修正既有业务规则。
-- [ ] 同批删除对应 New*Module/New*Handlers 的平行生产入口，更新全部测试替换点；全局替换的测试串行隔离并 cleanup，不让测试污染运行态。
-- [ ] 全量隔离数据库测试、`go build ./...`、`go test -race ./initialize ./middleware ./router`，以及三种前缀的路由/权限/协议回归通过后独立提交；回退整个装配批次。
+- [x] 先写 GroupApp 实际消费、启动初始化顺序、缺依赖503、真实路由注入替身及恢复测试；先失败再切换入口。
+- [x] 根级具名聚合、模块级职责聚合，并把真正生产消费改到 ApiGroupApp/ServiceGroupApp；别名引用稳定对象，禁止复制装配前的有状态服务值。
+- [x] 现有构造逻辑进入统一服务组装配，保留配置、密钥处理、SDK registry、RBAC、ProjectScope、审计清理及依赖失败行为；不顺带修正既有业务规则。
+- [x] 同批删除对应 New*Module/New*Handlers 的平行生产入口，更新全部测试替换点；全局替换的测试串行隔离并 cleanup，不让测试污染运行态。
+- [x] 全量隔离数据库测试、`go build ./...`、`go test -race ./initialize ./middleware ./router`，以及三种前缀的路由/权限/协议回归通过后独立提交；回退整个装配批次。
 
 ## 4. 全模块职责子 Router
 

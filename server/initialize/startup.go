@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"optimus/server/global"
+	"optimus/server/service"
 	cloudService "optimus/server/service/cloud"
 	projectService "optimus/server/service/project"
 	systemService "optimus/server/service/system"
@@ -11,6 +12,7 @@ import (
 
 func Startup() {
 	db := Gorm()
+	InitializeServices(db, global.OPTIMUS_CONFIG)
 	if db == nil {
 		return
 	}
@@ -45,5 +47,5 @@ func Startup() {
 		logDependencyInitFailure("cloud", "backfill project scope", err)
 	}
 
-	startAuditRetentionWorker(context.Background(), db, global.OPTIMUS_CONFIG.System.AuditLogRetentionDays)
+	startAuditRetentionWorker(context.Background(), service.ServiceGroupApp.SystemServiceGroup.AuditService, global.OPTIMUS_CONFIG.System.AuditLogRetentionDays)
 }

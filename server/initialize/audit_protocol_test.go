@@ -6,12 +6,11 @@ import (
 	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
-	"gorm.io/gorm"
 	"net/http/httptest"
-	api "optimus/server/api/v1/system"
 	"optimus/server/config"
 	"optimus/server/global"
 	model "optimus/server/model/system"
+	rootService "optimus/server/service"
 	service "optimus/server/service/system"
 	"strings"
 	"testing"
@@ -47,25 +46,25 @@ func TestAuditProtocolThroughRealRouter(t *testing.T) {
 	for _, prefix := range []string{"/api/v1", "/custom/v2", "/"} {
 		t.Run(prefix, func(t *testing.T) {
 			gin.SetMode(gin.TestMode)
-			oldConfig, oldFactory := global.OPTIMUS_CONFIG, newSystemModule
-			t.Cleanup(func() { global.OPTIMUS_CONFIG = oldConfig; newSystemModule = oldFactory })
+			oldConfig, oldServices := global.OPTIMUS_CONFIG, *rootService.ServiceGroupApp
+			t.Cleanup(func() { global.OPTIMUS_CONFIG = oldConfig; *rootService.ServiceGroupApp = oldServices })
 			global.OPTIMUS_CONFIG.System.RouterPrefix = prefix
 			global.OPTIMUS_CONFIG.JWT = config.JWT{SigningKey: "protocol-test-key", ExpiresTime: 3600, Issuer: "protocol-test"}
 			store := &auditProtocolStore{}
 			allowed := true
 			missing := false
-			newSystemModule = func(_ *gorm.DB, cfg config.Config) *SystemModule {
-				deps := api.SystemHandlerDeps{}
-				if !missing {
-					deps.Audit = service.NewAuditService(store)
-				}
-				return &SystemModule{Handlers: api.NewSystemHandlers(deps), Capabilities: &SystemCapabilities{RBAC: auditProtocolAuthorizer{allowed: allowed}}, cfg: cfg}
-			}
+			InitializeServices(nil, global.OPTIMUS_CONFIG)
+			auditSvc := service.NewAuditService(store)
 			token, err := service.IssueJWT(service.TokenSubject{ID: 1, Username: "admin", RoleIDs: []uint{1}, RoleCodes: []string{"admin"}}, global.OPTIMUS_CONFIG.JWT, time.Now())
 			require.NoError(t, err)
 			base := strings.TrimRight(prefix, "/")
 			require.Len(t, Routers().Routes(), 38)
 			request := func(path, credential string) *httptest.ResponseRecorder {
+				rootService.ServiceGroupApp.SystemServiceGroup.RBAC = auditProtocolAuthorizer{allowed: allowed}
+				rootService.ServiceGroupApp.SystemServiceGroup.AuditService = auditSvc
+				if missing {
+					rootService.ServiceGroupApp.SystemServiceGroup.AuditService = nil
+				}
 				w := httptest.NewRecorder()
 				req := httptest.NewRequest("GET", base+path, nil)
 				if credential != "" {

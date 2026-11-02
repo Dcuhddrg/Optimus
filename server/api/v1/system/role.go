@@ -10,12 +10,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (h *RoleHandler) Roles(c *gin.Context) {
-	if h.service == nil {
+func (h *RoleApi) Roles(c *gin.Context) {
+	if systemServices.RoleService == nil {
 		writeServiceUnavailable(c, "role service is not available")
 		return
 	}
-	roles, err := h.service.ListRoles(c.Request.Context())
+	roles, err := systemServices.RoleService.ListRoles(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to list roles"})
 		return
@@ -23,8 +23,8 @@ func (h *RoleHandler) Roles(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"items": roles, "total": len(roles)})
 }
 
-func (h *RoleHandler) CreateRole(c *gin.Context) {
-	if h.service == nil {
+func (h *RoleApi) CreateRole(c *gin.Context) {
+	if systemServices.RoleService == nil {
 		writeServiceUnavailable(c, "role service is not available")
 		return
 	}
@@ -33,12 +33,12 @@ func (h *RoleHandler) CreateRole(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid role request"})
 		return
 	}
-	role, err := h.service.CreateRole(c.Request.Context(), actorID(c), req, auditMeta(c))
+	role, err := systemServices.RoleService.CreateRole(c.Request.Context(), actorID(c), req, auditMeta(c))
 	writeRoleServiceResult(c, role, err)
 }
 
-func (h *RoleHandler) UpdateRole(c *gin.Context) {
-	if h.service == nil {
+func (h *RoleApi) UpdateRole(c *gin.Context) {
+	if systemServices.RoleService == nil {
 		writeServiceUnavailable(c, "role service is not available")
 		return
 	}
@@ -51,12 +51,12 @@ func (h *RoleHandler) UpdateRole(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid role request"})
 		return
 	}
-	role, err := h.service.UpdateRole(c.Request.Context(), actorID(c), id, req, auditMeta(c))
+	role, err := systemServices.RoleService.UpdateRole(c.Request.Context(), actorID(c), id, req, auditMeta(c))
 	writeRoleServiceResult(c, role, err)
 }
 
-func (h *RoleHandler) UpdateRoleStatus(c *gin.Context) {
-	if h.service == nil {
+func (h *RoleApi) UpdateRoleStatus(c *gin.Context) {
+	if systemServices.RoleService == nil {
 		writeServiceUnavailable(c, "role service is not available")
 		return
 	}
@@ -71,12 +71,12 @@ func (h *RoleHandler) UpdateRoleStatus(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid status request"})
 		return
 	}
-	role, err := h.service.UpdateRoleStatus(c.Request.Context(), actorID(c), id, req.Status, auditMeta(c))
+	role, err := systemServices.RoleService.UpdateRoleStatus(c.Request.Context(), actorID(c), id, req.Status, auditMeta(c))
 	writeRoleServiceResult(c, role, err)
 }
 
-func (h *RoleHandler) UpdateRolePermissions(c *gin.Context) {
-	if h.service == nil {
+func (h *RoleApi) UpdateRolePermissions(c *gin.Context) {
+	if systemServices.RoleService == nil {
 		writeServiceUnavailable(c, "role service is not available")
 		return
 	}
@@ -91,7 +91,7 @@ func (h *RoleHandler) UpdateRolePermissions(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid permissions request"})
 		return
 	}
-	err := h.service.UpdateRolePermissions(c.Request.Context(), actorID(c), id, req.PermissionCodes, auditMeta(c))
+	err := systemServices.RoleService.UpdateRolePermissions(c.Request.Context(), actorID(c), id, req.PermissionCodes, auditMeta(c))
 	if errors.Is(err, systemService.ErrRoleNotFound) {
 		c.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
 		return
@@ -107,7 +107,7 @@ func (h *RoleHandler) UpdateRolePermissions(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "role permissions updated"})
 }
 
-func (h *RoleHandler) PermissionTree(c *gin.Context) {
+func (h *RoleApi) PermissionTree(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"items": systemService.DefaultSystemPermissions()})
 }
 

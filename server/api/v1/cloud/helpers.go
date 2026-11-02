@@ -11,36 +11,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// AccountHandler handles HTTP requests for cloud accounts.
-type AccountHandler struct {
-	accountSvc *cloudService.CloudAccountService
-	assetSvc   *cloudService.AssetRegistryService
-}
-
-// AssetHandler handles HTTP requests for cloud assets.
-type AssetHandler struct {
-	service *cloudService.AssetRegistryService
-}
-
-// CloudHandlers groups all cloud HTTP handlers.
-type CloudHandlers struct {
-	Account *AccountHandler
-	Asset   *AssetHandler
-}
-
-// CloudHandlerDeps carries the services needed to build CloudHandlers.
-type CloudHandlerDeps struct {
-	Account *cloudService.CloudAccountService
-	Asset   *cloudService.AssetRegistryService
-}
-
-func NewCloudHandlers(deps CloudHandlerDeps) *CloudHandlers {
-	return &CloudHandlers{
-		Account: &AccountHandler{accountSvc: deps.Account, assetSvc: deps.Asset},
-		Asset:   &AssetHandler{service: deps.Asset},
-	}
-}
-
 func writeCloudServiceUnavailable(c *gin.Context, message string) {
 	c.JSON(http.StatusServiceUnavailable, gin.H{"message": message})
 }

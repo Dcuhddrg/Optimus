@@ -3,6 +3,7 @@ package system
 import (
 	"net/http"
 	"net/http/httptest"
+	"optimus/server/service"
 	"strings"
 	"testing"
 
@@ -12,13 +13,16 @@ import (
 
 func TestAuthHandlerLoginReturnsServiceUnavailableWhenServiceMissing(t *testing.T) {
 	gin.SetMode(gin.TestMode)
+	previousServices := service.ServiceGroupApp.SystemServiceGroup
+	t.Cleanup(func() { service.ServiceGroupApp.SystemServiceGroup = previousServices })
+	service.ServiceGroupApp.SystemServiceGroup.AuthService = nil
 
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
 	ctx.Request = httptest.NewRequest(http.MethodPost, "/api/v1/system/auth/login", strings.NewReader(`{"username":"admin","password":"secret"}`))
 	ctx.Request.Header.Set("Content-Type", "application/json")
 
-	handler := &AuthHandler{}
+	handler := &AuthApi{}
 	handler.Login(ctx)
 
 	require.Equal(t, http.StatusServiceUnavailable, recorder.Code)
@@ -27,11 +31,14 @@ func TestAuthHandlerLoginReturnsServiceUnavailableWhenServiceMissing(t *testing.
 
 func TestAuditHandlerQueryAuditLogsReturnsServiceUnavailableWhenServiceMissing(t *testing.T) {
 	gin.SetMode(gin.TestMode)
+	previousServices := service.ServiceGroupApp.SystemServiceGroup
+	t.Cleanup(func() { service.ServiceGroupApp.SystemServiceGroup = previousServices })
+	service.ServiceGroupApp.SystemServiceGroup.AuditService = nil
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
 	ctx.Request = httptest.NewRequest(http.MethodGet, "/system/audit-logs", nil)
 
-	handler := &AuditHandler{}
+	handler := &AuditApi{}
 	handler.QueryAuditLogs(ctx)
 
 	require.Equal(t, http.StatusServiceUnavailable, recorder.Code)
@@ -40,11 +47,14 @@ func TestAuditHandlerQueryAuditLogsReturnsServiceUnavailableWhenServiceMissing(t
 
 func TestAuditHandlerExportAuditLogsReturnsServiceUnavailableWhenServiceMissing(t *testing.T) {
 	gin.SetMode(gin.TestMode)
+	previousServices := service.ServiceGroupApp.SystemServiceGroup
+	t.Cleanup(func() { service.ServiceGroupApp.SystemServiceGroup = previousServices })
+	service.ServiceGroupApp.SystemServiceGroup.AuditService = nil
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
 	ctx.Request = httptest.NewRequest(http.MethodGet, "/system/audit-logs/export", nil)
 
-	handler := &AuditHandler{}
+	handler := &AuditApi{}
 	handler.ExportAuditLogs(ctx)
 
 	require.Equal(t, http.StatusServiceUnavailable, recorder.Code)

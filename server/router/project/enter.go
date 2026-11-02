@@ -1,25 +1,29 @@
 package project
 
 import (
-	projectApi "optimus/server/api/v1/project"
-
 	"github.com/gin-gonic/gin"
+	api "optimus/server/api/v1"
 )
 
 type RouterGroup struct{}
 
-func (r *RouterGroup) InitProjectRouter(rg *gin.RouterGroup, h *projectApi.ProjectHandlers) {
+var (
+	projectApi = &api.ApiGroupApp.ProjectApiGroup.ProjectApi
+	memberApi  = &api.ApiGroupApp.ProjectApiGroup.MemberApi
+)
+
+func (r *RouterGroup) InitProjectRouter(rg *gin.RouterGroup) {
 	group := rg.Group("projects")
 	{
-		group.GET("", h.ListProjects)
-		group.POST("", h.CreateProject)
-		group.GET(":code", h.GetProject)
-		group.PUT(":code", h.UpdateProject)
-		group.DELETE(":code", h.DeleteProject)
+		group.GET("", projectApi.ListProjects)
+		group.POST("", projectApi.CreateProject)
+		group.GET(":code", projectApi.GetProject)
+		group.PUT(":code", projectApi.UpdateProject)
+		group.DELETE(":code", projectApi.DeleteProject)
 
-		group.GET(":code/members", h.ListMembers)
-		group.POST(":code/members", h.AddMember)
-		group.PATCH(":code/members/:userId", h.UpdateMemberRole)
-		group.DELETE(":code/members/:userId", h.RemoveMember)
+		group.GET(":code/members", memberApi.ListMembers)
+		group.POST(":code/members", memberApi.AddMember)
+		group.PATCH(":code/members/:userId", memberApi.UpdateMemberRole)
+		group.DELETE(":code/members/:userId", memberApi.RemoveMember)
 	}
 }

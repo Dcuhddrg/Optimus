@@ -5,11 +5,11 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"optimus/server/service"
 	"strings"
 	"testing"
 	"time"
 
-	systemApi "optimus/server/api/v1/system"
 	"optimus/server/config"
 	"optimus/server/global"
 	systemModel "optimus/server/model/system"
@@ -17,26 +17,18 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
-	"gorm.io/gorm"
 )
 
-func TestRoutersUseInjectedSystemHandlersForAuthRoutes(t *testing.T) {
+func TestRoutersUseGroupedAuthService(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	previousBuilder := newSystemModule
+	previousServices := *service.ServiceGroupApp
 	t.Cleanup(func() {
-		newSystemModule = previousBuilder
+		*service.ServiceGroupApp = previousServices
 	})
 
-	newSystemModule = func(db *gorm.DB, cfg config.Config) *SystemModule {
-		return &SystemModule{
-			Handlers: systemApi.NewSystemHandlers(systemApi.SystemHandlerDeps{
-				Auth: systemService.NewAuthService(fakeRouterAuthStore{}, fakeRouterTokenIssuer{}, nil),
-			}),
-			Capabilities: &SystemCapabilities{},
-			cfg:          cfg,
-		}
-	}
+	InitializeServices(nil, global.OPTIMUS_CONFIG)
+	service.ServiceGroupApp.SystemServiceGroup.AuthService = systemService.NewAuthService(fakeRouterAuthStore{}, fakeRouterTokenIssuer{}, nil)
 
 	engine := Routers()
 
@@ -50,14 +42,14 @@ func TestRoutersUseInjectedSystemHandlersForAuthRoutes(t *testing.T) {
 	require.JSONEq(t, `{"code":7,"data":null,"msg":"username or password is incorrect"}`, recorder.Body.String())
 }
 
-func TestRoutersUseInjectedRBACCapability(t *testing.T) {
+func TestRoutersUseGroupedRBACCapability(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	originalConfig := global.OPTIMUS_CONFIG
-	previousBuilder := newSystemModule
+	previousServices := *service.ServiceGroupApp
 	t.Cleanup(func() {
 		global.OPTIMUS_CONFIG = originalConfig
-		newSystemModule = previousBuilder
+		*service.ServiceGroupApp = previousServices
 	})
 
 	global.OPTIMUS_CONFIG.JWT = config.JWT{
@@ -66,15 +58,8 @@ func TestRoutersUseInjectedRBACCapability(t *testing.T) {
 		BufferTime:  300,
 		Issuer:      "optimus-router-test",
 	}
-	newSystemModule = func(db *gorm.DB, cfg config.Config) *SystemModule {
-		return &SystemModule{
-			Handlers: systemApi.NewSystemHandlers(systemApi.SystemHandlerDeps{}),
-			Capabilities: &SystemCapabilities{
-				RBAC: fakeRouterRBAC{allowed: true},
-			},
-			cfg: cfg,
-		}
-	}
+	InitializeServices(nil, global.OPTIMUS_CONFIG)
+	service.ServiceGroupApp.SystemServiceGroup.RBAC = fakeRouterRBAC{allowed: true}
 
 	engine := Routers()
 	token, err := systemService.IssueJWT(systemService.TokenSubject{

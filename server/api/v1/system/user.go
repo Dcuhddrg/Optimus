@@ -14,12 +14,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (h *UserHandler) Users(c *gin.Context) {
-	if h.service == nil {
+func (h *UserApi) Users(c *gin.Context) {
+	if systemServices.UserService == nil {
 		response.Failure(c, http.StatusServiceUnavailable, "user service is not available")
 		return
 	}
-	result, err := h.service.ListUsers(c.Request.Context())
+	result, err := systemServices.UserService.ListUsers(c.Request.Context())
 	if err != nil {
 		response.Failure(c, http.StatusInternalServerError, "failed to list users")
 		return
@@ -27,8 +27,8 @@ func (h *UserHandler) Users(c *gin.Context) {
 	response.Success(c, http.StatusOK, gin.H{"list": result.Items, "total": result.Total})
 }
 
-func (h *UserHandler) UpdateUser(c *gin.Context) {
-	if h.service == nil {
+func (h *UserApi) UpdateUser(c *gin.Context) {
+	if systemServices.UserService == nil {
 		response.Failure(c, http.StatusServiceUnavailable, "user service is not available")
 		return
 	}
@@ -41,12 +41,12 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 		response.Failure(c, http.StatusBadRequest, "invalid user request")
 		return
 	}
-	user, err := h.service.UpdateUser(c.Request.Context(), actorID(c), id, req, auditMeta(c))
+	user, err := systemServices.UserService.UpdateUser(c.Request.Context(), actorID(c), id, req, auditMeta(c))
 	writeUserServiceResult(c, user, err)
 }
 
-func (h *UserHandler) UpdateUserStatus(c *gin.Context) {
-	if h.service == nil {
+func (h *UserApi) UpdateUserStatus(c *gin.Context) {
+	if systemServices.UserService == nil {
 		response.Failure(c, http.StatusServiceUnavailable, "user service is not available")
 		return
 	}
@@ -61,12 +61,12 @@ func (h *UserHandler) UpdateUserStatus(c *gin.Context) {
 		response.Failure(c, http.StatusBadRequest, "invalid status request")
 		return
 	}
-	user, err := h.service.UpdateUserStatus(c.Request.Context(), actorID(c), id, req.Status, auditMeta(c))
+	user, err := systemServices.UserService.UpdateUserStatus(c.Request.Context(), actorID(c), id, req.Status, auditMeta(c))
 	writeUserServiceResult(c, user, err)
 }
 
-func (h *UserHandler) UpdateUserRoles(c *gin.Context) {
-	if h.service == nil {
+func (h *UserApi) UpdateUserRoles(c *gin.Context) {
+	if systemServices.UserService == nil {
 		response.Failure(c, http.StatusServiceUnavailable, "user service is not available")
 		return
 	}
@@ -81,7 +81,7 @@ func (h *UserHandler) UpdateUserRoles(c *gin.Context) {
 		response.Failure(c, http.StatusBadRequest, "invalid role request")
 		return
 	}
-	err := h.service.UpdateUserRoles(c.Request.Context(), actorID(c), id, req.RoleIDs, auditMeta(c))
+	err := systemServices.UserService.UpdateUserRoles(c.Request.Context(), actorID(c), id, req.RoleIDs, auditMeta(c))
 	if errors.Is(err, systemService.ErrLastAdminCapableUser) {
 		response.Failure(c, http.StatusForbidden, err.Error())
 		return

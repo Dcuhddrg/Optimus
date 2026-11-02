@@ -1,46 +1,22 @@
 package initialize
 
 import (
-	systemApi "optimus/server/api/v1/system"
+	"gorm.io/gorm"
 	"optimus/server/config"
-	"optimus/server/middleware"
 	systemService "optimus/server/service/system"
 	"optimus/server/service/system/directory"
 	persistence "optimus/server/service/system/store"
-
-	"gorm.io/gorm"
 )
 
-type SystemCapabilities struct {
-	RBAC middleware.APIAuthorizer
-}
-
-type SystemModule struct {
-	Handlers     *systemApi.SystemHandlers
-	Capabilities *SystemCapabilities
-	cfg          config.Config
-}
-
-func NewSystemModule(db *gorm.DB, cfg config.Config) *SystemModule {
-	authService := newSystemAuthService(db, cfg)
-	userService := newSystemUserService(db)
-	roleService := newSystemRoleService(db)
-	ldapService := newSystemLDAPService(db)
-	auditService := newSystemAuditService(db)
-
-	return &SystemModule{
-		Handlers: systemApi.NewSystemHandlers(systemApi.SystemHandlerDeps{
-			Auth:   authService,
-			User:   userService,
-			Role:   roleService,
-			LDAP:   ldapService,
-			Audit:  auditService,
-			System: &systemService.Service{},
-		}),
-		Capabilities: &SystemCapabilities{
-			RBAC: newSystemRBACCapability(db),
-		},
-		cfg: cfg,
+func newSystemServiceGroup(db *gorm.DB, cfg config.Config) systemService.ServiceGroup {
+	return systemService.ServiceGroup{
+		AuthService:  newSystemAuthService(db, cfg),
+		UserService:  newSystemUserService(db),
+		RoleService:  newSystemRoleService(db),
+		LDAPService:  newSystemLDAPService(db),
+		AuditService: newSystemAuditService(db),
+		RBAC:         newSystemRBACCapability(db),
+		Status:       &systemService.Service{},
 	}
 }
 

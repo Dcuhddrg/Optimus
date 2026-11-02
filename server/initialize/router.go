@@ -5,28 +5,16 @@ import (
 	"strings"
 
 	"optimus/server/global"
-	cloudInit "optimus/server/initialize/cloud"
-	projectInit "optimus/server/initialize/project"
 	"optimus/server/middleware"
 	"optimus/server/router"
+	"optimus/server/service"
 
 	"github.com/gin-gonic/gin"
 )
 
 const defaultRouterPrefix = "/api/v1"
 
-var newSystemModule = NewSystemModule
-var newCloudModule = cloudInit.NewCloudModule
-var newProjectModule = projectInit.NewProjectModule
-
 func Routers() *gin.Engine {
-	systemModule := newSystemModule(global.OPTIMUS_DB, global.OPTIMUS_CONFIG)
-	if systemModule == nil {
-		systemModule = NewSystemModule(nil, global.OPTIMUS_CONFIG)
-	}
-	cloudModule := newCloudModule(global.OPTIMUS_DB, global.OPTIMUS_CONFIG)
-	projectModule := newProjectModule(global.OPTIMUS_DB, global.OPTIMUS_CONFIG)
-
 	engine := gin.New()
 	// 全局中间件
 	engine.Use(middleware.Logger(), middleware.Recovery())
@@ -45,17 +33,17 @@ func Routers() *gin.Engine {
 		{Method: "GET", Path: "/system/audit-logs"},
 		{Method: "GET", Path: "/system/audit-logs/export"},
 	}), middleware.JWTAuth(), middleware.CasbinHandlerWithPrefix(
-		systemModule.Capabilities.RBAC, privateGroup.BasePath(), defaultRouterPrefix,
+		service.ServiceGroupApp.SystemServiceGroup.RBAC, privateGroup.BasePath(), defaultRouterPrefix,
 	))
 	cloudGroup := privateGroup.Group("")
-	if projectModule != nil && projectModule.Service != nil {
-		cloudGroup.Use(middleware.ProjectScope(projectModule.Service))
+	if service.ServiceGroupApp.ProjectServiceGroup.ProjectService != nil {
+		cloudGroup.Use(middleware.ProjectScope(service.ServiceGroupApp.ProjectServiceGroup.ProjectService))
 	}
 
 	routerGroup := router.RouterGroupApp
-	routerGroup.System.InitSystemRouter(publicGroup, privateGroup, systemModule.Handlers)
-	routerGroup.Cloud.InitCloudRouter(cloudGroup, cloudModule.Handlers)
-	routerGroup.Project.InitProjectRouter(privateGroup, projectModule.Handlers)
+	routerGroup.System.InitSystemRouter(publicGroup, privateGroup)
+	routerGroup.Cloud.InitCloudRouter(cloudGroup)
+	routerGroup.Project.InitProjectRouter(privateGroup)
 
 	return engine
 }

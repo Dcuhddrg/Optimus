@@ -10,8 +10,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (h *HealthHandler) Health(c *gin.Context) {
-	service := h.service
+func (h *HealthApi) Health(c *gin.Context) {
+	service := systemServices.Status
 	if service == nil {
 		service = &systemService.Service{}
 	}
