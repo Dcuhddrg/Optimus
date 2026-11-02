@@ -3,17 +3,17 @@ package system
 import (
 	"errors"
 	"net/http"
-	systemModel "optimus/server/model/system"
+	systemRequest "optimus/server/model/system/request"
 
+	"optimus/server/model/common/response"
 	systemService "optimus/server/service/system"
 	"optimus/server/utils"
-	"optimus/server/utils/response"
 
 	"github.com/gin-gonic/gin"
 )
 
 func (h *AuthHandler) Login(c *gin.Context) {
-	var req systemModel.LoginRequest
+	var req systemRequest.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.Failure(c, http.StatusBadRequest, "invalid login request")
 		return

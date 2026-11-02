@@ -4,7 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	cloudModel "optimus/server/model/cloud"
+	cloudRequest "optimus/server/model/cloud/request"
+	cloudResponse "optimus/server/model/cloud/response"
 	"regexp"
 	"strings"
 	"time"
@@ -122,18 +123,18 @@ func NewCloudAccountService(store AccountStore, encKey []byte) (*CloudAccountSer
 	return &CloudAccountService{store: store, encKey: keyCopy}, nil
 }
 
-func (s *CloudAccountService) Create(ctx context.Context, projectID uint, req cloudModel.CreateAccountRequest) (cloudModel.AccountView, error) {
+func (s *CloudAccountService) Create(ctx context.Context, projectID uint, req cloudRequest.CreateAccountRequest) (cloudResponse.AccountView, error) {
 	credJSON, err := json.Marshal(req.Credential)
 	if err != nil {
-		return cloudModel.AccountView{}, err
+		return cloudResponse.AccountView{}, err
 	}
 	encrypted, err := encryptAESGCM(s.encKey, string(credJSON))
 	if err != nil {
-		return cloudModel.AccountView{}, err
+		return cloudResponse.AccountView{}, err
 	}
 	cleanedTags, err := ValidateTags(req.Tags)
 	if err != nil {
-		return cloudModel.AccountView{}, err
+		return cloudResponse.AccountView{}, err
 	}
 	row := AccountRow{
 		ProjectID:      projectID,
@@ -146,60 +147,60 @@ func (s *CloudAccountService) Create(ctx context.Context, projectID uint, req cl
 	}
 	saved, err := s.store.Create(ctx, projectID, row)
 	if err != nil {
-		return cloudModel.AccountView{}, err
+		return cloudResponse.AccountView{}, err
 	}
 	return toAccountView(saved), nil
 }
 
 // Get returns ErrAccountNotFound if no account exists with the given id.
-func (s *CloudAccountService) Get(ctx context.Context, accessibleProjectIDs []uint, id uint) (cloudModel.AccountView, error) {
+func (s *CloudAccountService) Get(ctx context.Context, accessibleProjectIDs []uint, id uint) (cloudResponse.AccountView, error) {
 	row, err := s.store.Get(ctx, accessibleProjectIDs, id)
 	if err != nil {
-		return cloudModel.AccountView{}, err
+		return cloudResponse.AccountView{}, err
 	}
 	return toAccountView(row), nil
 }
 
-func (s *CloudAccountService) List(ctx context.Context, accessibleProjectIDs []uint, tagFilters []TagFilter) ([]cloudModel.AccountView, error) {
+func (s *CloudAccountService) List(ctx context.Context, accessibleProjectIDs []uint, tagFilters []TagFilter) ([]cloudResponse.AccountView, error) {
 	rows, err := s.store.List(ctx, accessibleProjectIDs, tagFilters)
 	if err != nil {
 		return nil, err
 	}
-	views := make([]cloudModel.AccountView, len(rows))
+	views := make([]cloudResponse.AccountView, len(rows))
 	for i, r := range rows {
 		views[i] = toAccountView(r)
 	}
 	return views, nil
 }
 
-func (s *CloudAccountService) Update(ctx context.Context, accessibleProjectIDs []uint, id uint, req cloudModel.UpdateAccountRequest) (cloudModel.AccountView, error) {
+func (s *CloudAccountService) Update(ctx context.Context, accessibleProjectIDs []uint, id uint, req cloudRequest.UpdateAccountRequest) (cloudResponse.AccountView, error) {
 	var encCredential *string
 	if len(req.Credential) > 0 {
 		credJSON, err := json.Marshal(req.Credential)
 		if err != nil {
-			return cloudModel.AccountView{}, err
+			return cloudResponse.AccountView{}, err
 		}
 		enc, err := encryptAESGCM(s.encKey, string(credJSON))
 		if err != nil {
-			return cloudModel.AccountView{}, err
+			return cloudResponse.AccountView{}, err
 		}
 		encCredential = &enc
 	}
 	row, err := s.store.Update(ctx, accessibleProjectIDs, id, req.Name, encCredential)
 	if err != nil {
-		return cloudModel.AccountView{}, err
+		return cloudResponse.AccountView{}, err
 	}
 	return toAccountView(row), nil
 }
 
-func (s *CloudAccountService) UpdateTags(ctx context.Context, accessibleProjectIDs []uint, id uint, req cloudModel.UpdateAccountTagsRequest) (cloudModel.AccountView, error) {
+func (s *CloudAccountService) UpdateTags(ctx context.Context, accessibleProjectIDs []uint, id uint, req cloudRequest.UpdateAccountTagsRequest) (cloudResponse.AccountView, error) {
 	cleaned, err := ValidateTags(req.Tags)
 	if err != nil {
-		return cloudModel.AccountView{}, err
+		return cloudResponse.AccountView{}, err
 	}
 	row, err := s.store.UpdateTags(ctx, accessibleProjectIDs, id, cleaned)
 	if err != nil {
-		return cloudModel.AccountView{}, err
+		return cloudResponse.AccountView{}, err
 	}
 	return toAccountView(row), nil
 }
@@ -236,12 +237,12 @@ func (s *CloudAccountService) GetForSync(ctx context.Context, id uint) (SyncAcco
 	}, nil
 }
 
-func toAccountView(row AccountRow) cloudModel.AccountView {
+func toAccountView(row AccountRow) cloudResponse.AccountView {
 	tags := row.Tags
 	if tags == nil {
 		tags = map[string]string{}
 	}
-	return cloudModel.AccountView{
+	return cloudResponse.AccountView{
 		ID:             row.ID,
 		ProjectID:      row.ProjectID,
 		Name:           row.Name,

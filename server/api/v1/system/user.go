@@ -3,12 +3,13 @@ package system
 import (
 	"errors"
 	"net/http"
-	systemModel "optimus/server/model/system"
+	systemRequest "optimus/server/model/system/request"
+	systemResponse "optimus/server/model/system/response"
 	"strconv"
 
+	"optimus/server/model/common/response"
 	systemService "optimus/server/service/system"
 	"optimus/server/utils"
-	"optimus/server/utils/response"
 
 	"github.com/gin-gonic/gin"
 )
@@ -35,7 +36,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 	if !ok {
 		return
 	}
-	var req systemModel.UpdateUserRequest
+	var req systemRequest.UpdateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.Failure(c, http.StatusBadRequest, "invalid user request")
 		return
@@ -127,7 +128,7 @@ func auditMeta(c *gin.Context) systemService.AuditMeta {
 	return meta
 }
 
-func writeUserServiceResult(c *gin.Context, user systemModel.SystemUserSummary, err error) {
+func writeUserServiceResult(c *gin.Context, user systemResponse.SystemUserSummary, err error) {
 	if errors.Is(err, systemService.ErrUserNotFound) {
 		response.Failure(c, http.StatusNotFound, err.Error())
 		return

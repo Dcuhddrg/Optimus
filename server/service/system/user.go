@@ -3,6 +3,8 @@ package system
 import (
 	"context"
 	"errors"
+	systemRequest "optimus/server/model/system/request"
+	systemResponse "optimus/server/model/system/response"
 
 	systemModel "optimus/server/model/system"
 )
@@ -31,68 +33,68 @@ func NewUserService(store UserStore) *UserService {
 	return &UserService{store: store}
 }
 
-func (s *UserService) ListUsers(ctx context.Context) (systemModel.UserListResult, error) {
+func (s *UserService) ListUsers(ctx context.Context) (systemResponse.UserListResult, error) {
 	users, err := s.store.ListUsers(ctx)
 	if err != nil {
-		return systemModel.UserListResult{}, err
+		return systemResponse.UserListResult{}, err
 	}
 
-	items := make([]systemModel.UserListItem, 0, len(users))
+	items := make([]systemResponse.UserListItem, 0, len(users))
 	for _, user := range users {
 		roles, err := s.store.RolesForUser(ctx, user.ID)
 		if err != nil {
-			return systemModel.UserListResult{}, err
+			return systemResponse.UserListResult{}, err
 		}
 		_, roleCodes := summarizeRoles(roles)
-		items = append(items, systemModel.UserListItem{
+		items = append(items, systemResponse.UserListItem{
 			SystemUserSummary: summarizeUser(user),
 			Roles:             roleCodes,
 		})
 	}
 
-	return systemModel.UserListResult{Items: items, Total: len(items)}, nil
+	return systemResponse.UserListResult{Items: items, Total: len(items)}, nil
 }
 
-func (s *UserService) UpdateUser(ctx context.Context, actorID uint, userID uint, req systemModel.UpdateUserRequest, meta AuditMeta) (systemModel.SystemUserSummary, error) {
+func (s *UserService) UpdateUser(ctx context.Context, actorID uint, userID uint, req systemRequest.UpdateUserRequest, meta AuditMeta) (systemResponse.SystemUserSummary, error) {
 	user, err := s.store.FindUserByID(ctx, userID)
 	if err != nil {
-		return systemModel.SystemUserSummary{}, err
+		return systemResponse.SystemUserSummary{}, err
 	}
 	user.DisplayName = req.DisplayName
 	user.Email = req.Email
 
 	updated, err := s.store.UpdateUser(ctx, user)
 	if err != nil {
-		return systemModel.SystemUserSummary{}, err
+		return systemResponse.SystemUserSummary{}, err
 	}
 	recordAudit(ctx, s.store, AuditEvent{ActorUserID: actorID, ActorUsername: meta.ActorUsername, Action: "user.update", ResourceType: "user", ResourceID: resourceID(userID), Result: "success", IP: meta.IP, UserAgent: meta.UserAgent})
 	return summarizeUser(updated), nil
 }
 
-func (s *UserService) UpdateUserStatus(ctx context.Context, actorID uint, userID uint, status string, meta AuditMeta) (systemModel.SystemUserSummary, error) {
+func (s *UserService) UpdateUserStatus(ctx context.Context, actorID uint, userID uint, status string, meta AuditMeta) (systemResponse.SystemUserSummary, error) {
 	event := failedAudit(actorID, meta, "user.status.update", "user", userID)
 	defer func() { recordAudit(ctx, s.store, event) }()
 	ok, err := s.store.WouldHaveAdminCapableUserAfterStatus(ctx, userID, status)
 	if err != nil {
 		event.Detail = auditDetails("admin_check_failed", nil)
-		return systemModel.SystemUserSummary{}, err
+		return systemResponse.SystemUserSummary{}, err
 	}
 	if !ok {
 		event.Detail = auditDetails("last_admin_protected", nil)
-		return systemModel.SystemUserSummary{}, ErrLastAdminCapableUser
+		return systemResponse.SystemUserSummary{}, ErrLastAdminCapableUser
 	}
 
 	user, err := s.store.FindUserByID(ctx, userID)
 	if err != nil {
 		event.Detail = auditDetails("target_lookup_failed", nil)
-		return systemModel.SystemUserSummary{}, err
+		return systemResponse.SystemUserSummary{}, err
 	}
 	before := user.Status
 	user.Status = status
 	updated, err := s.store.UpdateUser(ctx, user)
 	if err != nil {
 		event.Detail = auditDetails("update_failed", nil)
-		return systemModel.SystemUserSummary{}, err
+		return systemResponse.SystemUserSummary{}, err
 	}
 	event.Result = "success"
 	event.Detail = auditDetails("updated", map[string]auditChange{"status": {Before: before, After: updated.Status}})

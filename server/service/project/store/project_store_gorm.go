@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"errors"
+	projectResponse "optimus/server/model/project/response"
 	"strings"
 
 	projectModel "optimus/server/model/project"
@@ -144,8 +145,8 @@ func (s *GormProjectStore) RemoveMember(ctx context.Context, userID, projectID u
 	return nil
 }
 
-func (s *GormProjectStore) ListMembers(ctx context.Context, projectID uint) ([]projectModel.ProjectMember, error) {
-	var rows []projectModel.ProjectMember
+func (s *GormProjectStore) ListMembers(ctx context.Context, projectID uint) ([]projectResponse.ProjectMember, error) {
+	var rows []projectResponse.ProjectMember
 	err := s.db.WithContext(ctx).
 		Table("user_projects").
 		Select("user_projects.user_id, sys_users.username, sys_users.display_name, user_projects.project_role").
@@ -153,7 +154,7 @@ func (s *GormProjectStore) ListMembers(ctx context.Context, projectID uint) ([]p
 		Where("user_projects.project_id = ?", projectID).
 		Scan(&rows).Error
 	if rows == nil {
-		rows = []projectModel.ProjectMember{}
+		rows = []projectResponse.ProjectMember{}
 	}
 	return rows, err
 }

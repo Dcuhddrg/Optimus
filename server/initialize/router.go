@@ -1,7 +1,7 @@
 package initialize
 
 import (
-	"optimus/server/utils/response"
+	"optimus/server/model/common/response"
 	"strings"
 
 	"optimus/server/global"

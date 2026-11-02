@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"net/http"
-	"optimus/server/utils/response"
+	"optimus/server/model/common/response"
 
 	"optimus/server/core"
 

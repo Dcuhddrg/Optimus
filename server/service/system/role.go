@@ -3,6 +3,7 @@ package system
 import (
 	"context"
 	"errors"
+	systemRequest "optimus/server/model/system/request"
 
 	systemModel "optimus/server/model/system"
 )
@@ -35,7 +36,7 @@ func (s *RoleService) ListRoles(ctx context.Context) ([]systemModel.SystemRole, 
 	return s.store.ListRoles(ctx)
 }
 
-func (s *RoleService) CreateRole(ctx context.Context, actorID uint, req systemModel.RoleRequest, meta AuditMeta) (systemModel.SystemRole, error) {
+func (s *RoleService) CreateRole(ctx context.Context, actorID uint, req systemRequest.RoleRequest, meta AuditMeta) (systemModel.SystemRole, error) {
 	role := systemModel.SystemRole{
 		Code:        req.Code,
 		Name:        req.Name,
@@ -50,7 +51,7 @@ func (s *RoleService) CreateRole(ctx context.Context, actorID uint, req systemMo
 	return created, nil
 }
 
-func (s *RoleService) UpdateRole(ctx context.Context, actorID uint, roleID uint, req systemModel.RoleRequest, meta AuditMeta) (systemModel.SystemRole, error) {
+func (s *RoleService) UpdateRole(ctx context.Context, actorID uint, roleID uint, req systemRequest.RoleRequest, meta AuditMeta) (systemModel.SystemRole, error) {
 	role, err := s.store.FindRoleByID(ctx, roleID)
 	if err != nil {
 		return systemModel.SystemRole{}, err

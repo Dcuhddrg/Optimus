@@ -5,9 +5,9 @@ import (
 	"strings"
 
 	"optimus/server/global"
+	"optimus/server/model/common/response"
 	systemService "optimus/server/service/system"
 	"optimus/server/utils"
-	"optimus/server/utils/response"
 
 	"github.com/gin-gonic/gin"
 )

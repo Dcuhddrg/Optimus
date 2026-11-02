@@ -2,6 +2,7 @@ package system_test
 
 import (
 	"context"
+	systemRequest "optimus/server/model/system/request"
 	"testing"
 
 	systemModel "optimus/server/model/system"
@@ -14,7 +15,7 @@ func TestRoleServiceCreateRoleWritesAudit(t *testing.T) {
 	store := &fakeRoleStore{}
 	service := systemService.NewRoleService(store)
 
-	role, err := service.CreateRole(context.Background(), 1, systemModel.RoleRequest{
+	role, err := service.CreateRole(context.Background(), 1, systemRequest.RoleRequest{
 		Code: "ops",
 		Name: "Operations",
 	}, systemService.AuditMeta{})

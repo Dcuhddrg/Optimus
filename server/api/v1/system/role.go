@@ -3,7 +3,7 @@ package system
 import (
 	"errors"
 	"net/http"
-	systemModel "optimus/server/model/system"
+	systemRequest "optimus/server/model/system/request"
 
 	systemService "optimus/server/service/system"
 
@@ -28,7 +28,7 @@ func (h *RoleHandler) CreateRole(c *gin.Context) {
 		writeServiceUnavailable(c, "role service is not available")
 		return
 	}
-	var req systemModel.RoleRequest
+	var req systemRequest.RoleRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid role request"})
 		return
@@ -46,7 +46,7 @@ func (h *RoleHandler) UpdateRole(c *gin.Context) {
 	if !ok {
 		return
 	}
-	var req systemModel.RoleRequest
+	var req systemRequest.RoleRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid role request"})
 		return

@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strings"
 
+	"optimus/server/model/common/response"
 	"optimus/server/utils"
-	"optimus/server/utils/response"
 
 	"github.com/gin-gonic/gin"
 )

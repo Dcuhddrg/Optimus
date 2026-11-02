@@ -3,7 +3,7 @@ package system
 import (
 	"net/http"
 
-	commonModel "optimus/server/model/common"
+	commonResponse "optimus/server/model/common/response"
 	systemService "optimus/server/service/system"
 	"optimus/server/utils"
 
@@ -17,7 +17,7 @@ func (h *BaseHandler) Ping(c *gin.Context) {
 	}
 
 	payload := service.Ping()
-	utils.JSON(c, http.StatusOK, commonModel.PingResponse{
+	utils.JSON(c, http.StatusOK, commonResponse.PingResponse{
 		Message: payload.Message,
 	})
 }

@@ -3,6 +3,8 @@ package system
 import (
 	"context"
 	"errors"
+	systemRequest "optimus/server/model/system/request"
+	systemResponse "optimus/server/model/system/response"
 	"strings"
 
 	systemModel "optimus/server/model/system"
@@ -50,15 +52,15 @@ func NewLDAPService(store LDAPStore, client LDAPTester) *LDAPService {
 	return &LDAPService{store: store, client: client}
 }
 
-func (s *LDAPService) GetConfig(ctx context.Context) (systemModel.LDAPConfigResult, error) {
+func (s *LDAPService) GetConfig(ctx context.Context) (systemResponse.LDAPConfigResult, error) {
 	cfg, err := s.store.GetLDAPConfig(ctx)
 	if err != nil {
-		return systemModel.LDAPConfigResult{}, err
+		return systemResponse.LDAPConfigResult{}, err
 	}
 	return ldapConfigResult(cfg), nil
 }
 
-func (s *LDAPService) SaveConfig(ctx context.Context, actorID uint, req systemModel.LDAPConfigRequest, meta AuditMeta) (systemModel.LDAPConfigResult, error) {
+func (s *LDAPService) SaveConfig(ctx context.Context, actorID uint, req systemRequest.LDAPConfigRequest, meta AuditMeta) (systemResponse.LDAPConfigResult, error) {
 	event := failedAudit(actorID, meta, "ldap.config.update", "ldap", 0)
 	defer func() { recordAudit(ctx, s.store, event) }()
 	current, currentErr := s.store.GetLDAPConfig(ctx)
@@ -80,7 +82,7 @@ func (s *LDAPService) SaveConfig(ctx context.Context, actorID uint, req systemMo
 	saved, err := s.store.SaveLDAPConfig(ctx, cfg)
 	if err != nil {
 		event.Detail = auditDetails("update_failed", nil)
-		return systemModel.LDAPConfigResult{}, err
+		return systemResponse.LDAPConfigResult{}, err
 	}
 	event.ResourceID = resourceID(saved.ID)
 	event.Result = "success"
@@ -97,25 +99,25 @@ func (s *LDAPService) SaveConfig(ctx context.Context, actorID uint, req systemMo
 	return ldapConfigResult(saved), nil
 }
 
-func (s *LDAPService) TestConfig(ctx context.Context, actorID uint, req systemModel.LDAPTestRequest, meta AuditMeta) (systemModel.LDAPTestResult, error) {
+func (s *LDAPService) TestConfig(ctx context.Context, actorID uint, req systemRequest.LDAPTestRequest, meta AuditMeta) (systemResponse.LDAPTestResult, error) {
 	cfg, err := s.connectionConfig(ctx, req)
 	if err != nil {
 		event := failedAudit(actorID, meta, "ldap.test.failure", "ldap", 0)
 		event.Detail = auditDetails("invalid_config", nil)
 		recordAudit(ctx, s.store, event)
-		return systemModel.LDAPTestResult{}, err
+		return systemResponse.LDAPTestResult{}, err
 	}
 	if err := s.client.Test(ctx, cfg); err != nil {
 		event := failedAudit(actorID, meta, "ldap.test.failure", "ldap", 0)
 		event.Detail = auditDetails("connection_test_failed", nil)
 		recordAudit(ctx, s.store, event)
-		return systemModel.LDAPTestResult{}, err
+		return systemResponse.LDAPTestResult{}, err
 	}
 	recordAudit(ctx, s.store, AuditEvent{ActorUserID: actorID, ActorUsername: meta.ActorUsername, Action: "ldap.test.success", ResourceType: "ldap", Result: "success", IP: meta.IP, UserAgent: meta.UserAgent, Detail: auditDetails("connection_test_passed", nil)})
-	return systemModel.LDAPTestResult{Success: true, Message: "LDAP connection test passed"}, nil
+	return systemResponse.LDAPTestResult{Success: true, Message: "LDAP connection test passed"}, nil
 }
 
-func (s *LDAPService) connectionConfig(ctx context.Context, req systemModel.LDAPTestRequest) (LDAPConnectionConfig, error) {
+func (s *LDAPService) connectionConfig(ctx context.Context, req systemRequest.LDAPTestRequest) (LDAPConnectionConfig, error) {
 	if !strings.Contains(req.UserFilter, "{username}") {
 		return LDAPConnectionConfig{}, ErrInvalidLDAPConfig
 	}
@@ -142,8 +144,8 @@ func (s *LDAPService) connectionConfig(ctx context.Context, req systemModel.LDAP
 	}, nil
 }
 
-func ldapConfigResult(cfg systemModel.SystemLDAPConfig) systemModel.LDAPConfigResult {
-	return systemModel.LDAPConfigResult{
+func ldapConfigResult(cfg systemModel.SystemLDAPConfig) systemResponse.LDAPConfigResult {
+	return systemResponse.LDAPConfigResult{
 		Enabled:         cfg.Enabled,
 		URL:             cfg.URL,
 		BaseDN:          cfg.BaseDN,

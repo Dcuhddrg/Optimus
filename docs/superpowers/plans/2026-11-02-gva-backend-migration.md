@@ -1,6 +1,6 @@
 # 后端按 gin-vue-admin 组织方式迁移计划
 
-> 执行时使用 superpowers:executing-plans，代码批次遵循 superpowers:test-driven-development 与 verification-before-completion。本文为 #45 阶段二的批次设计，尚未实施源码迁移。
+> 执行时使用 superpowers:executing-plans，代码批次遵循 superpowers:test-driven-development 与 verification-before-completion。本文为 #45 阶段二确认的批次设计；源码实施与验证按下列步骤及 Issue 记录推进。
 
 **目标：** 全后端统一采用示例中的分层、根/模块 GroupApp、职责子 Router 和 request/response 公共组织。
 
@@ -10,20 +10,20 @@
 
 ## 0. 影响面与基线（进入实现前）
 
-- [ ] 重新读取 #44/#45 状态和主干基线，决定 #44 与迁移的先后；不将未合并协议变更混入结构批次。
+- [x] 重新读取 #44/#45 状态和主干基线，决定 #44 与迁移的先后；不将未合并协议变更混入结构批次。
 - [ ] 通过 codebase-memory-mcp 补全每批旧/新符号、调用方、构造/后台任务/中间件及测试清单。当前已定位三个 Module、三个 Handlers、三个 Router、三个 dto.go，不能以定位替代完整字段及入站调用核查。
 - [ ] 记录全部真实端点方法/路径与 public/private/ProjectScope/协议标记清单，以及 JSON 字段、HTTP 状态、CSV/探活快照。
-- [ ] 在独立临时 MySQL 上运行 `cd server && go test -count=1 -p 1 -json ./...`，并运行 `go build ./...`，记录测试数、失败与跳过项；有业务变化的基线问题单独处理。
+- [x] 在独立临时 MySQL 上运行 `cd server && go test -count=1 -p 1 -json ./...`，并运行 `go build ./...`，记录测试数、失败与跳过项；有业务变化的基线问题单独处理。
 
 ## 1. 公共类型与 Request/Response 归位
 
 **文件边界：** `server/model/{system,project,cloud}/dto.go` → 各模块 `request/`、`response/`；`model/common/response.go`、`utils/response/` → `model/common/{request,response}/`；调用方涉及 API、Service/Store、middleware、initialize、Swagger 和测试。
 
-- [ ] 先写/补充外部 JSON、参数归一化和错误/CSV 快照测试，运行确认能检测不兼容类型或字段改变。
-- [ ] 逐模块搬迁输入与外部结果，保留内部查询结果的明确归属；统一 PageInfo/分页/响应公共类型。每次搬迁同步全部 import，不以长期 type alias 保留双入口。
-- [ ] 更新 API/Service 参数和返回类型、Swagger，保持默认20/上限200、id/时间字段及既有零值/null/空数组语义。
-- [ ] 运行受影响 package 定向测试，随后全量 `go test ./...`、`go build ./...`；响应相关另跑 `go test -race ./initialize ./middleware ./model/common/response`。实际目录随最终落位核对。
-- [ ] 独立提交；回退本批类型和全部调用方，不能仅回退类型定义。
+- [x] 先写/补充外部 JSON、参数归一化和错误/CSV 快照测试，运行确认能检测不兼容类型或字段改变。
+- [x] 逐模块搬迁输入与外部结果，保留内部查询结果的明确归属；统一 PageInfo/分页/响应公共类型。每次搬迁同步全部 import，不以长期 type alias 保留双入口。
+- [x] 更新 API/Service 参数和返回类型、Swagger，保持默认20/上限200、id/时间字段及既有零值/null/空数组语义。
+- [x] 运行受影响 package 定向测试，随后全量 `go test ./...`、`go build ./...`；响应相关另跑 `go test -race ./initialize ./middleware ./model/common/response`。实际目录随最终落位核对。
+- [x] 独立提交；回退本批类型和全部调用方，不能仅回退类型定义。
 
 ## 2. 公共实体组合
 

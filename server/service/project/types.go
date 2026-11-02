@@ -3,6 +3,7 @@ package project
 import (
 	"context"
 	"errors"
+	projectResponse "optimus/server/model/project/response"
 
 	projectModel "optimus/server/model/project"
 )
@@ -43,7 +44,7 @@ type ProjectStore interface {
 	AddOrReplaceMember(ctx context.Context, m projectModel.UserProject) error
 	UpdateMemberRole(ctx context.Context, userID, projectID uint, role string) error
 	RemoveMember(ctx context.Context, userID, projectID uint) error
-	ListMembers(ctx context.Context, projectID uint) ([]projectModel.ProjectMember, error)
+	ListMembers(ctx context.Context, projectID uint) ([]projectResponse.ProjectMember, error)
 	FindMember(ctx context.Context, userID, projectID uint) (projectModel.UserProject, error)
 	ListAccessibleProjectIDs(ctx context.Context, userID uint) ([]uint, error)
 	CountOwners(ctx context.Context, projectID uint) (int64, error)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	systemRequest "optimus/server/model/system/request"
 	"strings"
 	"testing"
 
@@ -245,7 +246,7 @@ func TestAuditQualityProtectedRoleFailure(t *testing.T) {
 }
 func TestAuditQualityLDAPWhitelistAndPasswordOmission(t *testing.T) {
 	s := &qualityLDAPStore{fakeLDAPStore: fakeLDAPStore{config: model.SystemLDAPConfig{ID: 1, Enabled: false, URL: "ldap://old.test", BindPassword: "OLD_SECRET"}}}
-	_, err := service.NewLDAPService(s, qualityLDAPClient{}).SaveConfig(context.Background(), 1, model.LDAPConfigRequest{Enabled: true, URL: "ldap://user:URL_SECRET@new.test", BindPassword: "NEW_SECRET"}, service.AuditMeta{})
+	_, err := service.NewLDAPService(s, qualityLDAPClient{}).SaveConfig(context.Background(), 1, systemRequest.LDAPConfigRequest{Enabled: true, URL: "ldap://user:URL_SECRET@new.test", BindPassword: "NEW_SECRET"}, service.AuditMeta{})
 	require.NoError(t, err)
 	e := lastAudit(t, s.audits)
 	d := auditDetail(t, e)
@@ -258,7 +259,7 @@ func TestAuditQualityLDAPWhitelistAndPasswordOmission(t *testing.T) {
 }
 func TestAuditQualityLDAPTestDoesNotPersistRawError(t *testing.T) {
 	s := &qualityLDAPStore{}
-	_, err := service.NewLDAPService(s, qualityLDAPClient{err: auditTestFailure}).TestConfig(context.Background(), 1, model.LDAPTestRequest{URL: "ldap://test", BindPassword: "PASSWORD_SECRET", UserFilter: "(uid={username})"}, service.AuditMeta{})
+	_, err := service.NewLDAPService(s, qualityLDAPClient{err: auditTestFailure}).TestConfig(context.Background(), 1, systemRequest.LDAPTestRequest{URL: "ldap://test", BindPassword: "PASSWORD_SECRET", UserFilter: "(uid={username})"}, service.AuditMeta{})
 	require.Error(t, err)
 	e := lastAudit(t, s.audits)
 	require.Equal(t, "failure", e.Result)
@@ -268,7 +269,7 @@ func TestAuditQualityLDAPTestDoesNotPersistRawError(t *testing.T) {
 }
 func TestAuditQualityFailedLoginHasUnverifiedAttemptNotActor(t *testing.T) {
 	s := &qualityAuthStore{}
-	_, err := service.NewAuthService(s, fakeTokenIssuer{}, nil).Login(context.Background(), model.LoginRequest{Username: "unknown\naccount", Password: "PASSWORD_SECRET"}, service.AuditMeta{})
+	_, err := service.NewAuthService(s, fakeTokenIssuer{}, nil).Login(context.Background(), systemRequest.LoginRequest{Username: "unknown\naccount", Password: "PASSWORD_SECRET"}, service.AuditMeta{})
 	require.ErrorIs(t, err, service.ErrInvalidCredentials)
 	e := lastAudit(t, s.audits)
 	require.Zero(t, e.ActorUserID)
@@ -280,7 +281,7 @@ func TestAuditQualityFailedLoginHasUnverifiedAttemptNotActor(t *testing.T) {
 }
 func TestAuditQualityFailedKnownLoginDoesNotClaimAuthenticatedActor(t *testing.T) {
 	s := &qualityAuthStore{fakeAuthStore: fakeAuthStore{user: model.SystemUser{ID: 7, Username: "admin", Status: "disabled"}}}
-	_, err := service.NewAuthService(s, fakeTokenIssuer{}, nil).Login(context.Background(), model.LoginRequest{Username: "admin", Password: "PASSWORD_SECRET"}, service.AuditMeta{})
+	_, err := service.NewAuthService(s, fakeTokenIssuer{}, nil).Login(context.Background(), systemRequest.LoginRequest{Username: "admin", Password: "PASSWORD_SECRET"}, service.AuditMeta{})
 	require.ErrorIs(t, err, service.ErrUserDisabled)
 	e := lastAudit(t, s.audits)
 	require.Zero(t, e.ActorUserID)
@@ -289,7 +290,7 @@ func TestAuditQualityFailedKnownLoginDoesNotClaimAuthenticatedActor(t *testing.T
 }
 func TestAuditQualityLoginAttemptIsBounded(t *testing.T) {
 	s := &qualityAuthStore{}
-	_, _ = service.NewAuthService(s, fakeTokenIssuer{}, nil).Login(context.Background(), model.LoginRequest{Username: strings.Repeat("界", 300)}, service.AuditMeta{})
+	_, _ = service.NewAuthService(s, fakeTokenIssuer{}, nil).Login(context.Background(), systemRequest.LoginRequest{Username: strings.Repeat("界", 300)}, service.AuditMeta{})
 	d := auditDetail(t, lastAudit(t, s.audits))
 	require.LessOrEqual(t, len([]rune(d["attemptedUsername"].(string))), 128)
 }
@@ -347,7 +348,7 @@ func TestAuditQualityPermissionMutationFailurePreservesOriginalError(t *testing.
 }
 func TestAuditQualityLDAPSnapshotFailureKeepsSavedResult(t *testing.T) {
 	s := &qualityLDAPStore{readErr: auditTestFailure}
-	_, err := service.NewLDAPService(s, qualityLDAPClient{}).SaveConfig(context.Background(), 1, model.LDAPConfigRequest{Enabled: true, BindPassword: "SECRET"}, service.AuditMeta{})
+	_, err := service.NewLDAPService(s, qualityLDAPClient{}).SaveConfig(context.Background(), 1, systemRequest.LDAPConfigRequest{Enabled: true, BindPassword: "SECRET"}, service.AuditMeta{})
 	require.NoError(t, err)
 	d := auditDetail(t, lastAudit(t, s.audits))
 	require.Equal(t, "snapshot_unavailable", d["reason"])
@@ -357,7 +358,7 @@ func TestAuditQualityLDAPSnapshotFailureKeepsSavedResult(t *testing.T) {
 func TestAuditQualityLDAPSaveFailureAndAuditFailure(t *testing.T) {
 	logs := observeQuality(t)
 	s := &qualityLDAPStore{saveErr: errors.New("original save error"), auditErr: auditTestFailure}
-	_, err := service.NewLDAPService(s, qualityLDAPClient{}).SaveConfig(context.Background(), 1, model.LDAPConfigRequest{BindPassword: "SECRET"}, service.AuditMeta{})
+	_, err := service.NewLDAPService(s, qualityLDAPClient{}).SaveConfig(context.Background(), 1, systemRequest.LDAPConfigRequest{BindPassword: "SECRET"}, service.AuditMeta{})
 	require.ErrorIs(t, err, s.saveErr)
 	require.Equal(t, 1, logs.Len())
 	require.Equal(t, "failure", lastAudit(t, s.audits).Result)
@@ -367,7 +368,7 @@ func TestAuditQualitySuccessfulLoginSurvivesAuditWriteFailure(t *testing.T) {
 	hash, err := hashTestPassword("LOGIN_SECRET")
 	require.NoError(t, err)
 	s := &qualityAuthStore{fakeAuthStore: *newFakeAuthStore(model.SystemUser{ID: 1, Username: "admin", Source: "local", Status: "enabled", PasswordHash: hash}), auditErr: auditTestFailure}
-	result, err := service.NewAuthService(s, fakeTokenIssuer{}, nil).Login(context.Background(), model.LoginRequest{Username: "admin", Password: "LOGIN_SECRET"}, service.AuditMeta{})
+	result, err := service.NewAuthService(s, fakeTokenIssuer{}, nil).Login(context.Background(), systemRequest.LoginRequest{Username: "admin", Password: "LOGIN_SECRET"}, service.AuditMeta{})
 	require.NoError(t, err)
 	require.NotEmpty(t, result.Token)
 	require.Equal(t, 1, logs.Len())

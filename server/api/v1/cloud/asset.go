@@ -2,6 +2,7 @@ package cloud
 
 import (
 	"net/http"
+	commonRequest "optimus/server/model/common/request"
 	"strconv"
 
 	cloudService "optimus/server/service/cloud"
@@ -30,18 +31,18 @@ func (h *AssetHandler) ListAssets(c *gin.Context) {
 }
 
 func parseAssetFilter(c *gin.Context) (cloudService.AssetFilter, error) {
-	f := cloudService.AssetFilter{Page: 1, PageSize: 20}
+	page, pageErr := strconv.Atoi(c.Query("page"))
+	if pageErr != nil {
+		page = 0
+	}
+	pageSize, sizeErr := strconv.Atoi(c.Query("pageSize"))
+	if sizeErr != nil {
+		pageSize = 0
+	}
+	pagination := commonRequest.PageInfo{Page: page, PageSize: pageSize}
+	pagination.Normalize()
+	f := cloudService.AssetFilter{Page: pagination.Page, PageSize: pagination.PageSize}
 
-	if v := c.Query("page"); v != "" {
-		if n, err := strconv.Atoi(v); err == nil && n > 0 {
-			f.Page = n
-		}
-	}
-	if v := c.Query("pageSize"); v != "" {
-		if n, err := strconv.Atoi(v); err == nil && n >= 1 && n <= 200 {
-			f.PageSize = n
-		}
-	}
 	if v := c.Query("accountId"); v != "" {
 		if n, err := strconv.ParseUint(v, 10, 64); err == nil {
 			id := uint(n)

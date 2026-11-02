@@ -2,8 +2,7 @@ package project
 
 import (
 	"net/http"
-
-	projectModel "optimus/server/model/project"
+	projectRequest "optimus/server/model/project/request"
 
 	"github.com/gin-gonic/gin"
 )
@@ -26,7 +25,7 @@ func (h *ProjectHandlers) AddMember(c *gin.Context) {
 		writeProjectServiceUnavailable(c)
 		return
 	}
-	var req projectModel.AddMemberRequest
+	var req projectRequest.AddMemberRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid member payload"})
 		return
@@ -51,7 +50,7 @@ func (h *ProjectHandlers) UpdateMemberRole(c *gin.Context) {
 	if !ok {
 		return
 	}
-	var req projectModel.UpdateMemberRoleRequest
+	var req projectRequest.UpdateMemberRoleRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid member payload"})
 		return

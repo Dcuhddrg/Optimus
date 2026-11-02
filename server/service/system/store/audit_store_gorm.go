@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	commonRequest "optimus/server/model/common/request"
 	"time"
 
 	systemModel "optimus/server/model/system"
@@ -45,14 +46,9 @@ func (s *GormAuditStore) buildQuery(ctx context.Context, f systemService.AuditFi
 }
 
 func (s *GormAuditStore) QueryLogs(ctx context.Context, f systemService.AuditFilter) (systemModel.AuditPage, error) {
-	page := f.Page
-	if page < 1 {
-		page = 1
-	}
-	pageSize := f.PageSize
-	if pageSize < 1 || pageSize > 200 {
-		pageSize = 20
-	}
+	pagination := commonRequest.PageInfo{Page: f.Page, PageSize: f.PageSize}
+	pagination.Normalize()
+	page, pageSize := pagination.Page, pagination.PageSize
 
 	q := s.buildQuery(ctx, f)
 	var total int64

@@ -2,6 +2,7 @@ package system_test
 
 import (
 	"context"
+	systemRequest "optimus/server/model/system/request"
 	"testing"
 	"time"
 
@@ -26,7 +27,7 @@ func TestAuthServiceLoginAdminSuccess(t *testing.T) {
 	})
 	service := systemService.NewAuthService(store, fakeTokenIssuer{}, nil)
 
-	result, err := service.Login(context.Background(), systemModel.LoginRequest{
+	result, err := service.Login(context.Background(), systemRequest.LoginRequest{
 		Username: "admin",
 		Password: "admin-secret",
 	}, systemService.AuditMeta{IP: "127.0.0.1", UserAgent: "test"})

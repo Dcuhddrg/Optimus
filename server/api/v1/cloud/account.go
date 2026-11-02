@@ -2,7 +2,7 @@ package cloud
 
 import (
 	"net/http"
-	cloudModel "optimus/server/model/cloud"
+	cloudRequest "optimus/server/model/cloud/request"
 
 	"github.com/gin-gonic/gin"
 )
@@ -54,7 +54,7 @@ func (h *AccountHandler) CreateAccount(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "X-Project-Code header is required to create a cloud account"})
 		return
 	}
-	var req cloudModel.CreateAccountRequest
+	var req cloudRequest.CreateAccountRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid request body"})
 		return
@@ -76,7 +76,7 @@ func (h *AccountHandler) UpdateAccount(c *gin.Context) {
 	if !ok {
 		return
 	}
-	var req cloudModel.UpdateAccountRequest
+	var req cloudRequest.UpdateAccountRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid request body"})
 		return
@@ -99,7 +99,7 @@ func (h *AccountHandler) UpdateAccountTags(c *gin.Context) {
 	if !ok {
 		return
 	}
-	var req cloudModel.UpdateAccountTagsRequest
+	var req cloudRequest.UpdateAccountTagsRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid tags payload"})
 		return

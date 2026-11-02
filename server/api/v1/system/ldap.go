@@ -3,7 +3,7 @@ package system
 import (
 	"errors"
 	"net/http"
-	systemModel "optimus/server/model/system"
+	systemRequest "optimus/server/model/system/request"
 
 	systemService "optimus/server/service/system"
 
@@ -28,7 +28,7 @@ func (h *LDAPHandler) UpdateLDAPConfig(c *gin.Context) {
 		writeServiceUnavailable(c, "ldap service is not available")
 		return
 	}
-	var req systemModel.LDAPConfigRequest
+	var req systemRequest.LDAPConfigRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid ldap config request"})
 		return
@@ -46,7 +46,7 @@ func (h *LDAPHandler) TestLDAPConfig(c *gin.Context) {
 		writeServiceUnavailable(c, "ldap service is not available")
 		return
 	}
-	var req systemModel.LDAPTestRequest
+	var req systemRequest.LDAPTestRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid ldap test request"})
 		return
