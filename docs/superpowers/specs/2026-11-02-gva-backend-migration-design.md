@@ -10,7 +10,7 @@
 
 ## 各层目标
 
-| 位置 | 目标 | 当前定位与需要切换的消费者 |
+| 位置 | 目标 | 迁移前定位与需要切换的消费者 |
 | --- | --- | --- |
 | server/service/enter.go、service/<module>/enter.go | 根级 ServiceGroupApp 具名聚合模块，模块聚合职责服务 | 当前 NewSystemModule、NewProjectModule、NewCloudModule 构造服务；API handler、JWT/RBAC、ProjectScope、审计保留任务等需改由同一组取得服务 |
 | server/api/v1/enter.go、api/v1/<module>/enter.go | 根级 ApiGroupApp、模块 ApiGroup，集中 service 别名 | 当前 SystemHandlers/CloudHandlers/ProjectHandlers 与 New*Handlers；路由、initialize 及注入测试同步切换，职责 handler 可按 XxxApi 命名统一 |
@@ -52,4 +52,4 @@
 
 #44 仍是未合并的角色协议候选，改动与 system API/router 重叠；开始迁移批次时重新核实其状态，明确选择先合并后迁移或之后重放协议变更，不能暗中包含其未合并功能。详细执行步骤见[分批计划](../plans/2026-11-02-gva-backend-migration.md)。
 
-本次只形成目标与批次设计。此前代表性源码核查不是完整调用方审计，执行前须补全每批影响面；不将未核查清单、迁移代码或用户验收勾选为已完成。
+本文记录阶段二确认的目标和迁移前对应关系，实际批次实现与验证见计划和 #45。每批执行前补全影响面；未核查清单、未实施代码和用户验收不得据目标设计勾选为已完成。

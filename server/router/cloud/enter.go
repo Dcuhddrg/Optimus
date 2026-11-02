@@ -5,7 +5,10 @@ import (
 	api "optimus/server/api/v1"
 )
 
-type RouterGroup struct{}
+type RouterGroup struct {
+	AccountRouter
+	AssetRouter
+}
 
 var (
 	accountApi = &api.ApiGroupApp.CloudApiGroup.AccountApi
@@ -13,14 +16,6 @@ var (
 )
 
 func (r *RouterGroup) InitCloudRouter(privateGroup *gin.RouterGroup) {
-
-	privateGroup.GET("/cloud/accounts", accountApi.ListAccounts)
-	privateGroup.GET("/cloud/accounts/:id", accountApi.GetAccount)
-	privateGroup.POST("/cloud/accounts", accountApi.CreateAccount)
-	privateGroup.PUT("/cloud/accounts/:id", accountApi.UpdateAccount)
-	privateGroup.PUT("/cloud/accounts/:id/tags", accountApi.UpdateAccountTags)
-	privateGroup.DELETE("/cloud/accounts/:id", accountApi.DeleteAccount)
-	privateGroup.POST("/cloud/accounts/:id/sync", accountApi.SyncAccount)
-
-	privateGroup.GET("/cloud/assets", assetApi.ListAssets)
+	r.AccountRouter.InitAccountRouter(privateGroup)
+	r.AssetRouter.InitAssetRouter(privateGroup)
 }

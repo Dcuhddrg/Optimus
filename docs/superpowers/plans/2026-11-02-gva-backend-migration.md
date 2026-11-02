@@ -11,8 +11,8 @@
 ## 0. 影响面与基线（进入实现前）
 
 - [x] 重新读取 #44/#45 状态和主干基线，决定 #44 与迁移的先后；不将未合并协议变更混入结构批次。
-- [ ] 通过 codebase-memory-mcp 补全每批旧/新符号、调用方、构造/后台任务/中间件及测试清单。当前已定位三个 Module、三个 Handlers、三个 Router、三个 dto.go，不能以定位替代完整字段及入站调用核查。
-- [ ] 记录全部真实端点方法/路径与 public/private/ProjectScope/协议标记清单，以及 JSON 字段、HTTP 状态、CSV/探活快照。
+- [x] 通过 codebase-memory-mcp 补全每批旧/新符号、调用方、构造/后台任务/中间件及测试清单。当前已定位三个 Module、三个 Handlers、三个 Router、三个 dto.go，不能以定位替代完整字段及入站调用核查。
+- [x] 记录全部真实端点方法/路径与 public/private/ProjectScope/协议标记清单，以及 JSON 字段、HTTP 状态、CSV/探活快照。
 - [x] 在独立临时 MySQL 上运行 `cd server && go test -count=1 -p 1 -json ./...`，并运行 `go build ./...`，记录测试数、失败与跳过项；有业务变化的基线问题单独处理。
 
 ## 1. 公共类型与 Request/Response 归位
@@ -48,14 +48,14 @@
 
 **文件边界：** `server/router/system/`、`router/project/`、`router/cloud/` 的 `enter.go` 和各职责文件；`initialize/router.go` 注册调用及实际路由测试。
 
-- [ ] 基于原真实路由清单先写特征测试，覆盖方法/路径/参数/public-private、中间件拒绝、项目范围、默认/自定义/根前缀和探活/CSV。
-- [ ] system 拆 base/auth/user/role/ldap/audit；project 拆项目/成员；cloud 拆账号/资产。模块 RouterGroup 匿名嵌入并显式调用各 InitXxxRouter，API 别名从模块 enter.go 集中取得。
-- [ ] 保持注册顺序和 JWT 前协议标记；不重复绑定、不漏端点、不重新创建丢失权限的组。全局规范不能以“只迁 system”结案。
-- [ ] `go test -count=1 ./initialize ./router ./middleware`、相关 race、全量 `go test ./...` 和 `go build ./...`；运行启动/health/ping 及必要实际接口验证后提交。回退对应模块所有职责文件与聚合注册调用。
+- [x] 基于原真实路由清单先写特征测试，覆盖方法/路径/参数/public-private、中间件拒绝、项目范围、默认/自定义/根前缀和探活/CSV。
+- [x] system 拆 base/auth/user/role/ldap/audit；project 拆项目/成员；cloud 拆账号/资产。模块 RouterGroup 匿名嵌入并显式调用各 InitXxxRouter，API 别名从模块 enter.go 集中取得。
+- [x] 保持注册顺序和 JWT 前协议标记；不重复绑定、不漏端点、不重新创建丢失权限的组。全局规范不能以“只迁 system”结案。
+- [x] `go test -count=1 ./initialize ./router ./middleware`、相关 race、全量 `go test ./...` 和 `go build ./...`；运行启动/health/ping 及必要实际接口验证后提交。回退对应模块所有职责文件与聚合注册调用。
 
 ## 5. 迁移完成核对
 
-- [ ] 通过图谱核实所有模块均使用新入口，无遗留旧包、别名、兼容包装或重复生产链。
-- [ ] 隔离 MySQL 全量测试、构建及适用 race 通过，测试环境清理；记录未覆盖的外部消费者和真实环境验证。
-- [ ] 保持 #18 协议迁移与结构提交分开；若结构确实导致前端需要修改字段/协议，停止该部分并回到契约设计，不擅自扩展范围。
+- [x] 通过图谱核实所有模块均使用新入口，无遗留旧包、别名、兼容包装或重复生产链。
+- [x] 隔离 MySQL 全量测试、构建及适用 race 通过，测试环境清理；记录未覆盖的外部消费者和真实环境验证。
+- [x] 保持 #18 协议迁移与结构提交分开；若结构确实导致前端需要修改字段/协议，停止该部分并回到契约设计，不擅自扩展范围。
 - [ ] 更新规范的实际状态和 #45 批次提交、验证/回退记录；独立复审与用户验收后再结案。

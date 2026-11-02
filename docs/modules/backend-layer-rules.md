@@ -51,4 +51,4 @@ Router -> API -> Service -> Model
 - 子 Router 参考上游从模块 enter.go 的集中别名取得 ApiGroupApp 中对应 API；API 从 ServiceGroupApp 的模块聚合取得服务，不再要求生产路由逐次显式注入 handler。初始化顺序、别名稳定性及测试替换按迁移设计执行；不允许两套生产装配链长期并存。
 - 公开与私有组由 initialize 创建并传入，保持路径、HTTP 方法、注册顺序、JWT/RBAC、项目范围及响应协议标记的实际作用范围。拆分不能重复挂载中间件、重复注册或放宽权限。
 
-本约定是全仓库统一规范。存量不符合的代码须列入迁移清单并分批整改，尚未整改不构成适用范围例外；新增或调整路由组织时按本规范实施。本次仅更新文档，不代表任何模块已完成源码整改；已核实 system、project、cloud 的端点均仍集中在各自 `router/<module>/enter.go`，示例中的子 Router 尚未实现，存量差异在 [#45](https://github.com/Dcuhddrg/Optimus/issues/45) 跟踪。路由结构整改与 #18 响应协议迁移分批提交，保留已有接口行为。示意见 [Router](../examples/backend/router-example.md) 与 [enter.go](../examples/backend/enter-go-example.md)。
+本约定是全仓库统一规范。system、project、cloud 已按上述职责拆分子 Router，各模块 enter.go 只聚合类型、API 别名与注册调用，38 个现有端点及认证、项目范围和协议标记保持原行为。新增模块和插件也须遵守；后续发现的差异继续分批整改，不能作为规范豁免。实现批次、验证边界和待验收事项在 [#45](https://github.com/Dcuhddrg/Optimus/issues/45) 跟踪，不以源码存在或测试通过代替用户验收。结构整改与 #18 响应协议迁移保持分批提交。原始参考示例见 [Router](../examples/backend/router-example.md) 与 [enter.go](../examples/backend/enter-go-example.md)。

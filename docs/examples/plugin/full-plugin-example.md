@@ -42,7 +42,7 @@ web/src/plugin/<name>/
 
 - 把目录树当作已实现框架或已验证代码。
 - 复制 `plugin/v2`、interfaces.Register 或 GVA 的菜单/字典助手。
-- 为新增插件重新建立全局 ServiceGroupApp 或绕开现有权限。
+- 为插件另建平行的全局 ServiceGroupApp，或绕开现有权限。
 
 ## 真实参考文件
 

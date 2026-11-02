@@ -5,7 +5,10 @@ import (
 	api "optimus/server/api/v1"
 )
 
-type RouterGroup struct{}
+type RouterGroup struct {
+	ProjectRouter
+	MemberRouter
+}
 
 var (
 	projectApi = &api.ApiGroupApp.ProjectApiGroup.ProjectApi
@@ -13,17 +16,6 @@ var (
 )
 
 func (r *RouterGroup) InitProjectRouter(rg *gin.RouterGroup) {
-	group := rg.Group("projects")
-	{
-		group.GET("", projectApi.ListProjects)
-		group.POST("", projectApi.CreateProject)
-		group.GET(":code", projectApi.GetProject)
-		group.PUT(":code", projectApi.UpdateProject)
-		group.DELETE(":code", projectApi.DeleteProject)
-
-		group.GET(":code/members", memberApi.ListMembers)
-		group.POST(":code/members", memberApi.AddMember)
-		group.PATCH(":code/members/:userId", memberApi.UpdateMemberRole)
-		group.DELETE(":code/members/:userId", memberApi.RemoveMember)
-	}
+	r.ProjectRouter.InitProjectRouter(rg)
+	r.MemberRouter.InitMemberRouter(rg)
 }
