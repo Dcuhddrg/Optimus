@@ -146,4 +146,8 @@ func TestGormAuditStoreDeleteBefore(t *testing.T) {
 	page, err := store.QueryLogs(context.Background(), systemService.AuditFilter{Page: 1, PageSize: 20})
 	require.NoError(t, err)
 	require.Equal(t, int64(0), page.Total)
+
+	var retained int64
+	require.NoError(t, db.Unscoped().Table("sys_audit_logs").Count(&retained).Error)
+	require.Zero(t, retained)
 }

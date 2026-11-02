@@ -11,36 +11,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// AccountHandler handles HTTP requests for cloud accounts.
-type AccountHandler struct {
-	accountSvc *cloudService.CloudAccountService
-	assetSvc   *cloudService.AssetRegistryService
-}
-
-// AssetHandler handles HTTP requests for cloud assets.
-type AssetHandler struct {
-	service *cloudService.AssetRegistryService
-}
-
-// CloudHandlers groups all cloud HTTP handlers.
-type CloudHandlers struct {
-	Account *AccountHandler
-	Asset   *AssetHandler
-}
-
-// CloudHandlerDeps carries the services needed to build CloudHandlers.
-type CloudHandlerDeps struct {
-	Account *cloudService.CloudAccountService
-	Asset   *cloudService.AssetRegistryService
-}
-
-func NewCloudHandlers(deps CloudHandlerDeps) *CloudHandlers {
-	return &CloudHandlers{
-		Account: &AccountHandler{accountSvc: deps.Account, assetSvc: deps.Asset},
-		Asset:   &AssetHandler{service: deps.Asset},
-	}
-}
-
 func writeCloudServiceUnavailable(c *gin.Context, message string) {
 	c.JSON(http.StatusServiceUnavailable, gin.H{"message": message})
 }
@@ -62,7 +32,10 @@ func writeCloudError(c *gin.Context, err error, fallback string) {
 }
 
 func parseTagFilters(c *gin.Context) ([]cloudService.TagFilter, error) {
-	tokens := c.QueryArray("tag")
+	return parseTagFilterTokens(c.QueryArray("tag"))
+}
+
+func parseTagFilterTokens(tokens []string) ([]cloudService.TagFilter, error) {
 	if len(tokens) == 0 {
 		return nil, nil
 	}

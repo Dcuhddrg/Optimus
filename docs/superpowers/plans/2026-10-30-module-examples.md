@@ -1,5 +1,7 @@
 # 模块开发示例实施计划
 
+> 历史计划：#8 的实施和验收记录继续保留；其中 backend/frontend 的本地适配产物已由 [#45](https://github.com/Dcuhddrg/Optimus/issues/45) 第一阶段替换，交付见 [PR #46](https://github.com/Dcuhddrg/Optimus/pull/46)。下文旧文件名、React 片段及既有验证数字只适用于当时交付，不作为当前模板或新一轮验证依据。当前示例从 [开发示例](../../examples/README.md) 读取，独立插件示例暂保留。
+
 **Goal:** 完成 #8，以 gin-vue-admin examples 的组织与讲解方式补齐 Optimus 开发示例。
 
 **Architecture:** 保留 backend/frontend/plugin 分类，文档引用既有规范，以真实系统/审计实现适配上游示例，不新增业务或工具依赖。

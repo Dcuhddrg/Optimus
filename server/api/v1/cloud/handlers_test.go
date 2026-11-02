@@ -5,6 +5,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"optimus/server/service"
 	"testing"
 	"time"
 
@@ -72,10 +73,12 @@ func (s *testAccountStore) UpdateSyncStatus(context.Context, uint, *time.Time, s
 
 func TestAccountHandlerListReturnsServiceUnavailableWhenNil(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	h := NewCloudHandlers(CloudHandlerDeps{})
+	oldServices := service.ServiceGroupApp.CloudServiceGroup
+	t.Cleanup(func() { service.ServiceGroupApp.CloudServiceGroup = oldServices })
+	service.ServiceGroupApp.CloudServiceGroup = cloudService.ServiceGroup{}
 
 	engine := gin.New()
-	engine.GET("/cloud/accounts", h.Account.ListAccounts)
+	engine.GET("/cloud/accounts", (&AccountApi{}).ListAccounts)
 
 	recorder := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/cloud/accounts", nil)
@@ -86,10 +89,12 @@ func TestAccountHandlerListReturnsServiceUnavailableWhenNil(t *testing.T) {
 
 func TestAssetHandlerListReturnsServiceUnavailableWhenNil(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	h := NewCloudHandlers(CloudHandlerDeps{})
+	oldServices := service.ServiceGroupApp.CloudServiceGroup
+	t.Cleanup(func() { service.ServiceGroupApp.CloudServiceGroup = oldServices })
+	service.ServiceGroupApp.CloudServiceGroup = cloudService.ServiceGroup{}
 
 	engine := gin.New()
-	engine.GET("/cloud/assets", h.Asset.ListAssets)
+	engine.GET("/cloud/assets", (&AssetApi{}).ListAssets)
 
 	recorder := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/cloud/assets", nil)
@@ -102,10 +107,13 @@ func TestAccountHandlerCreateRequiresCurrentProject(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	accountSvc, err := cloudService.NewCloudAccountService(&testAccountStore{rows: map[uint]cloudService.AccountRow{}}, make([]byte, 32))
 	require.NoError(t, err)
-	h := NewCloudHandlers(CloudHandlerDeps{Account: accountSvc})
+	oldServices := service.ServiceGroupApp.CloudServiceGroup
+	t.Cleanup(func() { service.ServiceGroupApp.CloudServiceGroup = oldServices })
+	service.ServiceGroupApp.CloudServiceGroup = cloudService.ServiceGroup{}
+	service.ServiceGroupApp.CloudServiceGroup.CloudAccountService = accountSvc
 
 	engine := gin.New()
-	engine.POST("/cloud/accounts", h.Account.CreateAccount)
+	engine.POST("/cloud/accounts", (&AccountApi{}).CreateAccount)
 
 	recorder := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/cloud/accounts", bytes.NewBufferString(`{"name":"prod","provider":"aliyun","accountId":"123","credentialType":"ak_sk","credential":{"access_key_id":"ak"}}`))
@@ -120,14 +128,17 @@ func TestAccountHandlerCreateUsesCurrentProject(t *testing.T) {
 	store := &testAccountStore{rows: map[uint]cloudService.AccountRow{}}
 	accountSvc, err := cloudService.NewCloudAccountService(store, make([]byte, 32))
 	require.NoError(t, err)
-	h := NewCloudHandlers(CloudHandlerDeps{Account: accountSvc})
+	oldServices := service.ServiceGroupApp.CloudServiceGroup
+	t.Cleanup(func() { service.ServiceGroupApp.CloudServiceGroup = oldServices })
+	service.ServiceGroupApp.CloudServiceGroup = cloudService.ServiceGroup{}
+	service.ServiceGroupApp.CloudServiceGroup.CloudAccountService = accountSvc
 
 	engine := gin.New()
 	engine.Use(func(c *gin.Context) {
 		c.Set(utils.ProjectScopeContextKey, utils.ProjectScope{CurrentProjectID: 7, AccessibleProjectIDs: []uint{7}})
 		c.Next()
 	})
-	engine.POST("/cloud/accounts", h.Account.CreateAccount)
+	engine.POST("/cloud/accounts", (&AccountApi{}).CreateAccount)
 
 	recorder := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/cloud/accounts", bytes.NewBufferString(`{"name":"prod","provider":"aliyun","accountId":"123","credentialType":"ak_sk","credential":{"access_key_id":"ak"}}`))

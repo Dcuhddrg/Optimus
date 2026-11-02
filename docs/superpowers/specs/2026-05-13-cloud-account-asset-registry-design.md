@@ -1,5 +1,7 @@
 # Cloud Account + Unified Asset Registry Design
 
+> 本文业务设计继续保留；其中目录和 Module/Handlers 装配示意已由 [#45](https://github.com/Dcuhddrg/Optimus/issues/45) 的 GroupApp、request/response 和职责子 Router 迁移取代。当前组织规范见[后端分层](../../modules/backend-layer-rules.md)。旧目录图仅记录当时结构，不作为新的装配入口模板。
+
 **Date:** 2026-05-13
 **Status:** Approved
 

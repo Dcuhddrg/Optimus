@@ -76,6 +76,12 @@ func TestGormAccountStoreSoftDelete(t *testing.T) {
 
 	_, err = store.Get(context.Background(), []uint{7}, row.ID)
 	require.ErrorIs(t, err, cloudService.ErrAccountNotFound)
+
+	var retained, deleted int64
+	require.NoError(t, db.Unscoped().Table("cloud_accounts").Where("id = ?", row.ID).Count(&retained).Error)
+	require.NoError(t, db.Unscoped().Table("cloud_accounts").Where("id = ? AND deleted_at IS NOT NULL", row.ID).Count(&deleted).Error)
+	require.Equal(t, int64(1), retained)
+	require.Equal(t, int64(1), deleted)
 }
 
 func TestGormAccountStoreGetRejectsAccountInOtherProject(t *testing.T) {

@@ -5,7 +5,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"io"
 	"net/http/httptest"
-	"optimus/server/utils/response"
+	"optimus/server/model/common/response"
 	"testing"
 )
 

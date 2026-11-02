@@ -1,25 +1,19 @@
 package cloud
 
 import (
-	cloudApi "optimus/server/api/v1/cloud"
+	"go.uber.org/zap"
+	"gorm.io/gorm"
 	"optimus/server/config"
 	"optimus/server/global"
 	cloudService "optimus/server/service/cloud"
 	"optimus/server/service/cloud/provider/aliyun"
 	cloudStore "optimus/server/service/cloud/store"
-
-	"go.uber.org/zap"
-	"gorm.io/gorm"
 )
 
-// CloudModule holds all dependencies for the cloud module.
-type CloudModule struct {
-	Handlers *cloudApi.CloudHandlers
-}
-
-func NewCloudModule(db *gorm.DB, cfg config.Config) *CloudModule {
+// NewServiceGroup assembles all dependencies for the shared cloud module group.
+func NewServiceGroup(db *gorm.DB, cfg config.Config) cloudService.ServiceGroup {
 	if db == nil {
-		return &CloudModule{Handlers: cloudApi.NewCloudHandlers(cloudApi.CloudHandlerDeps{})}
+		return cloudService.ServiceGroup{}
 	}
 
 	encKey := []byte(cfg.Cloud.CredentialEncryptionKey)
@@ -42,14 +36,12 @@ func NewCloudModule(db *gorm.DB, cfg config.Config) *CloudModule {
 	accountSvc, err := cloudService.NewCloudAccountService(accountStore, encKey)
 	if err != nil {
 		// Key was padded to 32 bytes above, so this should never happen
-		return &CloudModule{Handlers: cloudApi.NewCloudHandlers(cloudApi.CloudHandlerDeps{})}
+		return cloudService.ServiceGroup{}
 	}
 	assetSvc := cloudService.NewAssetRegistryService(accountSvc, assetStore, registry)
 
-	return &CloudModule{
-		Handlers: cloudApi.NewCloudHandlers(cloudApi.CloudHandlerDeps{
-			Account: accountSvc,
-			Asset:   assetSvc,
-		}),
+	return cloudService.ServiceGroup{
+		CloudAccountService:  accountSvc,
+		AssetRegistryService: assetSvc,
 	}
 }

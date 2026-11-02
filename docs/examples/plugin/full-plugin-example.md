@@ -42,9 +42,9 @@ web/src/plugin/<name>/
 
 - 把目录树当作已实现框架或已验证代码。
 - 复制 `plugin/v2`、interfaces.Register 或 GVA 的菜单/字典助手。
-- 为新增插件重新建立全局 ServiceGroupApp 或绕开现有权限。
+- 为插件另建平行的全局 ServiceGroupApp，或绕开现有权限。
 
 ## 真实参考文件
 
-- Optimus 当前可参照 [模块装配](../../../server/initialize/system_module.go)、[启动路由](../../../server/initialize/router.go)、[系统路由](../../../server/router/system/enter.go)，但它们不是完整插件实现。
+- Optimus 当前可参照 [服务组装配](../../../server/initialize/service_group.go)、[启动路由](../../../server/initialize/router.go)、[系统路由](../../../server/router/system/enter.go)，但它们不是完整插件实现。
 - 本项目完整插件样板的存在与运行尚未核实，不提供伪造的本地 SDK/业务文件链接；现行目录边界见 [根规则](../../../AGENT.MD#插件与模块)。

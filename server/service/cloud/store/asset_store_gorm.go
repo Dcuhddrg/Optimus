@@ -2,6 +2,8 @@ package store
 
 import (
 	"context"
+	cloudResponse "optimus/server/model/cloud/response"
+	commonRequest "optimus/server/model/common/request"
 	"strings"
 	"time"
 
@@ -20,9 +22,9 @@ func NewGormAssetStore(db *gorm.DB) *GormAssetStore {
 	return &GormAssetStore{db: db}
 }
 
-func (s *GormAssetStore) Upsert(ctx context.Context, accountID uint, provider string, assets []cloudService.RawAsset) (cloudModel.SyncResult, error) {
+func (s *GormAssetStore) Upsert(ctx context.Context, accountID uint, provider string, assets []cloudService.RawAsset) (cloudResponse.SyncResult, error) {
 	if len(assets) == 0 {
-		return cloudModel.SyncResult{}, nil
+		return cloudResponse.SyncResult{}, nil
 	}
 	now := time.Now()
 	records := make([]cloudModel.CloudAsset, len(assets))
@@ -55,14 +57,14 @@ func (s *GormAssetStore) Upsert(ctx context.Context, accountID uint, provider st
 		}).
 		CreateInBatches(records, 100)
 	if res.Error != nil {
-		return cloudModel.SyncResult{}, res.Error
+		return cloudResponse.SyncResult{}, res.Error
 	}
-	return cloudModel.SyncResult{Upserted: len(assets)}, nil
+	return cloudResponse.SyncResult{Upserted: len(assets)}, nil
 }
 
-func (s *GormAssetStore) Query(ctx context.Context, f cloudService.AssetFilter) (cloudModel.AssetPage, error) {
+func (s *GormAssetStore) Query(ctx context.Context, f cloudService.AssetFilter) (cloudResponse.AssetPage, error) {
 	if len(f.AccessibleProjectIDs) == 0 {
-		return cloudModel.AssetPage{Items: []cloudModel.AssetView{}}, nil
+		return cloudResponse.AssetPage{Items: []cloudResponse.AssetView{}}, nil
 	}
 
 	q := s.db.WithContext(ctx).
@@ -95,33 +97,28 @@ func (s *GormAssetStore) Query(ctx context.Context, f cloudService.AssetFilter) 
 		q = q.Where(expr, args...)
 	}
 
-	page := f.Page
-	if page < 1 {
-		page = 1
-	}
-	pageSize := f.PageSize
-	if pageSize < 1 || pageSize > 200 {
-		pageSize = 20
-	}
+	pagination := commonRequest.PageInfo{Page: f.Page, PageSize: f.PageSize}
+	pagination.Normalize()
+	page, pageSize := pagination.Page, pagination.PageSize
 
 	countQ := q.Session(&gorm.Session{})
 	var total int64
 	if err := countQ.Count(&total).Error; err != nil {
-		return cloudModel.AssetPage{}, err
+		return cloudResponse.AssetPage{}, err
 	}
 	var models []cloudModel.CloudAsset
 	if err := q.Order("cloud_assets.created_at DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&models).Error; err != nil {
-		return cloudModel.AssetPage{}, err
+		return cloudResponse.AssetPage{}, err
 	}
-	items := make([]cloudModel.AssetView, len(models))
+	items := make([]cloudResponse.AssetView, len(models))
 	for i, m := range models {
 		items[i] = toAssetView(m)
 	}
-	return cloudModel.AssetPage{Items: items, Total: total, Page: page, PageSize: pageSize}, nil
+	return cloudResponse.AssetPage{Items: items, Total: total, Page: page, PageSize: pageSize}, nil
 }
 
-func toAssetView(m cloudModel.CloudAsset) cloudModel.AssetView {
-	return cloudModel.AssetView{
+func toAssetView(m cloudModel.CloudAsset) cloudResponse.AssetView {
+	return cloudResponse.AssetView{
 		ID:           m.ID,
 		AccountID:    m.AccountID,
 		Provider:     m.Provider,

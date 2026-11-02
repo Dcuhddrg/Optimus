@@ -151,4 +151,12 @@ func TestDelete_RemovesOrphanUserProjects(t *testing.T) {
 	members, err := store.ListMembers(context.Background(), p.ID)
 	require.NoError(t, err)
 	require.Empty(t, members)
+
+	var retained, deleted, memberships int64
+	require.NoError(t, db.Unscoped().Table("projects").Where("id = ?", p.ID).Count(&retained).Error)
+	require.NoError(t, db.Unscoped().Table("projects").Where("id = ? AND deleted_at IS NOT NULL", p.ID).Count(&deleted).Error)
+	require.NoError(t, db.Unscoped().Table("user_projects").Where("project_id = ?", p.ID).Count(&memberships).Error)
+	require.Equal(t, int64(1), retained)
+	require.Equal(t, int64(1), deleted)
+	require.Zero(t, memberships)
 }

@@ -1,6 +1,7 @@
 package store
 
 import (
+	"optimus/server/global"
 	"os"
 	"testing"
 
@@ -41,11 +42,11 @@ func openProjectTestDB(t *testing.T) *gorm.DB {
 func seedUser(t *testing.T, db *gorm.DB, id uint, username string) {
 	t.Helper()
 	u := systemModel.SystemUser{
-		ID:       id,
-		UUID:     "uuid-" + username,
-		Username: username,
-		Source:   "local",
-		Status:   "active",
+		OPTIMUS_MODEL: global.OPTIMUS_MODEL{ID: id},
+		UUID:          "uuid-" + username,
+		Username:      username,
+		Source:        "local",
+		Status:        "active",
 	}
 	require.NoError(t, db.Create(&u).Error)
 }

@@ -2,7 +2,7 @@ package cloud
 
 import (
 	"context"
-	cloudModel "optimus/server/model/cloud"
+	cloudRequest "optimus/server/model/cloud/request"
 	"sync"
 	"testing"
 	"time"
@@ -156,8 +156,8 @@ func newTestAccountService() (*CloudAccountService, *fakeAccountStore) {
 	return svc, store
 }
 
-func sampleCreateAccountRequest() cloudModel.CreateAccountRequest {
-	return cloudModel.CreateAccountRequest{
+func sampleCreateAccountRequest() cloudRequest.CreateAccountRequest {
+	return cloudRequest.CreateAccountRequest{
 		Name:           "prod",
 		Provider:       "aliyun",
 		AccountID:      "12345678",
@@ -213,7 +213,7 @@ func TestCloudAccountServiceUpdateEmptyCredentialIsNoop(t *testing.T) {
 	originalCred := store.rows[1].CredentialJSON
 
 	newName := "renamed"
-	_, err = svc.Update(context.Background(), []uint{7}, 1, cloudModel.UpdateAccountRequest{Name: &newName, Credential: map[string]string{}})
+	_, err = svc.Update(context.Background(), []uint{7}, 1, cloudRequest.UpdateAccountRequest{Name: &newName, Credential: map[string]string{}})
 	require.NoError(t, err)
 	require.Equal(t, originalCred, store.rows[1].CredentialJSON)
 	require.Equal(t, "renamed", store.rows[1].Name)
@@ -276,11 +276,11 @@ func TestUpdateTagsFiltersByAccessibleProjects(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = svc.UpdateTags(context.Background(), []uint{8}, view.ID,
-		cloudModel.UpdateAccountTagsRequest{Tags: map[string]string{"environment": "dev"}})
+		cloudRequest.UpdateAccountTagsRequest{Tags: map[string]string{"environment": "dev"}})
 	require.ErrorIs(t, err, ErrAccountNotFound)
 
 	updated, err := svc.UpdateTags(context.Background(), []uint{7}, view.ID,
-		cloudModel.UpdateAccountTagsRequest{Tags: map[string]string{"environment": "dev"}})
+		cloudRequest.UpdateAccountTagsRequest{Tags: map[string]string{"environment": "dev"}})
 	require.NoError(t, err)
 	require.Equal(t, "dev", updated.Tags["environment"])
 }

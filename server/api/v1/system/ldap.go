@@ -3,19 +3,21 @@ package system
 import (
 	"errors"
 	"net/http"
-	systemModel "optimus/server/model/system"
+	systemRequest "optimus/server/model/system/request"
 
 	systemService "optimus/server/service/system"
 
 	"github.com/gin-gonic/gin"
 )
 
-func (h *LDAPHandler) LDAPConfig(c *gin.Context) {
-	if h.service == nil {
+type LDAPApi struct{}
+
+func (h *LDAPApi) LDAPConfig(c *gin.Context) {
+	if systemServices.LDAPService == nil {
 		writeServiceUnavailable(c, "ldap service is not available")
 		return
 	}
-	cfg, err := h.service.GetConfig(c.Request.Context())
+	cfg, err := systemServices.LDAPService.GetConfig(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to load ldap config"})
 		return
@@ -23,17 +25,17 @@ func (h *LDAPHandler) LDAPConfig(c *gin.Context) {
 	c.JSON(http.StatusOK, cfg)
 }
 
-func (h *LDAPHandler) UpdateLDAPConfig(c *gin.Context) {
-	if h.service == nil {
+func (h *LDAPApi) UpdateLDAPConfig(c *gin.Context) {
+	if systemServices.LDAPService == nil {
 		writeServiceUnavailable(c, "ldap service is not available")
 		return
 	}
-	var req systemModel.LDAPConfigRequest
+	var req systemRequest.LDAPConfigRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid ldap config request"})
 		return
 	}
-	cfg, err := h.service.SaveConfig(c.Request.Context(), actorID(c), req, auditMeta(c))
+	cfg, err := systemServices.LDAPService.SaveConfig(c.Request.Context(), actorID(c), req, auditMeta(c))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to save ldap config"})
 		return
@@ -41,17 +43,17 @@ func (h *LDAPHandler) UpdateLDAPConfig(c *gin.Context) {
 	c.JSON(http.StatusOK, cfg)
 }
 
-func (h *LDAPHandler) TestLDAPConfig(c *gin.Context) {
-	if h.service == nil {
+func (h *LDAPApi) TestLDAPConfig(c *gin.Context) {
+	if systemServices.LDAPService == nil {
 		writeServiceUnavailable(c, "ldap service is not available")
 		return
 	}
-	var req systemModel.LDAPTestRequest
+	var req systemRequest.LDAPTestRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid ldap test request"})
 		return
 	}
-	result, err := h.service.TestConfig(c.Request.Context(), actorID(c), req, auditMeta(c))
+	result, err := systemServices.LDAPService.TestConfig(c.Request.Context(), actorID(c), req, auditMeta(c))
 	if errors.Is(err, systemService.ErrInvalidLDAPConfig) {
 		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return

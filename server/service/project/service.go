@@ -3,6 +3,8 @@ package project
 import (
 	"context"
 	"errors"
+	projectRequest "optimus/server/model/project/request"
+	projectResponse "optimus/server/model/project/response"
 	"regexp"
 	"strings"
 	"time"
@@ -20,13 +22,13 @@ func NewProjectService(store ProjectStore) *ProjectService {
 	return &ProjectService{store: store}
 }
 
-func (s *ProjectService) Create(ctx context.Context, actorID uint, req projectModel.CreateProjectRequest) (projectModel.ProjectView, error) {
+func (s *ProjectService) Create(ctx context.Context, actorID uint, req projectRequest.CreateProjectRequest) (projectResponse.ProjectView, error) {
 	name := strings.TrimSpace(req.Name)
 	if name == "" || len(name) > 128 {
-		return projectModel.ProjectView{}, ErrInvalidProjectName
+		return projectResponse.ProjectView{}, ErrInvalidProjectName
 	}
 	if !projectCodeRegex.MatchString(req.Code) {
-		return projectModel.ProjectView{}, ErrInvalidProjectCode
+		return projectResponse.ProjectView{}, ErrInvalidProjectCode
 	}
 	p := &projectModel.Project{
 		Name:        name,
@@ -35,57 +37,57 @@ func (s *ProjectService) Create(ctx context.Context, actorID uint, req projectMo
 		Status:      statusActive,
 	}
 	if err := s.store.Create(ctx, p, actorID); err != nil {
-		return projectModel.ProjectView{}, err
+		return projectResponse.ProjectView{}, err
 	}
 	return toProjectView(*p), nil
 }
 
-func (s *ProjectService) List(ctx context.Context, actorID uint) ([]projectModel.ProjectView, error) {
+func (s *ProjectService) List(ctx context.Context, actorID uint) ([]projectResponse.ProjectView, error) {
 	ids, err := s.store.ListAccessibleProjectIDs(ctx, actorID)
 	if err != nil {
 		return nil, err
 	}
 	if len(ids) == 0 {
-		return []projectModel.ProjectView{}, nil
+		return []projectResponse.ProjectView{}, nil
 	}
 	projects, err := s.store.List(ctx, ids)
 	if err != nil {
 		return nil, err
 	}
-	views := make([]projectModel.ProjectView, len(projects))
+	views := make([]projectResponse.ProjectView, len(projects))
 	for i, p := range projects {
 		views[i] = toProjectView(p)
 	}
 	return views, nil
 }
 
-func (s *ProjectService) Get(ctx context.Context, actorID uint, code string) (projectModel.ProjectView, error) {
+func (s *ProjectService) Get(ctx context.Context, actorID uint, code string) (projectResponse.ProjectView, error) {
 	p, err := s.store.FindByCode(ctx, code)
 	if err != nil {
-		return projectModel.ProjectView{}, err
+		return projectResponse.ProjectView{}, err
 	}
 	if _, err := s.store.FindMember(ctx, actorID, p.ID); err != nil {
 		if errors.Is(err, ErrMemberNotFound) {
-			return projectModel.ProjectView{}, ErrForbidden
+			return projectResponse.ProjectView{}, ErrForbidden
 		}
-		return projectModel.ProjectView{}, err
+		return projectResponse.ProjectView{}, err
 	}
 	return toProjectView(p), nil
 }
 
-func (s *ProjectService) Update(ctx context.Context, actorID uint, code string, req projectModel.UpdateProjectRequest) (projectModel.ProjectView, error) {
+func (s *ProjectService) Update(ctx context.Context, actorID uint, code string, req projectRequest.UpdateProjectRequest) (projectResponse.ProjectView, error) {
 	p, err := s.store.FindByCode(ctx, code)
 	if err != nil {
-		return projectModel.ProjectView{}, err
+		return projectResponse.ProjectView{}, err
 	}
 	if err := s.requireOwner(ctx, actorID, p.ID); err != nil {
-		return projectModel.ProjectView{}, err
+		return projectResponse.ProjectView{}, err
 	}
 	fields := map[string]any{}
 	if req.Name != nil {
 		name := strings.TrimSpace(*req.Name)
 		if name == "" || len(name) > 128 {
-			return projectModel.ProjectView{}, ErrInvalidProjectName
+			return projectResponse.ProjectView{}, ErrInvalidProjectName
 		}
 		fields["name"] = name
 	}
@@ -98,7 +100,7 @@ func (s *ProjectService) Update(ctx context.Context, actorID uint, code string, 
 	fields["updated_at"] = time.Now()
 	updated, err := s.store.Update(ctx, code, fields)
 	if err != nil {
-		return projectModel.ProjectView{}, err
+		return projectResponse.ProjectView{}, err
 	}
 	return toProjectView(updated), nil
 }
@@ -197,7 +199,7 @@ func (s *ProjectService) RemoveMember(ctx context.Context, actorID uint, code st
 	return s.store.RemoveMember(ctx, userID, p.ID)
 }
 
-func (s *ProjectService) ListMembers(ctx context.Context, actorID uint, code string) ([]projectModel.ProjectMember, error) {
+func (s *ProjectService) ListMembers(ctx context.Context, actorID uint, code string) ([]projectResponse.ProjectMember, error) {
 	p, err := s.store.FindByCode(ctx, code)
 	if err != nil {
 		return nil, err
@@ -229,8 +231,8 @@ func (s *ProjectService) requireOwner(ctx context.Context, actorID, projectID ui
 	return nil
 }
 
-func toProjectView(p projectModel.Project) projectModel.ProjectView {
-	return projectModel.ProjectView{
+func toProjectView(p projectModel.Project) projectResponse.ProjectView {
+	return projectResponse.ProjectView{
 		ID:          p.ID,
 		Name:        p.Name,
 		Code:        p.Code,

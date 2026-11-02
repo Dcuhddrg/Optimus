@@ -3,22 +3,25 @@ package system
 import (
 	"errors"
 	"net/http"
-	systemModel "optimus/server/model/system"
+	systemRequest "optimus/server/model/system/request"
+	systemResponse "optimus/server/model/system/response"
 	"strconv"
 
+	"optimus/server/model/common/response"
 	systemService "optimus/server/service/system"
 	"optimus/server/utils"
-	"optimus/server/utils/response"
 
 	"github.com/gin-gonic/gin"
 )
 
-func (h *UserHandler) Users(c *gin.Context) {
-	if h.service == nil {
+type UserApi struct{}
+
+func (h *UserApi) Users(c *gin.Context) {
+	if systemServices.UserService == nil {
 		response.Failure(c, http.StatusServiceUnavailable, "user service is not available")
 		return
 	}
-	result, err := h.service.ListUsers(c.Request.Context())
+	result, err := systemServices.UserService.ListUsers(c.Request.Context())
 	if err != nil {
 		response.Failure(c, http.StatusInternalServerError, "failed to list users")
 		return
@@ -26,8 +29,8 @@ func (h *UserHandler) Users(c *gin.Context) {
 	response.Success(c, http.StatusOK, gin.H{"list": result.Items, "total": result.Total})
 }
 
-func (h *UserHandler) UpdateUser(c *gin.Context) {
-	if h.service == nil {
+func (h *UserApi) UpdateUser(c *gin.Context) {
+	if systemServices.UserService == nil {
 		response.Failure(c, http.StatusServiceUnavailable, "user service is not available")
 		return
 	}
@@ -35,17 +38,17 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 	if !ok {
 		return
 	}
-	var req systemModel.UpdateUserRequest
+	var req systemRequest.UpdateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.Failure(c, http.StatusBadRequest, "invalid user request")
 		return
 	}
-	user, err := h.service.UpdateUser(c.Request.Context(), actorID(c), id, req, auditMeta(c))
+	user, err := systemServices.UserService.UpdateUser(c.Request.Context(), actorID(c), id, req, auditMeta(c))
 	writeUserServiceResult(c, user, err)
 }
 
-func (h *UserHandler) UpdateUserStatus(c *gin.Context) {
-	if h.service == nil {
+func (h *UserApi) UpdateUserStatus(c *gin.Context) {
+	if systemServices.UserService == nil {
 		response.Failure(c, http.StatusServiceUnavailable, "user service is not available")
 		return
 	}
@@ -53,19 +56,17 @@ func (h *UserHandler) UpdateUserStatus(c *gin.Context) {
 	if !ok {
 		return
 	}
-	var req struct {
-		Status string `json:"status"`
-	}
+	var req systemRequest.UpdateUserStatusRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.Failure(c, http.StatusBadRequest, "invalid status request")
 		return
 	}
-	user, err := h.service.UpdateUserStatus(c.Request.Context(), actorID(c), id, req.Status, auditMeta(c))
+	user, err := systemServices.UserService.UpdateUserStatus(c.Request.Context(), actorID(c), id, req.Status, auditMeta(c))
 	writeUserServiceResult(c, user, err)
 }
 
-func (h *UserHandler) UpdateUserRoles(c *gin.Context) {
-	if h.service == nil {
+func (h *UserApi) UpdateUserRoles(c *gin.Context) {
+	if systemServices.UserService == nil {
 		response.Failure(c, http.StatusServiceUnavailable, "user service is not available")
 		return
 	}
@@ -73,14 +74,12 @@ func (h *UserHandler) UpdateUserRoles(c *gin.Context) {
 	if !ok {
 		return
 	}
-	var req struct {
-		RoleIDs []uint `json:"roleIds"`
-	}
+	var req systemRequest.UpdateUserRolesRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.Failure(c, http.StatusBadRequest, "invalid role request")
 		return
 	}
-	err := h.service.UpdateUserRoles(c.Request.Context(), actorID(c), id, req.RoleIDs, auditMeta(c))
+	err := systemServices.UserService.UpdateUserRoles(c.Request.Context(), actorID(c), id, req.RoleIDs, auditMeta(c))
 	if errors.Is(err, systemService.ErrLastAdminCapableUser) {
 		response.Failure(c, http.StatusForbidden, err.Error())
 		return
@@ -127,7 +126,7 @@ func auditMeta(c *gin.Context) systemService.AuditMeta {
 	return meta
 }
 
-func writeUserServiceResult(c *gin.Context, user systemModel.SystemUserSummary, err error) {
+func writeUserServiceResult(c *gin.Context, user systemResponse.SystemUserSummary, err error) {
 	if errors.Is(err, systemService.ErrUserNotFound) {
 		response.Failure(c, http.StatusNotFound, err.Error())
 		return

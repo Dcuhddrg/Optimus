@@ -2,6 +2,8 @@ package cloud
 
 import (
 	"net/http"
+	cloudRequest "optimus/server/model/cloud/request"
+	commonRequest "optimus/server/model/common/request"
 	"strconv"
 
 	cloudService "optimus/server/service/cloud"
@@ -9,8 +11,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (h *AssetHandler) ListAssets(c *gin.Context) {
-	if h.service == nil {
+// AssetApi handles HTTP requests for cloud assets.
+type AssetApi struct{}
+
+func (h *AssetApi) ListAssets(c *gin.Context) {
+	if cloudServices.AssetRegistryService == nil {
 		writeCloudServiceUnavailable(c, "asset registry service is not available")
 		return
 	}
@@ -21,7 +26,7 @@ func (h *AssetHandler) ListAssets(c *gin.Context) {
 		return
 	}
 	f.AccessibleProjectIDs = scope.AccessibleProjectIDs
-	page, err := h.service.QueryAssets(c.Request.Context(), f)
+	page, err := cloudServices.AssetRegistryService.QueryAssets(c.Request.Context(), f)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to query assets"})
 		return
@@ -30,18 +35,18 @@ func (h *AssetHandler) ListAssets(c *gin.Context) {
 }
 
 func parseAssetFilter(c *gin.Context) (cloudService.AssetFilter, error) {
-	f := cloudService.AssetFilter{Page: 1, PageSize: 20}
+	page, pageErr := strconv.Atoi(c.Query("page"))
+	if pageErr != nil {
+		page = 0
+	}
+	pageSize, sizeErr := strconv.Atoi(c.Query("pageSize"))
+	if sizeErr != nil {
+		pageSize = 0
+	}
+	pagination := commonRequest.PageInfo{Page: page, PageSize: pageSize}
+	pagination.Normalize()
+	f := cloudRequest.AssetSearch{PageInfo: pagination, Tags: c.QueryArray("tag")}
 
-	if v := c.Query("page"); v != "" {
-		if n, err := strconv.Atoi(v); err == nil && n > 0 {
-			f.Page = n
-		}
-	}
-	if v := c.Query("pageSize"); v != "" {
-		if n, err := strconv.Atoi(v); err == nil && n >= 1 && n <= 200 {
-			f.PageSize = n
-		}
-	}
 	if v := c.Query("accountId"); v != "" {
 		if n, err := strconv.ParseUint(v, 10, 64); err == nil {
 			id := uint(n)
@@ -63,10 +68,13 @@ func parseAssetFilter(c *gin.Context) (cloudService.AssetFilter, error) {
 	if v := c.Query("keyword"); v != "" {
 		f.Keyword = &v
 	}
-	tagFilters, err := parseTagFilters(c)
+	tagFilters, err := parseTagFilterTokens(f.Tags)
 	if err != nil {
 		return cloudService.AssetFilter{}, err
 	}
-	f.Tags = tagFilters
-	return f, nil
+	return cloudService.AssetFilter{
+		AccountID: f.AccountID, Provider: f.Provider, Region: f.Region,
+		ResourceType: f.ResourceType, Status: f.Status, Keyword: f.Keyword,
+		Tags: tagFilters, Page: f.Page, PageSize: f.PageSize,
+	}, nil
 }

@@ -3,21 +3,23 @@ package system
 import (
 	"net/http"
 
-	commonModel "optimus/server/model/common"
+	commonResponse "optimus/server/model/common/response"
 	systemService "optimus/server/service/system"
 	"optimus/server/utils"
 
 	"github.com/gin-gonic/gin"
 )
 
-func (h *HealthHandler) Health(c *gin.Context) {
-	service := h.service
+type HealthApi struct{}
+
+func (h *HealthApi) Health(c *gin.Context) {
+	service := systemServices.Status
 	if service == nil {
 		service = &systemService.Service{}
 	}
 
 	payload := service.Health()
-	utils.JSON(c, http.StatusOK, commonModel.HealthResponse{
+	utils.JSON(c, http.StatusOK, commonResponse.HealthResponse{
 		Status: payload.Status,
 	})
 }

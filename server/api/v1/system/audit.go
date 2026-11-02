@@ -3,15 +3,20 @@ package system
 import (
 	"encoding/csv"
 	"net/http"
+	commonRequest "optimus/server/model/common/request"
+	systemRequest "optimus/server/model/system/request"
+	systemResponse "optimus/server/model/system/response"
 	"strconv"
 	"time"
 
+	"optimus/server/model/common/response"
 	systemModel "optimus/server/model/system"
 	systemService "optimus/server/service/system"
-	"optimus/server/utils/response"
 
 	"github.com/gin-gonic/gin"
 )
+
+type AuditApi struct{}
 
 // QueryAuditLogs returns the migrated audit pagination contract.
 // @Tags System Audit
@@ -27,18 +32,18 @@ import (
 // @Param startTime query string false "Start time in RFC3339"
 // @Param endTime query string false "End time in RFC3339"
 // @Param keyword query string false "Recorded detail keyword"
-// @Success 200 {object} response.Envelope{data=systemModel.AuditListData}
+// @Success 200 {object} response.Envelope{data=systemResponse.AuditListData}
 // @Failure 401 {object} response.Envelope
 // @Failure 403 {object} response.Envelope
 // @Failure 500 {object} response.Envelope
 // @Failure 503 {object} response.Envelope
 // @Router /system/audit-logs [get]
-func (h *AuditHandler) QueryAuditLogs(c *gin.Context) {
-	if h.service == nil {
+func (h *AuditApi) QueryAuditLogs(c *gin.Context) {
+	if systemServices.AuditService == nil {
 		response.Failure(c, http.StatusServiceUnavailable, "audit service is not available")
 		return
 	}
-	result, err := h.service.QueryLogs(c.Request.Context(), parseAuditFilter(c))
+	result, err := systemServices.AuditService.QueryLogs(c.Request.Context(), parseAuditFilter(c))
 	if err != nil {
 		response.Failure(c, http.StatusInternalServerError, "failed to query audit logs")
 		return
@@ -47,7 +52,7 @@ func (h *AuditHandler) QueryAuditLogs(c *gin.Context) {
 	if list == nil {
 		list = make([]systemModel.AuditLogEntry, 0)
 	}
-	response.Success(c, http.StatusOK, systemModel.AuditListData{List: list, Total: result.Total, Page: result.Page, PageSize: result.PageSize})
+	response.Success(c, http.StatusOK, systemResponse.AuditListData{List: list, Total: result.Total, Page: result.Page, PageSize: result.PageSize})
 }
 
 // ExportAuditLogs retains CSV success and uses migrated JSON failures.
@@ -68,12 +73,12 @@ func (h *AuditHandler) QueryAuditLogs(c *gin.Context) {
 // @Failure 500 {object} response.Envelope
 // @Failure 503 {object} response.Envelope
 // @Router /system/audit-logs/export [get]
-func (h *AuditHandler) ExportAuditLogs(c *gin.Context) {
-	if h.service == nil {
+func (h *AuditApi) ExportAuditLogs(c *gin.Context) {
+	if systemServices.AuditService == nil {
 		response.Failure(c, http.StatusServiceUnavailable, "audit service is not available")
 		return
 	}
-	entries, err := h.service.ExportLogs(c.Request.Context(), parseAuditFilter(c))
+	entries, err := systemServices.AuditService.ExportLogs(c.Request.Context(), parseAuditFilter(c))
 	if err != nil {
 		response.Failure(c, http.StatusInternalServerError, "failed to export audit logs")
 		return
@@ -108,14 +113,10 @@ func (h *AuditHandler) ExportAuditLogs(c *gin.Context) {
 func parseAuditFilter(c *gin.Context) systemService.AuditFilter {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 || pageSize > 200 {
-		pageSize = 20
-	}
+	pagination := commonRequest.PageInfo{Page: page, PageSize: pageSize}
+	pagination.Normalize()
 
-	f := systemService.AuditFilter{Page: page, PageSize: pageSize}
+	f := systemRequest.AuditSearch{PageInfo: pagination}
 
 	if v := c.Query("actorUserId"); v != "" {
 		if id, err := strconv.ParseUint(v, 10, 64); err == nil {
@@ -145,5 +146,9 @@ func parseAuditFilter(c *gin.Context) systemService.AuditFilter {
 	if v := c.Query("keyword"); v != "" {
 		f.Keyword = &v
 	}
-	return f
+	return systemService.AuditFilter{
+		ActorUserID: f.ActorUserID, Action: f.Action, ResourceType: f.ResourceType,
+		Result: f.Result, StartTime: f.StartTime, EndTime: f.EndTime, Keyword: f.Keyword,
+		Page: f.Page, PageSize: f.PageSize,
+	}
 }

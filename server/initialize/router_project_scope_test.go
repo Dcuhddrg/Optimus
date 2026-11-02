@@ -5,21 +5,18 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"optimus/server/service"
 	"testing"
 	"time"
 
-	projectAPI "optimus/server/api/v1/project"
-	systemAPI "optimus/server/api/v1/system"
 	"optimus/server/config"
 	"optimus/server/global"
-	projectModule "optimus/server/initialize/project"
 	projectModel "optimus/server/model/project"
 	projectService "optimus/server/service/project"
 	systemService "optimus/server/service/system"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
-	"gorm.io/gorm"
 )
 
 func TestRoutersLimitProjectScopeToCloudResources(t *testing.T) {
@@ -113,10 +110,10 @@ func newRouterWithProjectStore(t *testing.T, store *routerScopeStore, allowed bo
 	t.Helper()
 	gin.SetMode(gin.TestMode)
 	oldConfig, oldDB := global.OPTIMUS_CONFIG, global.OPTIMUS_DB
-	oldSystem, oldProject := newSystemModule, newProjectModule
+	oldServices := *service.ServiceGroupApp
 	t.Cleanup(func() {
 		global.OPTIMUS_CONFIG, global.OPTIMUS_DB = oldConfig, oldDB
-		newSystemModule, newProjectModule = oldSystem, oldProject
+		*service.ServiceGroupApp = oldServices
 	})
 	global.OPTIMUS_DB = nil
 	global.OPTIMUS_CONFIG.System.RouterPrefix = "/api/v1"
@@ -124,20 +121,9 @@ func newRouterWithProjectStore(t *testing.T, store *routerScopeStore, allowed bo
 		SigningKey: "project-scope-router-test", ExpiresTime: 3600,
 		BufferTime: 300, Issuer: "project-scope-router-test",
 	}
-	newSystemModule = func(_ *gorm.DB, cfg config.Config) *SystemModule {
-		return &SystemModule{
-			Handlers:     systemAPI.NewSystemHandlers(systemAPI.SystemHandlerDeps{}),
-			Capabilities: &SystemCapabilities{RBAC: routerScopeAuthorizer{allowed: allowed}},
-			cfg:          cfg,
-		}
-	}
-	newProjectModule = func(_ *gorm.DB, _ config.Config) *projectModule.ProjectModule {
-		svc := projectService.NewProjectService(store)
-		return &projectModule.ProjectModule{
-			Service:  svc,
-			Handlers: projectAPI.NewProjectHandlers(projectAPI.ProjectHandlerDeps{Service: svc}),
-		}
-	}
+	InitializeServices(nil, global.OPTIMUS_CONFIG)
+	service.ServiceGroupApp.SystemServiceGroup.RBAC = routerScopeAuthorizer{allowed: allowed}
+	service.ServiceGroupApp.ProjectServiceGroup.ProjectService = projectService.NewProjectService(store)
 	token, err := systemService.IssueJWT(systemService.TokenSubject{
 		ID: 1, UUID: "scope-user", Username: "admin", RoleIDs: []uint{1}, RoleCodes: []string{"admin"},
 	}, global.OPTIMUS_CONFIG.JWT, time.Now())

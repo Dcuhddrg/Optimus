@@ -2,18 +2,19 @@ package project
 
 import (
 	"net/http"
-
-	projectModel "optimus/server/model/project"
+	projectRequest "optimus/server/model/project/request"
 
 	"github.com/gin-gonic/gin"
 )
 
-func (h *ProjectHandlers) ListMembers(c *gin.Context) {
-	if h.svc == nil {
+type MemberApi struct{}
+
+func (h *MemberApi) ListMembers(c *gin.Context) {
+	if projectServices.ProjectService == nil {
 		writeProjectServiceUnavailable(c)
 		return
 	}
-	members, err := h.svc.ListMembers(c.Request.Context(), projectActorID(c), c.Param("code"))
+	members, err := projectServices.ProjectService.ListMembers(c.Request.Context(), projectActorID(c), c.Param("code"))
 	if err != nil {
 		writeProjectError(c, err)
 		return
@@ -21,12 +22,12 @@ func (h *ProjectHandlers) ListMembers(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"items": members})
 }
 
-func (h *ProjectHandlers) AddMember(c *gin.Context) {
-	if h.svc == nil {
+func (h *MemberApi) AddMember(c *gin.Context) {
+	if projectServices.ProjectService == nil {
 		writeProjectServiceUnavailable(c)
 		return
 	}
-	var req projectModel.AddMemberRequest
+	var req projectRequest.AddMemberRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid member payload"})
 		return
@@ -35,15 +36,15 @@ func (h *ProjectHandlers) AddMember(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "userId is required"})
 		return
 	}
-	if err := h.svc.AddMember(c.Request.Context(), projectActorID(c), c.Param("code"), req.UserID, req.ProjectRole); err != nil {
+	if err := projectServices.ProjectService.AddMember(c.Request.Context(), projectActorID(c), c.Param("code"), req.UserID, req.ProjectRole); err != nil {
 		writeProjectError(c, err)
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"message": "member added"})
 }
 
-func (h *ProjectHandlers) UpdateMemberRole(c *gin.Context) {
-	if h.svc == nil {
+func (h *MemberApi) UpdateMemberRole(c *gin.Context) {
+	if projectServices.ProjectService == nil {
 		writeProjectServiceUnavailable(c)
 		return
 	}
@@ -51,20 +52,20 @@ func (h *ProjectHandlers) UpdateMemberRole(c *gin.Context) {
 	if !ok {
 		return
 	}
-	var req projectModel.UpdateMemberRoleRequest
+	var req projectRequest.UpdateMemberRoleRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid member payload"})
 		return
 	}
-	if err := h.svc.UpdateMemberRole(c.Request.Context(), projectActorID(c), c.Param("code"), userID, req.ProjectRole); err != nil {
+	if err := projectServices.ProjectService.UpdateMemberRole(c.Request.Context(), projectActorID(c), c.Param("code"), userID, req.ProjectRole); err != nil {
 		writeProjectError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "member role updated"})
 }
 
-func (h *ProjectHandlers) RemoveMember(c *gin.Context) {
-	if h.svc == nil {
+func (h *MemberApi) RemoveMember(c *gin.Context) {
+	if projectServices.ProjectService == nil {
 		writeProjectServiceUnavailable(c)
 		return
 	}
@@ -72,7 +73,7 @@ func (h *ProjectHandlers) RemoveMember(c *gin.Context) {
 	if !ok {
 		return
 	}
-	if err := h.svc.RemoveMember(c.Request.Context(), projectActorID(c), c.Param("code"), userID); err != nil {
+	if err := projectServices.ProjectService.RemoveMember(c.Request.Context(), projectActorID(c), c.Param("code"), userID); err != nil {
 		writeProjectError(c, err)
 		return
 	}

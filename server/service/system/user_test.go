@@ -2,6 +2,7 @@ package system_test
 
 import (
 	"context"
+	"optimus/server/global"
 	"testing"
 
 	systemModel "optimus/server/model/system"
@@ -13,7 +14,7 @@ import (
 func TestUserServiceListUsersOmitsPasswordHash(t *testing.T) {
 	store := &fakeUserStore{
 		users: []systemModel.SystemUser{
-			{ID: 1, Username: "admin", DisplayName: "Administrator", Source: "local", Status: "enabled", PasswordHash: "secret-hash"},
+			{OPTIMUS_MODEL: global.OPTIMUS_MODEL{ID: 1}, Username: "admin", DisplayName: "Administrator", Source: "local", Status: "enabled", PasswordHash: "secret-hash"},
 		},
 	}
 	service := systemService.NewUserService(store)

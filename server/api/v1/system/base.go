@@ -3,21 +3,23 @@ package system
 import (
 	"net/http"
 
-	commonModel "optimus/server/model/common"
+	commonResponse "optimus/server/model/common/response"
 	systemService "optimus/server/service/system"
 	"optimus/server/utils"
 
 	"github.com/gin-gonic/gin"
 )
 
-func (h *BaseHandler) Ping(c *gin.Context) {
-	service := h.service
+type BaseApi struct{}
+
+func (h *BaseApi) Ping(c *gin.Context) {
+	service := systemServices.Status
 	if service == nil {
 		service = &systemService.Service{}
 	}
 
 	payload := service.Ping()
-	utils.JSON(c, http.StatusOK, commonModel.PingResponse{
+	utils.JSON(c, http.StatusOK, commonResponse.PingResponse{
 		Message: payload.Message,
 	})
 }

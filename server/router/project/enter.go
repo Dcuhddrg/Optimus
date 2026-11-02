@@ -1,25 +1,21 @@
 package project
 
 import (
-	projectApi "optimus/server/api/v1/project"
-
 	"github.com/gin-gonic/gin"
+	api "optimus/server/api/v1"
 )
 
-type RouterGroup struct{}
+type RouterGroup struct {
+	ProjectRouter
+	MemberRouter
+}
 
-func (r *RouterGroup) InitProjectRouter(rg *gin.RouterGroup, h *projectApi.ProjectHandlers) {
-	group := rg.Group("projects")
-	{
-		group.GET("", h.ListProjects)
-		group.POST("", h.CreateProject)
-		group.GET(":code", h.GetProject)
-		group.PUT(":code", h.UpdateProject)
-		group.DELETE(":code", h.DeleteProject)
+var (
+	projectApi = &api.ApiGroupApp.ProjectApiGroup.ProjectApi
+	memberApi  = &api.ApiGroupApp.ProjectApiGroup.MemberApi
+)
 
-		group.GET(":code/members", h.ListMembers)
-		group.POST(":code/members", h.AddMember)
-		group.PATCH(":code/members/:userId", h.UpdateMemberRole)
-		group.DELETE(":code/members/:userId", h.RemoveMember)
-	}
+func (r *RouterGroup) InitProjectRouter(rg *gin.RouterGroup) {
+	r.ProjectRouter.InitProjectRouter(rg)
+	r.MemberRouter.InitMemberRouter(rg)
 }
