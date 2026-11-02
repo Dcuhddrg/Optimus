@@ -18,9 +18,9 @@ Router -> API -> Service -> Model
 | Model | `server/model/<module>/`，实体、请求/响应数据结构和持久化映射 | 不反向依赖 Router/API/Service |
 
 - 保留现有 `enter.go` 分组注册和组合入口，新增分组沿用对应模块的注册方式；不得绕过已有入口另建平行注册链。
-- 模块装配沿用下文的入口；调整时保留必要能力，不建立平行装配链。
+- 模块装配按下文的 GroupApp 目标入口统一；切换时同批删除被替代的 handlers/Module 平行装配链，保留必要能力。
 - API 向 Service 显式传入所需业务参数。Swagger 注释与真实接口行为保持一致。
-- 新旧模块均按上述四层职责组织；具体开发指引在 [#8](https://github.com/Dcuhddrg/Optimus/issues/8) 维护，样例应使用已迁移并验证的模块。
+- 新旧模块均按上述四层职责组织；原始参考模板见 [开发示例](../examples/README.md)，迁移取舍和验证在 [#45](https://github.com/Dcuhddrg/Optimus/issues/45) 跟进；#8 为历史示例交付。
 
 ### 后端结构维护要求
 
@@ -35,4 +35,20 @@ Router -> API -> Service -> Model
 
 ## 装配与注册入口
 
-`main` 与 `initialize` 负责启动和模块装配；`initialize/router.go` 创建各模块并注入 API handlers，`router/enter.go` 汇总模块 RouterGroup，各模块 `router/*/enter.go` 负责注册路由。当前 Service 通过各模块构造函数注入，API 使用模块 handlers；未使用的全局 ServiceGroup 已移除。后续如需统一 API/Service 的标准注册形式，应先明确设计并验证装配链，避免重复注册。
+用户已确认后端迁移参考 gin-vue-admin。目标为 `service/enter.go` 的 ServiceGroupApp、`api/v1/enter.go` 的 ApiGroupApp 与 `router/enter.go` 的 RouterGroupApp 根级聚合；各模块 `enter.go` 聚合职责 Service/API/Router。API 通过模块统一别名访问 ServiceGroup，Router 通过统一别名访问 ApiGroup，具体路径绑定放在职责文件。请求 DTO 进入 `model/<module>/request/`，公共请求/响应进入 `model/common/request/` 与 `model/common/response/`。详细生命周期、兼容边界与批次见[迁移设计](../superpowers/specs/2026-11-02-gva-backend-migration-design.md)。
+
+`main` 与 `initialize` 仍负责启动、配置和基础设施准备，再装配唯一的 ServiceGroup，最后注册路由。依赖只在启动期初始化，GroupApp 的发布对象和集中别名保持稳定；请求处理不得重新装配全局依赖，测试须隔离并恢复共享状态。数据库与外部客户端按生命周期由 initialize 传入或从现有 global 入口取得，构造函数可以用于组内部依赖创建，不再作为 Router 逐次注入 handlers 的并行生产入口。
+
+当前实现仍是 `New*Module → New*Handlers` 的构造注入链，现有全局 ServiceGroup 曾按 #11 清理；以上是 #45 新确认的迁移目标，并不代表已经实现或推翻 #11 对旧 usecase/infra 的清理。各批次须同步切换调用方、权限能力和测试，并删除对应旧入口。HTTP 状态、字段、分页、表结构和删除行为维持已确认契约；插件注册框架另行设计。
+
+### Router 组织约定
+
+所有后端模块统一采用按职责拆分子路由、由模块 `enter.go` 聚合的组织方式，适用于 system、project、cloud、插件及后续新增模块，新增与存量代码均须遵守。参考 gin-vue-admin 的 [system/enter.go](https://github.com/flipped-aurora/gin-vue-admin/blob/main/server/router/system/enter.go)，其中 system 仅为示例，不限定规范适用范围：
+
+- `router/enter.go` 汇总 system、project、cloud 等模块的 `RouterGroup`。
+- `router/<module>/enter.go` 通过匿名嵌入聚合子 Router，保留模块级注册方法作为组合入口，统一调用各子 Router 的 `InitXxxRouter`，避免堆放所有端点绑定。
+- 具体路径、中间件和 handler 绑定放在同目录职责文件中，按各模块实际职责命名，不照搬 system 的业务划分。例如 system 拆为 `base.go`、`auth.go`、`user.go`、`role.go`、`ldap.go`、`audit.go`，角色权限及权限树由 `RoleRouter` 注册；project 可按项目与成员、cloud 可按账号与资产组织子 Router。
+- 子 Router 参考上游从模块 enter.go 的集中别名取得 ApiGroupApp 中对应 API；API 从 ServiceGroupApp 的模块聚合取得服务，不再要求生产路由逐次显式注入 handler。初始化顺序、别名稳定性及测试替换按迁移设计执行；不允许两套生产装配链长期并存。
+- 公开与私有组由 initialize 创建并传入，保持路径、HTTP 方法、注册顺序、JWT/RBAC、项目范围及响应协议标记的实际作用范围。拆分不能重复挂载中间件、重复注册或放宽权限。
+
+本约定是全仓库统一规范。存量不符合的代码须列入迁移清单并分批整改，尚未整改不构成适用范围例外；新增或调整路由组织时按本规范实施。本次仅更新文档，不代表任何模块已完成源码整改；已核实 system、project、cloud 的端点均仍集中在各自 `router/<module>/enter.go`，示例中的子 Router 尚未实现，存量差异在 [#45](https://github.com/Dcuhddrg/Optimus/issues/45) 跟踪。路由结构整改与 #18 响应协议迁移分批提交，保留已有接口行为。示意见 [Router](../examples/backend/router-example.md) 与 [enter.go](../examples/backend/enter-go-example.md)。
