@@ -13,8 +13,8 @@ export function SystemRolesPage() {
 
   useEffect(() => {
     void Promise.all([listRoles(), permissionTree()]).then(([roleResult, permissionResult]) => {
-      setRoles(roleResult.items);
-      setPermissions(permissionResult.items);
+      setRoles(roleResult.list);
+      setPermissions(permissionResult.list);
     });
   }, []);
 

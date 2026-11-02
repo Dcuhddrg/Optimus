@@ -34,17 +34,19 @@
 | --- | --- | --- |
 | 登录、当前用户 | `{code,data,msg}`，data 为原有 DTO | 登录结果的 token、用户及权限字段，现有会话读取 |
 | 用户列表 | `{code,data:{list,total},msg}` | 完整集合，不提供分页 |
-| 角色列表 | `{items,total}` | 不因存在 total 就宣称支持分页 |
-| 权限树 | `{items}` | 树形集合不自动改为分页 |
+| 角色列表 | `{code,data:{list,total},msg}` | 完整集合，不提供分页 |
+| 权限树 | `{code,data:{list},msg}` | 普通集合，不提供 total 或分页 |
 | 项目、成员列表 | 服务端 `{items}`；客户端 ListResponse 额外要求 total | 修正真实类型或明确服务端新契约，不能编造已有字段 |
 | 云账号列表 | `{items,total}`，当前不是分页查询 | 保留筛选和计数含义 |
 | 云资产查询 | `{items,total,page,pageSize}`，仍为旧协议 | 后续按云模块同批迁移 items/list、API 类型与页面 |
 | 审计查询 | `{code,data:{list,total,page,pageSize},msg}` | 模块 API 显式选择 envelope 并返回 data，分页类型/页面已同步 |
-| 删除、登出等提示 | 登出返回统一响应及空对象 data，其他操作仍有 `{message}` | 明确无业务数据操作的目标 data 值 |
+| 删除、登出等提示 | 登出、用户角色分配及角色权限保存返回统一响应及空对象 data，其他操作仍有 `{message}` | 明确无业务数据操作的目标 data 值 |
 | 错误 | 未迁移端点保留 `{message}`；首批审计请求为 `{code:7,data,msg}` | HTTP 非 2xx 始终失败，错误提示兼容 msg/message；保留可用业务码 |
 | CSV、探活 | CSV 文本与现有 health/ping 小响应 | 保留内容类型、下载和探活调用 |
 
 旧 `apiRequest` 原样返回 JSON；#18 首批本地实现新增显式 `apiRequestEnvelope`，严格检查 code/data/msg 并返回 data，审计模块已选用，其他调用不自动切换。#27 的修复已将登录声明为公开请求；仅携带当前凭据且未取消的私有请求返回 401 时清理会话，错误保留 HTTP 状态和网络/协议分类；用户验收已通过，交付记录见 #27。后续 envelope 适配不能通过 `body.data ?? body` 猜测协议，业务数据可能含有同名字段，data 也可能为 null、0 或 false。
+
+#18 角色与权限批次将六个端点的成功及失败响应、JWT/RBAC 拒绝一并迁移；新增、编辑、状态更新保留角色 DTO 和 HTTP 200，权限保存返回空对象。仓库调用 `listRoles`、`permissionTree`、`saveRolePermissions` 与 `SystemRolesPage` 同批改读新契约。实现边界、发布和回退条件见[角色与权限迁移设计](../superpowers/specs/2026-10-30-role-response-contract-design.md)；本地实现不代表已部署或业务验收。
 
 ## 4. 目标响应与 HTTP 语义
 

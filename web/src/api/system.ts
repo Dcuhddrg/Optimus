@@ -4,7 +4,6 @@ import type {
   AuditLogPage,
   CurrentUserResponse,
   LDAPConfig,
-  ListResponse,
   LoginResponse,
   SystemPermission,
   SystemRole,
@@ -39,15 +38,15 @@ export function updateUserStatus(id: number, status: string) {
 }
 
 export function listRoles() {
-  return apiRequest<ListResponse<SystemRole>>('/system/roles');
+  return apiRequestEnvelope<{ list: SystemRole[]; total: number }>('/system/roles');
 }
 
 export function permissionTree() {
-  return apiRequest<ListResponse<SystemPermission>>('/system/permissions/tree');
+  return apiRequestEnvelope<{ list: SystemPermission[] }>('/system/permissions/tree');
 }
 
 export function saveRolePermissions(id: number, permissionCodes: string[]) {
-  return apiRequest<{ message: string }>(`/system/roles/${id}/permissions`, {
+  return apiRequestEnvelope<Record<string, never>>(`/system/roles/${id}/permissions`, {
     method: 'PUT',
     body: JSON.stringify({ permissionCodes }),
   });

@@ -36,6 +36,12 @@ func Routers() *gin.Engine {
 	// 私有路由
 	privateGroup := engine.Group(routerPrefix())
 	privateGroup.Use(response.EnvelopeForRoutes(privateGroup.BasePath(), []response.Route{
+		{Method: "GET", Path: "/system/roles"},
+		{Method: "POST", Path: "/system/roles"},
+		{Method: "PUT", Path: "/system/roles/:id"},
+		{Method: "PATCH", Path: "/system/roles/:id/status"},
+		{Method: "PUT", Path: "/system/roles/:id/permissions"},
+		{Method: "GET", Path: "/system/permissions/tree"},
 		{Method: "GET", Path: "/system/users"},
 		{Method: "PUT", Path: "/system/users/:id"},
 		{Method: "PATCH", Path: "/system/users/:id/status"},
