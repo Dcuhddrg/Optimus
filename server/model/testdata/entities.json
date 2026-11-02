@@ -1,0 +1,1985 @@
+{
+  "cloud_accounts": {
+    "deleteClauses": 1,
+    "fields": {
+      "account_id": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": true,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 64,
+        "type": "string",
+        "unique": false
+      },
+      "created_at": {
+        "autoCreate": 1,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "time",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 0,
+        "type": "time.Time",
+        "unique": false
+      },
+      "credential_json": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "text",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 0,
+        "type": "string",
+        "unique": false
+      },
+      "credential_type": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": true,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 32,
+        "type": "string",
+        "unique": false
+      },
+      "deleted_at": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "time",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 0,
+        "type": "gorm.DeletedAt",
+        "unique": false
+      },
+      "id": {
+        "autoCreate": 0,
+        "autoIncrement": true,
+        "autoUpdate": 0,
+        "dataType": "uint",
+        "default": "",
+        "hasDefault": true,
+        "notNull": false,
+        "pk": true,
+        "precision": 0,
+        "scale": 0,
+        "size": 64,
+        "type": "uint",
+        "unique": false
+      },
+      "last_synced_at": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "time",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 0,
+        "type": "*time.Time",
+        "unique": false
+      },
+      "name": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": true,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 128,
+        "type": "string",
+        "unique": false
+      },
+      "project_id": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "uint",
+        "default": "0",
+        "hasDefault": true,
+        "notNull": true,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 64,
+        "type": "uint",
+        "unique": false
+      },
+      "provider": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": true,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 32,
+        "type": "string",
+        "unique": false
+      },
+      "status": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "active",
+        "hasDefault": true,
+        "notNull": true,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 16,
+        "type": "string",
+        "unique": false
+      },
+      "tags_json": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "text",
+        "default": "",
+        "hasDefault": false,
+        "notNull": true,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 0,
+        "type": "string",
+        "unique": false
+      },
+      "updated_at": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 1,
+        "dataType": "time",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 0,
+        "type": "time.Time",
+        "unique": false
+      }
+    },
+    "indexes": {
+      "idx_cloud_accounts_deleted_at": {
+        "class": "",
+        "fields": [
+          "deleted_at"
+        ],
+        "option": "",
+        "type": "",
+        "where": ""
+      },
+      "idx_cloud_accounts_project_id": {
+        "class": "",
+        "fields": [
+          "project_id"
+        ],
+        "option": "",
+        "type": "",
+        "where": ""
+      },
+      "idx_cloud_accounts_provider": {
+        "class": "",
+        "fields": [
+          "provider"
+        ],
+        "option": "",
+        "type": "",
+        "where": ""
+      },
+      "idx_cloud_accounts_status": {
+        "class": "",
+        "fields": [
+          "status"
+        ],
+        "option": "",
+        "type": "",
+        "where": ""
+      }
+    },
+    "json": {
+      "accountId": "",
+      "createdAt": "0001-01-01T00:00:00Z",
+      "credentialType": "",
+      "id": 0,
+      "lastSyncedAt": null,
+      "name": "",
+      "projectId": 0,
+      "provider": "",
+      "status": "",
+      "updatedAt": "0001-01-01T00:00:00Z"
+    },
+    "primaryKeys": [
+      "id"
+    ]
+  },
+  "cloud_assets": {
+    "deleteClauses": 0,
+    "fields": {
+      "account_id": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "uint",
+        "default": "",
+        "hasDefault": false,
+        "notNull": true,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 64,
+        "type": "uint",
+        "unique": false
+      },
+      "config_json": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "text",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 0,
+        "type": "string",
+        "unique": false
+      },
+      "created_at": {
+        "autoCreate": 1,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "time",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 0,
+        "type": "time.Time",
+        "unique": false
+      },
+      "deleted_at": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "time",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 0,
+        "type": "*time.Time",
+        "unique": false
+      },
+      "discovered_at": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "time",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 0,
+        "type": "time.Time",
+        "unique": false
+      },
+      "id": {
+        "autoCreate": 0,
+        "autoIncrement": true,
+        "autoUpdate": 0,
+        "dataType": "uint",
+        "default": "",
+        "hasDefault": true,
+        "notNull": false,
+        "pk": true,
+        "precision": 0,
+        "scale": 0,
+        "size": 64,
+        "type": "uint",
+        "unique": false
+      },
+      "last_seen_at": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "time",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 0,
+        "type": "time.Time",
+        "unique": false
+      },
+      "name": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 256,
+        "type": "string",
+        "unique": false
+      },
+      "provider": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": true,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 32,
+        "type": "string",
+        "unique": false
+      },
+      "region": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": true,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 64,
+        "type": "string",
+        "unique": false
+      },
+      "resource_id": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": true,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 128,
+        "type": "string",
+        "unique": false
+      },
+      "resource_type": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": true,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 64,
+        "type": "string",
+        "unique": false
+      },
+      "status": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": true,
+        "notNull": true,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 32,
+        "type": "string",
+        "unique": false
+      },
+      "tags_json": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "text",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 0,
+        "type": "string",
+        "unique": false
+      },
+      "updated_at": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 1,
+        "dataType": "time",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 0,
+        "type": "time.Time",
+        "unique": false
+      }
+    },
+    "indexes": {
+      "idx_cloud_asset_account_type": {
+        "class": "",
+        "fields": [
+          "account_id",
+          "resource_type"
+        ],
+        "option": "",
+        "type": "",
+        "where": ""
+      },
+      "idx_cloud_asset_provider_region_type": {
+        "class": "",
+        "fields": [
+          "provider",
+          "region",
+          "resource_type"
+        ],
+        "option": "",
+        "type": "",
+        "where": ""
+      },
+      "uniq_cloud_asset_account_resource": {
+        "class": "UNIQUE",
+        "fields": [
+          "account_id",
+          "resource_id"
+        ],
+        "option": "",
+        "type": "",
+        "where": ""
+      }
+    },
+    "json": {
+      "accountId": 0,
+      "configJson": "",
+      "createdAt": "0001-01-01T00:00:00Z",
+      "deletedAt": null,
+      "discoveredAt": "0001-01-01T00:00:00Z",
+      "id": 0,
+      "lastSeenAt": "0001-01-01T00:00:00Z",
+      "name": "",
+      "provider": "",
+      "region": "",
+      "resourceId": "",
+      "resourceType": "",
+      "status": "",
+      "tagsJson": "",
+      "updatedAt": "0001-01-01T00:00:00Z"
+    },
+    "primaryKeys": [
+      "id"
+    ]
+  },
+  "projects": {
+    "deleteClauses": 1,
+    "fields": {
+      "code": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": true,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 64,
+        "type": "string",
+        "unique": false
+      },
+      "created_at": {
+        "autoCreate": 1,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "time",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 0,
+        "type": "time.Time",
+        "unique": false
+      },
+      "deleted_at": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "time",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 0,
+        "type": "gorm.DeletedAt",
+        "unique": false
+      },
+      "description": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 512,
+        "type": "string",
+        "unique": false
+      },
+      "id": {
+        "autoCreate": 0,
+        "autoIncrement": true,
+        "autoUpdate": 0,
+        "dataType": "uint",
+        "default": "",
+        "hasDefault": true,
+        "notNull": false,
+        "pk": true,
+        "precision": 0,
+        "scale": 0,
+        "size": 64,
+        "type": "uint",
+        "unique": false
+      },
+      "name": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": true,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 128,
+        "type": "string",
+        "unique": false
+      },
+      "owner_id": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "uint",
+        "default": "",
+        "hasDefault": false,
+        "notNull": true,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 64,
+        "type": "uint",
+        "unique": false
+      },
+      "status": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "active",
+        "hasDefault": true,
+        "notNull": true,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 16,
+        "type": "string",
+        "unique": false
+      },
+      "updated_at": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 1,
+        "dataType": "time",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 0,
+        "type": "time.Time",
+        "unique": false
+      }
+    },
+    "indexes": {
+      "idx_projects_code": {
+        "class": "UNIQUE",
+        "fields": [
+          "code"
+        ],
+        "option": "",
+        "type": "",
+        "where": ""
+      },
+      "idx_projects_deleted_at": {
+        "class": "",
+        "fields": [
+          "deleted_at"
+        ],
+        "option": "",
+        "type": "",
+        "where": ""
+      },
+      "idx_projects_owner_id": {
+        "class": "",
+        "fields": [
+          "owner_id"
+        ],
+        "option": "",
+        "type": "",
+        "where": ""
+      }
+    },
+    "json": {
+      "code": "",
+      "createdAt": "0001-01-01T00:00:00Z",
+      "description": "",
+      "id": 0,
+      "name": "",
+      "ownerId": 0,
+      "status": "",
+      "updatedAt": "0001-01-01T00:00:00Z"
+    },
+    "primaryKeys": [
+      "id"
+    ]
+  },
+  "sys_audit_logs": {
+    "deleteClauses": 0,
+    "fields": {
+      "action": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": true,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 128,
+        "type": "string",
+        "unique": false
+      },
+      "actor_user_id": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "uint",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 64,
+        "type": "uint",
+        "unique": false
+      },
+      "actor_username": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 128,
+        "type": "string",
+        "unique": false
+      },
+      "created_at": {
+        "autoCreate": 1,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "time",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 0,
+        "type": "time.Time",
+        "unique": false
+      },
+      "detail": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "text",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 0,
+        "type": "string",
+        "unique": false
+      },
+      "id": {
+        "autoCreate": 0,
+        "autoIncrement": true,
+        "autoUpdate": 0,
+        "dataType": "uint",
+        "default": "",
+        "hasDefault": true,
+        "notNull": false,
+        "pk": true,
+        "precision": 0,
+        "scale": 0,
+        "size": 64,
+        "type": "uint",
+        "unique": false
+      },
+      "ip": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 64,
+        "type": "string",
+        "unique": false
+      },
+      "resource_id": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 128,
+        "type": "string",
+        "unique": false
+      },
+      "resource_type": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 128,
+        "type": "string",
+        "unique": false
+      },
+      "result": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": true,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 32,
+        "type": "string",
+        "unique": false
+      },
+      "user_agent": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 255,
+        "type": "string",
+        "unique": false
+      }
+    },
+    "indexes": {
+      "idx_sys_audit_logs_action": {
+        "class": "",
+        "fields": [
+          "action"
+        ],
+        "option": "",
+        "type": "",
+        "where": ""
+      },
+      "idx_sys_audit_logs_actor_user_id": {
+        "class": "",
+        "fields": [
+          "actor_user_id"
+        ],
+        "option": "",
+        "type": "",
+        "where": ""
+      },
+      "idx_sys_audit_logs_resource_id": {
+        "class": "",
+        "fields": [
+          "resource_id"
+        ],
+        "option": "",
+        "type": "",
+        "where": ""
+      },
+      "idx_sys_audit_logs_resource_type": {
+        "class": "",
+        "fields": [
+          "resource_type"
+        ],
+        "option": "",
+        "type": "",
+        "where": ""
+      },
+      "idx_sys_audit_logs_result": {
+        "class": "",
+        "fields": [
+          "result"
+        ],
+        "option": "",
+        "type": "",
+        "where": ""
+      }
+    },
+    "json": {
+      "action": "",
+      "actorUserId": 0,
+      "actorUsername": "",
+      "createdAt": "0001-01-01T00:00:00Z",
+      "detail": "",
+      "id": 0,
+      "ip": "",
+      "resourceId": "",
+      "resourceType": "",
+      "result": "",
+      "userAgent": ""
+    },
+    "primaryKeys": [
+      "id"
+    ]
+  },
+  "sys_ldap_config": {
+    "deleteClauses": 0,
+    "fields": {
+      "base_dn": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 255,
+        "type": "string",
+        "unique": false
+      },
+      "bind_dn": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 255,
+        "type": "string",
+        "unique": false
+      },
+      "bind_password": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 255,
+        "type": "string",
+        "unique": false
+      },
+      "created_at": {
+        "autoCreate": 1,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "time",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 0,
+        "type": "time.Time",
+        "unique": false
+      },
+      "display_name_attr": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 64,
+        "type": "string",
+        "unique": false
+      },
+      "email_attr": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 64,
+        "type": "string",
+        "unique": false
+      },
+      "enabled": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "bool",
+        "default": "false",
+        "hasDefault": true,
+        "notNull": true,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 0,
+        "type": "bool",
+        "unique": false
+      },
+      "id": {
+        "autoCreate": 0,
+        "autoIncrement": true,
+        "autoUpdate": 0,
+        "dataType": "uint",
+        "default": "",
+        "hasDefault": true,
+        "notNull": false,
+        "pk": true,
+        "precision": 0,
+        "scale": 0,
+        "size": 64,
+        "type": "uint",
+        "unique": false
+      },
+      "updated_at": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 1,
+        "dataType": "time",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 0,
+        "type": "time.Time",
+        "unique": false
+      },
+      "url": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 255,
+        "type": "string",
+        "unique": false
+      },
+      "user_filter": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 255,
+        "type": "string",
+        "unique": false
+      },
+      "username_attr": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 64,
+        "type": "string",
+        "unique": false
+      }
+    },
+    "indexes": {},
+    "json": {
+      "baseDn": "",
+      "bindDn": "",
+      "createdAt": "0001-01-01T00:00:00Z",
+      "displayNameAttr": "",
+      "emailAttr": "",
+      "enabled": false,
+      "id": 0,
+      "updatedAt": "0001-01-01T00:00:00Z",
+      "url": "",
+      "userFilter": "",
+      "usernameAttr": ""
+    },
+    "primaryKeys": [
+      "id"
+    ]
+  },
+  "sys_permissions": {
+    "deleteClauses": 0,
+    "fields": {
+      "code": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": true,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 160,
+        "type": "string",
+        "unique": false
+      },
+      "created_at": {
+        "autoCreate": 1,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "time",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 0,
+        "type": "time.Time",
+        "unique": false
+      },
+      "id": {
+        "autoCreate": 0,
+        "autoIncrement": true,
+        "autoUpdate": 0,
+        "dataType": "uint",
+        "default": "",
+        "hasDefault": true,
+        "notNull": false,
+        "pk": true,
+        "precision": 0,
+        "scale": 0,
+        "size": 64,
+        "type": "uint",
+        "unique": false
+      },
+      "method": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 16,
+        "type": "string",
+        "unique": false
+      },
+      "name": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": true,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 128,
+        "type": "string",
+        "unique": false
+      },
+      "parent_code": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 160,
+        "type": "string",
+        "unique": false
+      },
+      "path": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 255,
+        "type": "string",
+        "unique": false
+      },
+      "sort": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "int",
+        "default": "0",
+        "hasDefault": true,
+        "notNull": true,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 64,
+        "type": "int",
+        "unique": false
+      },
+      "type": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": true,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 32,
+        "type": "string",
+        "unique": false
+      },
+      "updated_at": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 1,
+        "dataType": "time",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 0,
+        "type": "time.Time",
+        "unique": false
+      }
+    },
+    "indexes": {
+      "idx_sys_permissions_code": {
+        "class": "UNIQUE",
+        "fields": [
+          "code"
+        ],
+        "option": "",
+        "type": "",
+        "where": ""
+      },
+      "idx_sys_permissions_method": {
+        "class": "",
+        "fields": [
+          "method"
+        ],
+        "option": "",
+        "type": "",
+        "where": ""
+      },
+      "idx_sys_permissions_parent_code": {
+        "class": "",
+        "fields": [
+          "parent_code"
+        ],
+        "option": "",
+        "type": "",
+        "where": ""
+      },
+      "idx_sys_permissions_path": {
+        "class": "",
+        "fields": [
+          "path"
+        ],
+        "option": "",
+        "type": "",
+        "where": ""
+      },
+      "idx_sys_permissions_type": {
+        "class": "",
+        "fields": [
+          "type"
+        ],
+        "option": "",
+        "type": "",
+        "where": ""
+      }
+    },
+    "json": {
+      "code": "",
+      "createdAt": "0001-01-01T00:00:00Z",
+      "id": 0,
+      "method": "",
+      "name": "",
+      "parentCode": "",
+      "path": "",
+      "sort": 0,
+      "type": "",
+      "updatedAt": "0001-01-01T00:00:00Z"
+    },
+    "primaryKeys": [
+      "id"
+    ]
+  },
+  "sys_role_permissions": {
+    "deleteClauses": 0,
+    "fields": {
+      "created_at": {
+        "autoCreate": 1,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "time",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 0,
+        "type": "time.Time",
+        "unique": false
+      },
+      "id": {
+        "autoCreate": 0,
+        "autoIncrement": true,
+        "autoUpdate": 0,
+        "dataType": "uint",
+        "default": "",
+        "hasDefault": true,
+        "notNull": false,
+        "pk": true,
+        "precision": 0,
+        "scale": 0,
+        "size": 64,
+        "type": "uint",
+        "unique": false
+      },
+      "permission_id": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "uint",
+        "default": "",
+        "hasDefault": false,
+        "notNull": true,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 64,
+        "type": "uint",
+        "unique": false
+      },
+      "role_id": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "uint",
+        "default": "",
+        "hasDefault": false,
+        "notNull": true,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 64,
+        "type": "uint",
+        "unique": false
+      }
+    },
+    "indexes": {
+      "idx_sys_role_permission": {
+        "class": "UNIQUE",
+        "fields": [
+          "role_id",
+          "permission_id"
+        ],
+        "option": "",
+        "type": "",
+        "where": ""
+      }
+    },
+    "json": {
+      "createdAt": "0001-01-01T00:00:00Z",
+      "id": 0,
+      "permissionId": 0,
+      "roleId": 0
+    },
+    "primaryKeys": [
+      "id"
+    ]
+  },
+  "sys_roles": {
+    "deleteClauses": 0,
+    "fields": {
+      "code": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": true,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 128,
+        "type": "string",
+        "unique": false
+      },
+      "created_at": {
+        "autoCreate": 1,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "time",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 0,
+        "type": "time.Time",
+        "unique": false
+      },
+      "description": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 255,
+        "type": "string",
+        "unique": false
+      },
+      "id": {
+        "autoCreate": 0,
+        "autoIncrement": true,
+        "autoUpdate": 0,
+        "dataType": "uint",
+        "default": "",
+        "hasDefault": true,
+        "notNull": false,
+        "pk": true,
+        "precision": 0,
+        "scale": 0,
+        "size": 64,
+        "type": "uint",
+        "unique": false
+      },
+      "name": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": true,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 128,
+        "type": "string",
+        "unique": false
+      },
+      "status": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": true,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 32,
+        "type": "string",
+        "unique": false
+      },
+      "updated_at": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 1,
+        "dataType": "time",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 0,
+        "type": "time.Time",
+        "unique": false
+      }
+    },
+    "indexes": {
+      "idx_sys_roles_code": {
+        "class": "UNIQUE",
+        "fields": [
+          "code"
+        ],
+        "option": "",
+        "type": "",
+        "where": ""
+      },
+      "idx_sys_roles_status": {
+        "class": "",
+        "fields": [
+          "status"
+        ],
+        "option": "",
+        "type": "",
+        "where": ""
+      }
+    },
+    "json": {
+      "code": "",
+      "createdAt": "0001-01-01T00:00:00Z",
+      "description": "",
+      "id": 0,
+      "name": "",
+      "status": "",
+      "updatedAt": "0001-01-01T00:00:00Z"
+    },
+    "primaryKeys": [
+      "id"
+    ]
+  },
+  "sys_user_roles": {
+    "deleteClauses": 0,
+    "fields": {
+      "created_at": {
+        "autoCreate": 1,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "time",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 0,
+        "type": "time.Time",
+        "unique": false
+      },
+      "id": {
+        "autoCreate": 0,
+        "autoIncrement": true,
+        "autoUpdate": 0,
+        "dataType": "uint",
+        "default": "",
+        "hasDefault": true,
+        "notNull": false,
+        "pk": true,
+        "precision": 0,
+        "scale": 0,
+        "size": 64,
+        "type": "uint",
+        "unique": false
+      },
+      "role_id": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "uint",
+        "default": "",
+        "hasDefault": false,
+        "notNull": true,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 64,
+        "type": "uint",
+        "unique": false
+      },
+      "user_id": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "uint",
+        "default": "",
+        "hasDefault": false,
+        "notNull": true,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 64,
+        "type": "uint",
+        "unique": false
+      }
+    },
+    "indexes": {
+      "idx_sys_user_role": {
+        "class": "UNIQUE",
+        "fields": [
+          "user_id",
+          "role_id"
+        ],
+        "option": "",
+        "type": "",
+        "where": ""
+      }
+    },
+    "json": {
+      "createdAt": "0001-01-01T00:00:00Z",
+      "id": 0,
+      "roleId": 0,
+      "userId": 0
+    },
+    "primaryKeys": [
+      "id"
+    ]
+  },
+  "sys_users": {
+    "deleteClauses": 0,
+    "fields": {
+      "created_at": {
+        "autoCreate": 1,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "time",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 0,
+        "type": "time.Time",
+        "unique": false
+      },
+      "display_name": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 128,
+        "type": "string",
+        "unique": false
+      },
+      "email": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 255,
+        "type": "string",
+        "unique": false
+      },
+      "id": {
+        "autoCreate": 0,
+        "autoIncrement": true,
+        "autoUpdate": 0,
+        "dataType": "uint",
+        "default": "",
+        "hasDefault": true,
+        "notNull": false,
+        "pk": true,
+        "precision": 0,
+        "scale": 0,
+        "size": 64,
+        "type": "uint",
+        "unique": false
+      },
+      "last_login_at": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "time",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 0,
+        "type": "*time.Time",
+        "unique": false
+      },
+      "password_hash": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 255,
+        "type": "string",
+        "unique": false
+      },
+      "source": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": true,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 32,
+        "type": "string",
+        "unique": false
+      },
+      "status": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": true,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 32,
+        "type": "string",
+        "unique": false
+      },
+      "updated_at": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 1,
+        "dataType": "time",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 0,
+        "type": "time.Time",
+        "unique": false
+      },
+      "username": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": true,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 128,
+        "type": "string",
+        "unique": false
+      },
+      "uuid": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": true,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 64,
+        "type": "string",
+        "unique": false
+      }
+    },
+    "indexes": {
+      "idx_sys_users_source": {
+        "class": "",
+        "fields": [
+          "source"
+        ],
+        "option": "",
+        "type": "",
+        "where": ""
+      },
+      "idx_sys_users_status": {
+        "class": "",
+        "fields": [
+          "status"
+        ],
+        "option": "",
+        "type": "",
+        "where": ""
+      },
+      "idx_sys_users_username": {
+        "class": "UNIQUE",
+        "fields": [
+          "username"
+        ],
+        "option": "",
+        "type": "",
+        "where": ""
+      },
+      "idx_sys_users_uuid": {
+        "class": "UNIQUE",
+        "fields": [
+          "uuid"
+        ],
+        "option": "",
+        "type": "",
+        "where": ""
+      }
+    },
+    "json": {
+      "createdAt": "0001-01-01T00:00:00Z",
+      "displayName": "",
+      "email": "",
+      "id": 0,
+      "lastLoginAt": null,
+      "source": "",
+      "status": "",
+      "updatedAt": "0001-01-01T00:00:00Z",
+      "username": "",
+      "uuid": ""
+    },
+    "primaryKeys": [
+      "id"
+    ]
+  },
+  "user_projects": {
+    "deleteClauses": 0,
+    "fields": {
+      "created_at": {
+        "autoCreate": 1,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "time",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 0,
+        "type": "time.Time",
+        "unique": false
+      },
+      "project_id": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "uint",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": true,
+        "precision": 0,
+        "scale": 0,
+        "size": 64,
+        "type": "uint",
+        "unique": false
+      },
+      "project_role": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": true,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 32,
+        "type": "string",
+        "unique": false
+      },
+      "user_id": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "uint",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": true,
+        "precision": 0,
+        "scale": 0,
+        "size": 64,
+        "type": "uint",
+        "unique": false
+      }
+    },
+    "indexes": {},
+    "json": {
+      "createdAt": "0001-01-01T00:00:00Z",
+      "projectId": 0,
+      "projectRole": "",
+      "userId": 0
+    },
+    "primaryKeys": [
+      "project_id",
+      "user_id"
+    ]
+  }
+}

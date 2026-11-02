@@ -1,13 +1,14 @@
 package cloud
 
 import (
+	"optimus/server/global"
 	"time"
 
 	"gorm.io/gorm"
 )
 
 type CloudAccount struct {
-	ID             uint           `gorm:"primaryKey" json:"id"`
+	global.OPTIMUS_MODEL
 	ProjectID      uint           `gorm:"not null;default:0;index" json:"projectId"`
 	Name           string         `gorm:"size:128;not null" json:"name"`
 	Provider       string         `gorm:"size:32;not null;index" json:"provider"`
@@ -18,8 +19,6 @@ type CloudAccount struct {
 	Status         string         `gorm:"size:16;not null;index;default:'active'" json:"status"`
 	LastSyncedAt   *time.Time     `json:"lastSyncedAt"`
 	DeletedAt      gorm.DeletedAt `gorm:"index" json:"-"`
-	CreatedAt      time.Time      `json:"createdAt"`
-	UpdatedAt      time.Time      `json:"updatedAt"`
 }
 
 func (CloudAccount) TableName() string {
@@ -27,7 +26,7 @@ func (CloudAccount) TableName() string {
 }
 
 type CloudAsset struct {
-	ID           uint       `gorm:"primaryKey" json:"id"`
+	global.OPTIMUS_MODEL
 	AccountID    uint       `gorm:"not null;index:idx_cloud_asset_account_type;uniqueIndex:uniq_cloud_asset_account_resource" json:"accountId"`
 	Provider     string     `gorm:"size:32;not null;index:idx_cloud_asset_provider_region_type" json:"provider"`
 	Region       string     `gorm:"size:64;not null;index:idx_cloud_asset_provider_region_type" json:"region"`
@@ -40,8 +39,6 @@ type CloudAsset struct {
 	DiscoveredAt time.Time  `json:"discoveredAt"`
 	LastSeenAt   time.Time  `json:"lastSeenAt"`
 	DeletedAt    *time.Time `json:"deletedAt"`
-	CreatedAt    time.Time  `json:"createdAt"`
-	UpdatedAt    time.Time  `json:"updatedAt"`
 }
 
 func (CloudAsset) TableName() string {

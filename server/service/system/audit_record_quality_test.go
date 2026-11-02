@@ -131,7 +131,7 @@ func (s *qualityAuthStore) WriteAudit(_ context.Context, e service.AuditEvent) e
 }
 
 func qualityUser() *qualityUserStore {
-	return &qualityUserStore{fakeUserStore: fakeUserStore{users: []model.SystemUser{{ID: 7, Username: "target", Status: "enabled", PasswordHash: "DO_NOT_LOG_THIS"}}, adminCapableAfterStatus: true, adminCapableAfterRoles: true}}
+	return &qualityUserStore{fakeUserStore: fakeUserStore{users: []model.SystemUser{{OPTIMUS_MODEL: global.OPTIMUS_MODEL{ID: 7}, Username: "target", Status: "enabled", PasswordHash: "DO_NOT_LOG_THIS"}}, adminCapableAfterStatus: true, adminCapableAfterRoles: true}}
 }
 func auditDetail(t *testing.T, e service.AuditEvent) map[string]interface{} {
 	t.Helper()
@@ -224,7 +224,7 @@ func TestAuditQualityRoleSnapshotUnavailableDoesNotChangeSuccess(t *testing.T) {
 	require.Empty(t, d["changes"])
 }
 func qualityRole() *qualityRoleStore {
-	return &qualityRoleStore{fakeRoleStore: fakeRoleStore{roles: []model.SystemRole{{ID: 3, Code: "ops"}}, permissionsByCode: map[string]model.SystemPermission{"read": {ID: 1, Code: "read"}, "write": {ID: 2, Code: "write"}}}, codes: []string{"read"}}
+	return &qualityRoleStore{fakeRoleStore: fakeRoleStore{roles: []model.SystemRole{{OPTIMUS_MODEL: global.OPTIMUS_MODEL{ID: 3}, Code: "ops"}}, permissionsByCode: map[string]model.SystemPermission{"read": {OPTIMUS_MODEL: global.OPTIMUS_MODEL{ID: 1}, Code: "read"}, "write": {OPTIMUS_MODEL: global.OPTIMUS_MODEL{ID: 2}, Code: "write"}}}, codes: []string{"read"}}
 }
 func TestAuditQualityPermissionsUseActualCodes(t *testing.T) {
 	s := qualityRole()
@@ -245,7 +245,7 @@ func TestAuditQualityProtectedRoleFailure(t *testing.T) {
 	require.Equal(t, "admin_role_protected", auditDetail(t, e)["reason"])
 }
 func TestAuditQualityLDAPWhitelistAndPasswordOmission(t *testing.T) {
-	s := &qualityLDAPStore{fakeLDAPStore: fakeLDAPStore{config: model.SystemLDAPConfig{ID: 1, Enabled: false, URL: "ldap://old.test", BindPassword: "OLD_SECRET"}}}
+	s := &qualityLDAPStore{fakeLDAPStore: fakeLDAPStore{config: model.SystemLDAPConfig{OPTIMUS_MODEL: global.OPTIMUS_MODEL{ID: 1}, Enabled: false, URL: "ldap://old.test", BindPassword: "OLD_SECRET"}}}
 	_, err := service.NewLDAPService(s, qualityLDAPClient{}).SaveConfig(context.Background(), 1, systemRequest.LDAPConfigRequest{Enabled: true, URL: "ldap://user:URL_SECRET@new.test", BindPassword: "NEW_SECRET"}, service.AuditMeta{})
 	require.NoError(t, err)
 	e := lastAudit(t, s.audits)
@@ -280,7 +280,7 @@ func TestAuditQualityFailedLoginHasUnverifiedAttemptNotActor(t *testing.T) {
 	require.NotContains(t, e.Detail, "PASSWORD_SECRET")
 }
 func TestAuditQualityFailedKnownLoginDoesNotClaimAuthenticatedActor(t *testing.T) {
-	s := &qualityAuthStore{fakeAuthStore: fakeAuthStore{user: model.SystemUser{ID: 7, Username: "admin", Status: "disabled"}}}
+	s := &qualityAuthStore{fakeAuthStore: fakeAuthStore{user: model.SystemUser{OPTIMUS_MODEL: global.OPTIMUS_MODEL{ID: 7}, Username: "admin", Status: "disabled"}}}
 	_, err := service.NewAuthService(s, fakeTokenIssuer{}, nil).Login(context.Background(), systemRequest.LoginRequest{Username: "admin", Password: "PASSWORD_SECRET"}, service.AuditMeta{})
 	require.ErrorIs(t, err, service.ErrUserDisabled)
 	e := lastAudit(t, s.audits)
@@ -367,7 +367,7 @@ func TestAuditQualitySuccessfulLoginSurvivesAuditWriteFailure(t *testing.T) {
 	logs := observeQuality(t)
 	hash, err := hashTestPassword("LOGIN_SECRET")
 	require.NoError(t, err)
-	s := &qualityAuthStore{fakeAuthStore: *newFakeAuthStore(model.SystemUser{ID: 1, Username: "admin", Source: "local", Status: "enabled", PasswordHash: hash}), auditErr: auditTestFailure}
+	s := &qualityAuthStore{fakeAuthStore: *newFakeAuthStore(model.SystemUser{OPTIMUS_MODEL: global.OPTIMUS_MODEL{ID: 1}, Username: "admin", Source: "local", Status: "enabled", PasswordHash: hash}), auditErr: auditTestFailure}
 	result, err := service.NewAuthService(s, fakeTokenIssuer{}, nil).Login(context.Background(), systemRequest.LoginRequest{Username: "admin", Password: "LOGIN_SECRET"}, service.AuditMeta{})
 	require.NoError(t, err)
 	require.NotEmpty(t, result.Token)

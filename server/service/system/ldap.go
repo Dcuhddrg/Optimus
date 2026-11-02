@@ -3,6 +3,7 @@ package system
 import (
 	"context"
 	"errors"
+	"optimus/server/global"
 	systemRequest "optimus/server/model/system/request"
 	systemResponse "optimus/server/model/system/response"
 	"strings"
@@ -65,7 +66,7 @@ func (s *LDAPService) SaveConfig(ctx context.Context, actorID uint, req systemRe
 	defer func() { recordAudit(ctx, s.store, event) }()
 	current, currentErr := s.store.GetLDAPConfig(ctx)
 	cfg := systemModel.SystemLDAPConfig{
-		ID:              current.ID,
+		OPTIMUS_MODEL:   global.OPTIMUS_MODEL{ID: current.ID},
 		Enabled:         req.Enabled,
 		URL:             req.URL,
 		BaseDN:          req.BaseDN,

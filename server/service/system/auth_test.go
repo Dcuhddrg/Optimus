@@ -2,6 +2,7 @@ package system_test
 
 import (
 	"context"
+	"optimus/server/global"
 	systemRequest "optimus/server/model/system/request"
 	"testing"
 	"time"
@@ -17,13 +18,13 @@ func TestAuthServiceLoginAdminSuccess(t *testing.T) {
 	passwordHash, err := hashTestPassword("admin-secret")
 	require.NoError(t, err)
 	store := newFakeAuthStore(systemModel.SystemUser{
-		ID:           1,
-		UUID:         "admin-uuid",
-		Username:     "admin",
-		DisplayName:  "Administrator",
-		Source:       "local",
-		Status:       "enabled",
-		PasswordHash: passwordHash,
+		OPTIMUS_MODEL: global.OPTIMUS_MODEL{ID: 1},
+		UUID:          "admin-uuid",
+		Username:      "admin",
+		DisplayName:   "Administrator",
+		Source:        "local",
+		Status:        "enabled",
+		PasswordHash:  passwordHash,
 	})
 	service := systemService.NewAuthService(store, fakeTokenIssuer{}, nil)
 
