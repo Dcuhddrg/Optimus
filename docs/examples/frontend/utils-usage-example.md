@@ -2,43 +2,59 @@
 
 ## 这个文件负责什么
 
-优先复用已有公共能力，但不能把上游 utils 清单当成 Optimus 已安装的工具库。通用能力确有重复使用再抽取。
+这个示例告诉 AI：当前端需要通用能力时，应先复用 `src/utils/`，而不是临时再造一套。
 
 ## 什么时候应该这样写
 
-- 请求认证、错误或 CSV 下载。
-- 操作名称、结果及资源类型本地化。
-- 共享身份/语言上下文。
+- 发送 HTTP 请求
+- 格式化日期
+- 获取字典数据
+- 处理按钮权限
+- 做命名转换
+- 跨组件通信
 
 ## 推荐写法示例
 
-实际存在的函数调用形态（放在已有页面或组件上下文）：
+```js
+import service from '@/utils/request'
+import { formatDate, CreateUUID } from '@/utils/format'
+import { getDict } from '@/utils/dictionary'
+import { useBtnAuth } from '@/utils/btnAuth'
 
-```tsx
-import { getAuditActionLabel, getAuditResultLabel } from '../../locale/systemLabels';
-import { useI18n } from '../../locale/useI18n';
+const token = CreateUUID()
+const createdAt = formatDate(new Date())
 
-export function AuditLabelExample() {
-  const { locale } = useI18n();
-  const actionText = getAuditActionLabel('role.permissions.update', locale);
-  const resultText = getAuditResultLabel('success', locale);
-  return <span>{actionText} · {resultText}</span>;
+const loadStatusDict = async () => {
+  return await getDict('order_status')
+}
+
+const btnAuth = useBtnAuth()
+
+export const fetchOrderList = (data) => {
+  return service({
+    url: '/order/getOrderList',
+    method: 'post',
+    data
+  })
 }
 ```
 
-HTTP 统一使用模块 API 和 `api/client.ts`；语言使用 useI18n，状态使用已有 Context。上游 `formatDate/CreateUUID/getDict/useBtnAuth` 不在这里假定可用。日期当前审计页使用浏览器 locale 格式化，不为单次使用新建工具包。
-
 ## 为什么这样写
 
-复用实际存在的能力并链接实现，比编造 imports 更可靠。未知动作标签回退原始代码；菜单可见性不能代替 API 权限。
+- 统一工具入口能减少重复实现
+- `request`、`format`、`dictionary`、`btnAuth` 都已经被项目广泛使用
+- 复用已有工具比新造 helper 更利于 AI 和人协作
 
 ## 常见错误
 
-- 引入不存在的上游别名路径或工具名。
-- 为获取字典、按钮权限新增不必要依赖。
-- 将未知动作强行翻译成已有业务含义。
+- 手写日期格式化逻辑
+- 直接使用 axios 绕开 `request`
+- 自己再实现一套按钮权限判断
+- 明明已有字典工具，却在页面里重复请求和缓存
 
 ## 真实参考文件
 
-- [本地化标签](../../../web/src/locale/systemLabels.ts)、[语言 hook](../../../web/src/locale/useI18n.ts)。
-- [公共请求层](../../../web/src/api/client.ts)、[会话上下文](../../../web/src/auth/AuthContext.tsx)、[完整使用示例](../../../web/src/view/system/SystemAuditLogsPage.tsx)。
+- `web/src/utils/request.js`
+- `web/src/utils/format.js`
+- `web/src/utils/dictionary.js`
+- `web/src/utils/btnAuth.js`
