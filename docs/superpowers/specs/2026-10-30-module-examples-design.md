@@ -1,5 +1,7 @@
 # 模块开发示例适配
 
+> 历史设计：本页 backend/frontend 的本地适配方案已由 [#45](https://github.com/Dcuhddrg/Optimus/issues/45) 第一阶段的原始模板替换取代，交付见 [PR #46](https://github.com/Dcuhddrg/Optimus/pull/46)。旧状态管理文件名、React 教学片段和审计实例说明仅记录 #8 当时的设计，不再作为当前示例的读取指引。独立插件示例暂保留；当前入口见 [开发示例](../../examples/README.md)。下文保留历史，不据此重新执行旧适配。
+
 - 关联 #8；用户已确认以上游 gin-vue-admin examples 为模板并授权实施。
 - 状态：用户已审阅确认本轮示例，并授权提交 PR、合入 main；交付及核查限制见 #8，不扩大为完整插件实现或本轮源码全量重验。
 - 按用户最新要求，示例不附来源/改写说明、上游参考链接或独立 license 文件；技术栈和现有能力边界仍需明确。

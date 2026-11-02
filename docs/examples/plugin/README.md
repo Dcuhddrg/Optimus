@@ -2,7 +2,7 @@
 
 ## 包含内容
 
-[完整插件示例](full-plugin-example.md) 说明前后端位置与装配边界；后端入口职责见 [plugin.go 示例](../backend/plugin-go-example.md)。
+[完整插件示例](full-plugin-example.md) 保留原有的本项目目录与装配边界说明，暂未纳入 #45 第一阶段替换。另可阅读后端 [plugin.go 参考模板](../backend/plugin-go-example.md)；其中的注册 SDK、初始化函数和文件引用属于参考框架，不代表 Optimus 已有对应能力。
 
 ## 适用范围
 

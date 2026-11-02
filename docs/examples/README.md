@@ -16,7 +16,7 @@
 
 ## 使用边界
 
-- backend 与 frontend 的 13 份文档为 gin-vue-admin 原始参考模板；示例中的包路径、订单业务、全局聚合、插件 SDK、Vue/Pinia 和 Element Plus 不代表 Optimus 已有实现或依赖。前端状态示例文件已由 state-example.md 改为 pinia-example.md，与模板命名一致。
+- backend 与 frontend 的 13 份文档为 gin-vue-admin 原始参考模板；示例中的包路径、订单业务、全局聚合、插件 SDK、Vue/Pinia 和 Element Plus 不代表 Optimus 已有实现或依赖。
 - 这些模板面向全局规范与后续迁移，示例业务不限定适用模块。不得把当前实现反向改写成模板标准，也不得把文档替换视为源码整改完成。
 - Optimus 当前仍使用 Go/Gin 与 React/TypeScript。模板中的前端框架和后端装配差异，需在后续规范与迁移方案中明确；此次替换不更换技术栈，不新增模板中的业务或插件框架。
 - 模板末尾的真实参考文件指向参考框架的目录与文件，不是 Optimus 的本地可用文件清单。迁移前须重新核对本项目符号、调用方和能力边界。

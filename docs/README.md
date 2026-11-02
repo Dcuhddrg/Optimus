@@ -9,7 +9,7 @@
 | [relations](relations/README.md) | 项目画像、系统关系、开发流程和工程操作 |
 | [modules](modules/README.md) | 模块职责与后端分层 |
 | [frontend-backend](frontend-backend/README.md) | 前后端协作、接口契约与前端规范 |
-| [examples](examples/README.md) | 后端、React 前端和插件边界的开发示例；按层讲解职责并引用本项目真实实现 |
+| [examples](examples/README.md) | 前后端原始参考模板及保留的插件边界说明；本项目适用方式与迁移按 #45 分阶段确认 |
 | [memory](memory/README.md) | 项目长期方向与重要决策 |
 
 ## 产品与实施
