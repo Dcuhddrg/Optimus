@@ -2,47 +2,45 @@
 
 ## 这个文件负责什么
 
-Model 描述实体、请求/响应结构和持久化映射；不承担 Service 的业务编排。字段必须与客户端类型及真实存储一致。
+Model 负责定义数据库实体与持久化字段，是 Service 和数据库交互的基础。
 
 ## 什么时候应该这样写
 
-- 新增实体或 DTO。
-- 补字段、索引与 JSON 标签。
-- 需要区分数据库实体和可见响应。
+- 新增一张业务表
+- 为现有表补字段
+- 需要定义 GORM 结构与关联关系
 
 ## 推荐写法示例
 
-来自 `server/model/system/user.go` 的实体摘录；`time` 为 Go 标准库：
-
 ```go
-type SystemAuditLog struct {
-    ID            uint      `gorm:"primaryKey" json:"id"`
-    ActorUserID   uint      `gorm:"index" json:"actorUserId"`
-    ActorUsername string    `gorm:"size:128" json:"actorUsername"`
-    Action        string    `gorm:"size:128;not null;index" json:"action"`
-    ResourceType  string    `gorm:"size:128;index" json:"resourceType"`
-    ResourceID    string    `gorm:"size:128;index" json:"resourceId"`
-    Result        string    `gorm:"size:32;not null;index" json:"result"`
-    IP            string    `gorm:"size:64" json:"ip"`
-    UserAgent     string    `gorm:"size:255" json:"userAgent"`
-    Detail        string    `gorm:"type:text" json:"detail"`
-    CreatedAt     time.Time `json:"createdAt"`
+package system
+
+import "github.com/flipped-aurora/gin-vue-admin/server/global"
+
+type Order struct {
+	global.GVA_MODEL
+	Name     string `json:"name" gorm:"comment:订单名称"`
+	Status   int    `json:"status" gorm:"default:1;comment:订单状态"`
+	Remark   string `json:"remark" gorm:"comment:备注"`
+	CreatorID uint  `json:"creatorId" gorm:"comment:创建人ID"`
 }
 ```
 
-`AuditPage`/`AuditLogEntry` 单独定义在 `dto.go`，供 Store/Service 使用；HTTP 的 `AuditListData` 将 items 映射为 list；不导入上游 `global.GVA_MODEL`。
-
 ## 为什么这样写
 
-主键、JSON 名称和时间字段沿用实际模块约定。操作人名称是事件发生时的快照，历史日志不根据当前用户信息回填。
+- 继承 `global.GVA_MODEL`，保持主键和时间字段风格一致
+- `json` 标签用于接口输出
+- `gorm` 标签用于约束字段类型、默认值和注释
+- 字段命名尽量清晰、稳定，便于前后端保持一致
 
 ## 常见错误
 
-- 引入不存在的 GVA_MODEL 或把旧结构当当前约束。
-- 在 Model 调用 API/Service。
-- 把密码、token 或整份请求作为审计 Detail。
+- 缺少 `json` 或 `gorm` 标签
+- 把仅用于请求或展示的字段直接写入数据库 model
+- 同一个字段在前后端使用不同类型
+- 忽略 `Status`、`ID`、时间字段这类高风险类型一致性问题
 
 ## 真实参考文件
 
-- [实体](../../../server/model/system/user.go)、[响应 DTO](../../../server/model/system/dto.go)。
-- [实体到响应映射](../../../server/service/system/store/audit_store_gorm.go)、[快照测试](../../../server/service/system/store/audit_store_gorm_test.go)。
+- `server/model/system/sys_api_token.go`
+- `server/model/system/sys_user.go`

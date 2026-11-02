@@ -2,37 +2,60 @@
 
 ## 这个文件负责什么
 
-插件入口应只协调依赖构造、初始化和路由接入，业务仍按既有分层组织。目录约定是 `server/plugin/<name>/` 与 `web/src/plugin/<name>/`。
+插件入口负责把插件注册进系统，并在系统启动时完成路由、菜单、字典、表结构等初始化。
 
 ## 什么时候应该这样写
 
-- 已确认能力需要独立插件边界。
-- 准备明确插件生命周期及装配方式。
-- 普通业务模块与插件的职责需要比较。
+- 新增一个标准 gin-vue-admin 插件
+- 需要接入插件注册机制
+- 需要把插件初始化逻辑收敛到统一入口
 
 ## 推荐写法示例
 
-本页只给装配关系示意，不声明存在可直接导入的插件注册 SDK：
+```go
+package announcement
 
-```text
-启动装配 → 显式构造插件依赖 → 插件 API handlers → 已有路由组注册
-                                     ↓
-                               Service / Model
+import (
+	"context"
+
+	"github.com/flipped-aurora/gin-vue-admin/server/plugin/announcement/initialize"
+	interfaces "github.com/flipped-aurora/gin-vue-admin/server/utils/plugin/v2"
+	"github.com/gin-gonic/gin"
+)
+
+var _ interfaces.Plugin = (*plugin)(nil)
+
+var Plugin = new(plugin)
+
+type plugin struct{}
+
+func init() {
+	interfaces.Register(Plugin)
+}
+
+func (p *plugin) Register(group *gin.Engine) {
+	ctx := context.Background()
+	initialize.Api(ctx)
+	initialize.Menu(ctx)
+	initialize.Dictionary(ctx)
+	initialize.Gorm(ctx)
+	initialize.Router(group)
+}
 ```
-
-上游 `interfaces.Register(Plugin)`、`plugin/v2` 和隐式 init 注册未作为 Optimus 的已核实能力。当前没有已验证的完整插件样板可在此作为标准复制；先核对或设计入口，再编写实现。仅普通 CRUD 不应为符合示例而强行插件化。
 
 ## 为什么这样写
 
-上游入口保持薄的组织方式可沿用，具体注册接口和初始化能力必须以本项目事实为准。新增生命周期或自动发现属于设计工作，不由示例暗中引入。
+- `init()` 中注册插件，系统启动时就能发现它
+- `Register` 里把插件初始化步骤按顺序集中起来
+- 插件入口文件保持薄，真正细节下沉到 `initialize/`
 
 ## 常见错误
 
-- 写出不存在的插件 SDK 导入。
-- 声明菜单、字典或数据库初始化会自动完成。
-- 为示例创建未经批准的业务模块。
+- 在 `plugin.go` 里塞过多业务细节
+- 忘记调用 `interfaces.Register`
+- 初始化顺序混乱，导致菜单 / 路由 / 表结构缺失
 
 ## 真实参考文件
 
-- [真实模块构造参照](../../../server/initialize/system_module.go)、[路由参照](../../../server/initialize/router.go)；这两者不是完整插件实现。
-- [完整插件边界](../plugin/full-plugin-example.md)、[根规则插件约定](../../../AGENT.MD#插件与模块)。
+- `server/plugin/announcement/plugin.go`
+- `server/plugin/announcement/initialize/router.go`

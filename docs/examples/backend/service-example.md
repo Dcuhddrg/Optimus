@@ -2,42 +2,63 @@
 
 ## 这个文件负责什么
 
-Service 处理业务规则、事务边界和数据访问协作，不接收 gin.Context，不组织 HTTP 响应。按现有模块构造函数注入依赖，Store 仍归属于 Service。
+Service 层负责业务逻辑、数据库查询、事务控制和数据拼装，不负责 HTTP 参数绑定和响应输出。
 
 ## 什么时候应该这样写
 
-- 新增查询、变更或跨操作编排。
-- 需要持久化或外部协议适配。
-- 补错误、隔离和审计回归。
+- 新增列表查询、创建、更新、删除逻辑
+- 需要事务操作
+- 需要对 model 和 request 做转换
 
 ## 推荐写法示例
 
-以下是审计 Service 的真实方法摘录；`systemModel` 是 `optimus/server/model/system`，`context` 来自标准库：
-
 ```go
-func NewAuditService(store AuditStore) *AuditService {
-    return &AuditService{store: store}
-}
+package system
 
-func (s *AuditService) QueryLogs(ctx context.Context, f AuditFilter) (systemModel.AuditPage, error) {
-    return s.store.QueryLogs(ctx, f)
+import (
+	"github.com/flipped-aurora/gin-vue-admin/server/global"
+	"github.com/flipped-aurora/gin-vue-admin/server/model/system"
+	systemReq "github.com/flipped-aurora/gin-vue-admin/server/model/system/request"
+)
+
+type OrderService struct{}
+
+func (s *OrderService) GetOrderList(info systemReq.OrderSearch) (list []system.Order, total int64, err error) {
+	limit := info.PageSize
+	offset := info.PageSize * (info.Page - 1)
+
+	db := global.GVA_DB.Model(&system.Order{})
+	if info.Name != "" {
+		db = db.Where("name LIKE ?", "%"+info.Name+"%")
+	}
+	if info.Status != nil {
+		db = db.Where("status = ?", *info.Status)
+	}
+
+	err = db.Count(&total).Error
+	if err != nil {
+		return nil, 0, err
+	}
+
+	err = db.Limit(limit).Offset(offset).Order("id desc").Find(&list).Error
+	return list, total, err
 }
 ```
 
-此查询本身是委托，不需要为“看起来分层”添加空业务逻辑。动态过滤、Count 和分页在 `service/system/store/audit_store_gorm.go`；用户状态/角色权限变更的业务保护与审计在对应 Service。
-
 ## 为什么这样写
 
-返回结果与 error，API 决定 HTTP。构造注入便于用替身测试失败路径；不因上游使用全局 GVA_DB 就改掉已有注入。
+- 只返回业务结果和 `error`，便于 API 层统一处理
+- 直接使用 `global.GVA_DB` 或事务对象，保持项目一致性
+- 查询条件尽量在 Service 层收敛，不散落到 API 或 Router
 
 ## 常见错误
 
-- 把 HTTP 校验、绑定和响应放进 Service。
-- 给已提交业务追加日志失败后，谎报业务未发生。
-- 仅测试成功路径，忽略最后管理员保护、权限拒绝或快照失败。
+- 在 Service 层接触 `gin.Context`
+- 在 Service 层直接拼 `response.OkWith...`
+- 把参数绑定、权限判断、响应格式化和业务逻辑混在一起
+- 涉及多表更新却不使用事务
 
 ## 真实参考文件
 
-- [审计 Service](../../../server/service/system/audit.go)、[Store](../../../server/service/system/store/audit_store_gorm.go)。
-- [用户业务](../../../server/service/system/user.go)、[角色业务](../../../server/service/system/role.go)。
-- [审计单测](../../../server/service/system/audit_test.go)、[记录质量故障注入](../../../server/service/system/audit_record_quality_test.go)。
+- `server/service/system/sys_user.go`
+- `server/service/example/exa_customer.go`

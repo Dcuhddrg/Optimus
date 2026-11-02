@@ -2,39 +2,66 @@
 
 ## 这个文件负责什么
 
-enter.go 汇总现有路由分组；initialize 构造模块并注入 API handlers。它不是要求每层必须新建一个全局 GroupApp。
+`enter.go` 用来聚合某一层的模块入口，降低循环引用风险，让其他层通过统一入口访问能力。
 
 ## 什么时候应该这样写
 
-- 给现有模块扩充路由。
-- 新增模块需要纳入启动装配。
-- 检查重复注册或循环依赖。
+- 新增一个模块组
+- 需要把多个 Router / API / Service 聚合到统一入口
+- 需要让其他层通过 `GroupApp` 访问当前层能力
 
 ## 推荐写法示例
 
-当前装配关系：
+### 根级聚合
 
-```text
-main
-  → initialize/router.go：创建模块与 handlers，划分公开/私有路由
-  → router/enter.go：RouterGroupApp 汇总
-  → router/system/enter.go：InitSystemRouter(..., handlers)
-  → API handler → Service → Model / Store
+```go
+package service
+
+import (
+	"github.com/flipped-aurora/gin-vue-admin/server/service/example"
+	"github.com/flipped-aurora/gin-vue-admin/server/service/system"
+)
+
+var ServiceGroupApp = new(ServiceGroup)
+
+type ServiceGroup struct {
+	SystemServiceGroup  system.ServiceGroup
+	ExampleServiceGroup example.ServiceGroup
+}
 ```
 
-根级 ServiceGroupApp 已按用户决定移除。上游 `service/enter.go`、`api/v1/enter.go` 的全局示例只解释其仓库模式，不是本仓库应恢复的入口。新模块需参考现有构造/注入链，同时注册路由与权限种子；不能仅加一个 enter.go 就视为接入完成。
+### 模块级聚合
+
+```go
+package system
+
+import api "github.com/flipped-aurora/gin-vue-admin/server/api/v1"
+
+type RouterGroup struct {
+	UserRouter
+	OrderRouter
+}
+
+var (
+	baseApi  = api.ApiGroupApp.SystemApiGroup.BaseApi
+	orderApi = api.ApiGroupApp.SystemApiGroup.OrderApi
+)
+```
 
 ## 为什么这样写
 
-沿用真实组合入口，避免多套注册。分层职责由既有规范维护，本页说明文件间如何连接。
+- 统一入口比跨文件直接互相引用更稳定
+- 可以把常用 API / Service 别名集中在这里
+- 模块扩展时，只需在 `enter.go` 增加聚合字段
 
 ## 常见错误
 
-- 复制上游 GroupApp 造成平行装配。
-- handler 已构造但路由、权限或前端调用没有接入。
-- 将已移除旧入口作为模板。
+- 不用 `enter.go`，跨层直接互相 import
+- 在多个文件里重复声明同一组别名变量
+- 新增模块后忘记把它注册进 `Group` 结构体
 
 ## 真实参考文件
 
-- [根 RouterGroup](../../../server/router/enter.go)、[系统 RouterGroup](../../../server/router/system/enter.go)。
-- [SystemModule](../../../server/initialize/system_module.go)、[路由装配](../../../server/initialize/router.go)、[装配测试](../../../server/initialize/system_module_test.go)。
+- `server/api/v1/enter.go`
+- `server/service/enter.go`
+- `server/router/system/enter.go`
