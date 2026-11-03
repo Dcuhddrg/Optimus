@@ -8,4 +8,8 @@ type ApiGroup struct {
 	AssetApi
 }
 
-var cloudServices = &service.ServiceGroupApp.CloudServiceGroup
+// Each alias points to its service slot so startup can publish the service.
+var (
+	accountService = &service.ServiceGroupApp.CloudServiceGroup.CloudAccountService
+	assetService = &service.ServiceGroupApp.CloudServiceGroup.AssetRegistryService
+)

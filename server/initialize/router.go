@@ -41,9 +41,21 @@ func Routers() *gin.Engine {
 	}
 
 	routerGroup := router.RouterGroupApp
-	routerGroup.System.InitSystemRouter(publicGroup, privateGroup)
-	routerGroup.Cloud.InitCloudRouter(cloudGroup)
-	routerGroup.Project.InitProjectRouter(privateGroup)
+	systemRouter := &routerGroup.System
+	systemRouter.InitBaseRouter(publicGroup)
+	systemRouter.InitAuthRouter(publicGroup, privateGroup)
+	systemRouter.InitUserRouter(privateGroup)
+	systemRouter.InitRoleRouter(privateGroup)
+	systemRouter.InitLDAPRouter(privateGroup)
+	systemRouter.InitAuditRouter(privateGroup)
+
+	cloudRouter := &routerGroup.Cloud
+	cloudRouter.InitAccountRouter(cloudGroup)
+	cloudRouter.InitAssetRouter(cloudGroup)
+
+	projectRouter := &routerGroup.Project
+	projectRouter.InitProjectRouter(privateGroup)
+	projectRouter.InitMemberRouter(privateGroup)
 
 	return engine
 }

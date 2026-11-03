@@ -12,12 +12,9 @@ import (
 )
 
 func TestUserServiceListUsersOmitsPasswordHash(t *testing.T) {
-	store := &fakeUserStore{
-		users: []systemModel.SystemUser{
-			{OPTIMUS_MODEL: global.OPTIMUS_MODEL{ID: 1}, Username: "admin", DisplayName: "Administrator", Source: "local", Status: "enabled", PasswordHash: "secret-hash"},
-		},
-	}
-	service := systemService.NewUserService(store)
+	db := openExternalPersistenceDB(t)
+	require.NoError(t, db.Create(&systemModel.SystemUser{OPTIMUS_MODEL: global.OPTIMUS_MODEL{ID: 1}, Username: "admin", DisplayName: "Administrator", Source: "local", Status: "enabled", PasswordHash: "secret-hash"}).Error)
+	service := &systemService.UserService{}
 
 	result, err := service.ListUsers(context.Background())
 

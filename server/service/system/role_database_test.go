@@ -1,4 +1,4 @@
-package store
+package system
 
 import (
 	"context"
@@ -9,10 +9,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestGormRoleStoreReplaceRolePermissions(t *testing.T) {
+func TestRoleServiceDatabaseReplaceRolePermissions(t *testing.T) {
 	db := openPersistenceTestDB(t)
 
-	role := systemModel.SystemRole{Code: "editor", Name: "Editor", Status: enabledRoleStatus}
+	role := systemModel.SystemRole{Code: "editor", Name: "Editor", Status: defaultRoleStatus}
 	require.NoError(t, db.Create(&role).Error)
 
 	p1 := systemModel.SystemPermission{Code: "content.create", Name: "Create Content", Type: "api"}
@@ -21,14 +21,14 @@ func TestGormRoleStoreReplaceRolePermissions(t *testing.T) {
 	require.NoError(t, db.Where("code = ?", "content.create").First(&p1).Error)
 	require.NoError(t, db.Where("code = ?", "content.delete").First(&p2).Error)
 
-	store := NewGormRoleStore(db)
+	store := (&RoleService{})
 
-	require.NoError(t, store.ReplaceRolePermissions(context.Background(), role.ID, []uint{p1.ID}))
+	require.NoError(t, store.replaceRolePermissions(context.Background(), role.ID, []uint{p1.ID}))
 	var rps []systemModel.SystemRolePermission
 	require.NoError(t, db.Where("role_id = ?", role.ID).Find(&rps).Error)
 	require.Len(t, rps, 1)
 
-	require.NoError(t, store.ReplaceRolePermissions(context.Background(), role.ID, []uint{p1.ID, p2.ID}))
+	require.NoError(t, store.replaceRolePermissions(context.Background(), role.ID, []uint{p1.ID, p2.ID}))
 	require.NoError(t, db.Where("role_id = ?", role.ID).Find(&rps).Error)
 	require.Len(t, rps, 2)
 }

@@ -7,7 +7,6 @@ import (
 	"optimus/server/global"
 	cloudService "optimus/server/service/cloud"
 	"optimus/server/service/cloud/provider/aliyun"
-	cloudStore "optimus/server/service/cloud/store"
 )
 
 // NewServiceGroup assembles all dependencies for the shared cloud module group.
@@ -30,15 +29,12 @@ func NewServiceGroup(db *gorm.DB, cfg config.Config) cloudService.ServiceGroup {
 	registry := cloudService.NewSyncerRegistry()
 	registry.Register("aliyun", aliyun.NewECSSyncer())
 
-	accountStore := cloudStore.NewGormAccountStore(db)
-	assetStore := cloudStore.NewGormAssetStore(db)
-
-	accountSvc, err := cloudService.NewCloudAccountService(accountStore, encKey)
+	accountSvc, err := cloudService.NewCloudAccountService(encKey)
 	if err != nil {
 		// Key was padded to 32 bytes above, so this should never happen
 		return cloudService.ServiceGroup{}
 	}
-	assetSvc := cloudService.NewAssetRegistryService(accountSvc, assetStore, registry)
+	assetSvc := cloudService.NewAssetRegistryService(accountSvc, registry)
 
 	return cloudService.ServiceGroup{
 		CloudAccountService:  accountSvc,

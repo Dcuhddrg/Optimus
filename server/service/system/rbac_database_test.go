@@ -1,4 +1,4 @@
-package store
+package system
 
 import (
 	"context"
@@ -9,17 +9,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestGormRBACStoreFindAPIPermissionNotFound(t *testing.T) {
-	db := openPersistenceTestDB(t)
+func TestRBACServiceDatabaseFindAPIPermissionNotFound(t *testing.T) {
+	openPersistenceTestDB(t)
 
-	store := NewGormRBACStore(db)
-	_, found, err := store.FindAPIPermission(context.Background(), "GET", "/nonexistent")
+	store := (&RBACService{})
+	_, found, err := store.findAPIPermission(context.Background(), "GET", "/nonexistent")
 
 	require.NoError(t, err)
 	require.False(t, found)
 }
 
-func TestGormRBACStoreFindAPIPermissionFound(t *testing.T) {
+func TestRBACServiceDatabaseFindAPIPermissionFound(t *testing.T) {
 	db := openPersistenceTestDB(t)
 
 	perm := systemModel.SystemPermission{
@@ -31,8 +31,8 @@ func TestGormRBACStoreFindAPIPermissionFound(t *testing.T) {
 	}
 	require.NoError(t, db.Create(&perm).Error)
 
-	store := NewGormRBACStore(db)
-	summary, found, err := store.FindAPIPermission(context.Background(), "GET", "/api/v1/system/users")
+	store := (&RBACService{})
+	summary, found, err := store.findAPIPermission(context.Background(), "GET", "/api/v1/system/users")
 
 	require.NoError(t, err)
 	require.True(t, found)

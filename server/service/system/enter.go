@@ -2,11 +2,11 @@ package system
 
 // ServiceGroup holds initialized system services and shared capabilities.
 type ServiceGroup struct {
-	*AuthService
+	AuthService AuthOperations
 	*UserService
 	*RoleService
 	*LDAPService
-	*AuditService
-	RBAC   Authorizer
-	Status StatusService
+	AuditService AuditOperations
+	RBAC         Authorizer
+	Status       StatusService
 }

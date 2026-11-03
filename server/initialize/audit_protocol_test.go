@@ -41,7 +41,7 @@ func (s *auditProtocolStore) ExportLogs(context.Context, service.AuditFilter) ([
 	}
 	return []model.AuditLogEntry{{ID: 1, ActorUsername: "alice", Action: "auth.logout", Result: "success"}}, nil
 }
-func (s *auditProtocolStore) DeleteBefore(context.Context, time.Time) error { return nil }
+func (s *auditProtocolStore) PurgeBefore(context.Context, time.Time) error { return nil }
 func TestAuditProtocolThroughRealRouter(t *testing.T) {
 	for _, prefix := range []string{"/api/v1", "/custom/v2", "/"} {
 		t.Run(prefix, func(t *testing.T) {
@@ -53,8 +53,8 @@ func TestAuditProtocolThroughRealRouter(t *testing.T) {
 			store := &auditProtocolStore{}
 			allowed := true
 			missing := false
-			InitializeServices(nil, global.OPTIMUS_CONFIG)
-			auditSvc := service.NewAuditService(store)
+			initializeTestServices(t, nil, global.OPTIMUS_CONFIG)
+			auditSvc := store
 			token, err := service.IssueJWT(service.TokenSubject{ID: 1, Username: "admin", RoleIDs: []uint{1}, RoleCodes: []string{"admin"}}, global.OPTIMUS_CONFIG.JWT, time.Now())
 			require.NoError(t, err)
 			base := strings.TrimRight(prefix, "/")

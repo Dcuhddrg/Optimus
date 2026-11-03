@@ -37,6 +37,20 @@ func (*routerPrefixPermissionStore) RoleHasPermission(_ context.Context, roleID,
 	return roleID == 7, nil
 }
 
+func (s *routerPrefixPermissionStore) AuthorizeAPI(ctx context.Context, method, path string, roleIDs []uint) (bool, error) {
+	permission, found, err := s.FindAPIPermission(ctx, method, path)
+	if err != nil || !found {
+		return false, err
+	}
+	for _, roleID := range roleIDs {
+		allowed, err := s.RoleHasPermission(ctx, roleID, permission.ID)
+		if err != nil || allowed {
+			return allowed, err
+		}
+	}
+	return false, nil
+}
+
 func TestRoutersAuthorizeCanonicalPermissionWithConfiguredPrefix(t *testing.T) {
 	for _, tt := range []struct {
 		name, prefix, requestPath, permissionPath, method string
@@ -62,8 +76,8 @@ func TestRoutersAuthorizeCanonicalPermissionWithConfiguredPrefix(t *testing.T) {
 			global.OPTIMUS_CONFIG.System.RouterPrefix = tt.prefix
 			global.OPTIMUS_CONFIG.JWT = config.JWT{SigningKey: "prefix-test-key", ExpiresTime: 3600, Issuer: "prefix-test"}
 			store := &routerPrefixPermissionStore{}
-			InitializeServices(nil, global.OPTIMUS_CONFIG)
-			service.ServiceGroupApp.SystemServiceGroup.RBAC = systemService.NewRBACService(store)
+			initializeTestServices(t, nil, global.OPTIMUS_CONFIG)
+			service.ServiceGroupApp.SystemServiceGroup.RBAC = store
 			token, err := systemService.IssueJWT(systemService.TokenSubject{ID: 1, RoleIDs: []uint{7}}, global.OPTIMUS_CONFIG.JWT, time.Now())
 			require.NoError(t, err)
 			request := httptest.NewRequest(tt.method, tt.requestPath, nil)

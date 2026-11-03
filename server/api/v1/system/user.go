@@ -17,11 +17,12 @@ import (
 type UserApi struct{}
 
 func (h *UserApi) Users(c *gin.Context) {
-	if systemServices.UserService == nil {
+	svc := *userService
+	if svc == nil {
 		response.Failure(c, http.StatusServiceUnavailable, "user service is not available")
 		return
 	}
-	result, err := systemServices.UserService.ListUsers(c.Request.Context())
+	result, err := svc.ListUsers(c.Request.Context())
 	if err != nil {
 		response.Failure(c, http.StatusInternalServerError, "failed to list users")
 		return
@@ -30,7 +31,8 @@ func (h *UserApi) Users(c *gin.Context) {
 }
 
 func (h *UserApi) UpdateUser(c *gin.Context) {
-	if systemServices.UserService == nil {
+	svc := *userService
+	if svc == nil {
 		response.Failure(c, http.StatusServiceUnavailable, "user service is not available")
 		return
 	}
@@ -43,12 +45,13 @@ func (h *UserApi) UpdateUser(c *gin.Context) {
 		response.Failure(c, http.StatusBadRequest, "invalid user request")
 		return
 	}
-	user, err := systemServices.UserService.UpdateUser(c.Request.Context(), actorID(c), id, req, auditMeta(c))
+	user, err := svc.UpdateUser(c.Request.Context(), actorID(c), id, req, auditMeta(c))
 	writeUserServiceResult(c, user, err)
 }
 
 func (h *UserApi) UpdateUserStatus(c *gin.Context) {
-	if systemServices.UserService == nil {
+	svc := *userService
+	if svc == nil {
 		response.Failure(c, http.StatusServiceUnavailable, "user service is not available")
 		return
 	}
@@ -61,12 +64,13 @@ func (h *UserApi) UpdateUserStatus(c *gin.Context) {
 		response.Failure(c, http.StatusBadRequest, "invalid status request")
 		return
 	}
-	user, err := systemServices.UserService.UpdateUserStatus(c.Request.Context(), actorID(c), id, req.Status, auditMeta(c))
+	user, err := svc.UpdateUserStatus(c.Request.Context(), actorID(c), id, req.Status, auditMeta(c))
 	writeUserServiceResult(c, user, err)
 }
 
 func (h *UserApi) UpdateUserRoles(c *gin.Context) {
-	if systemServices.UserService == nil {
+	svc := *userService
+	if svc == nil {
 		response.Failure(c, http.StatusServiceUnavailable, "user service is not available")
 		return
 	}
@@ -79,7 +83,7 @@ func (h *UserApi) UpdateUserRoles(c *gin.Context) {
 		response.Failure(c, http.StatusBadRequest, "invalid role request")
 		return
 	}
-	err := systemServices.UserService.UpdateUserRoles(c.Request.Context(), actorID(c), id, req.RoleIDs, auditMeta(c))
+	err := svc.UpdateUserRoles(c.Request.Context(), actorID(c), id, req.RoleIDs, auditMeta(c))
 	if errors.Is(err, systemService.ErrLastAdminCapableUser) {
 		response.Failure(c, http.StatusForbidden, err.Error())
 		return

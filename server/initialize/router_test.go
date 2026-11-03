@@ -13,6 +13,8 @@ import (
 	"optimus/server/config"
 	"optimus/server/global"
 	systemModel "optimus/server/model/system"
+	systemRequest "optimus/server/model/system/request"
+	systemResponse "optimus/server/model/system/response"
 	systemService "optimus/server/service/system"
 
 	"github.com/gin-gonic/gin"
@@ -27,8 +29,8 @@ func TestRoutersUseGroupedAuthService(t *testing.T) {
 		*service.ServiceGroupApp = previousServices
 	})
 
-	InitializeServices(nil, global.OPTIMUS_CONFIG)
-	service.ServiceGroupApp.SystemServiceGroup.AuthService = systemService.NewAuthService(fakeRouterAuthStore{}, fakeRouterTokenIssuer{}, nil)
+	initializeTestServices(t, nil, global.OPTIMUS_CONFIG)
+	service.ServiceGroupApp.SystemServiceGroup.AuthService = fakeRouterAuthService{}
 
 	engine := Routers()
 
@@ -58,7 +60,7 @@ func TestRoutersUseGroupedRBACCapability(t *testing.T) {
 		BufferTime:  300,
 		Issuer:      "optimus-router-test",
 	}
-	InitializeServices(nil, global.OPTIMUS_CONFIG)
+	initializeTestServices(t, nil, global.OPTIMUS_CONFIG)
 	service.ServiceGroupApp.SystemServiceGroup.RBAC = fakeRouterRBAC{allowed: true}
 
 	engine := Routers()
@@ -82,6 +84,16 @@ func TestRoutersUseGroupedRBACCapability(t *testing.T) {
 }
 
 type fakeRouterAuthStore struct{}
+
+type fakeRouterAuthService struct{}
+
+func (fakeRouterAuthService) Login(context.Context, systemRequest.LoginRequest, systemService.AuditMeta) (systemResponse.LoginResult, error) {
+	return systemResponse.LoginResult{}, systemService.ErrInvalidCredentials
+}
+func (fakeRouterAuthService) CurrentUser(context.Context, uint) (systemResponse.CurrentUserResult, error) {
+	return systemResponse.CurrentUserResult{}, errors.New("not implemented")
+}
+func (fakeRouterAuthService) Logout(context.Context, uint, systemService.AuditMeta) error { return nil }
 
 type fakeRouterTokenIssuer struct{}
 

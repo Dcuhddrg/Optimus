@@ -7,4 +7,7 @@ type ApiGroup struct {
 	MemberApi
 }
 
-var projectServices = &service.ServiceGroupApp.ProjectServiceGroup
+// Each alias points to its service slot so startup can publish the service.
+var (
+	projectService = &service.ServiceGroupApp.ProjectServiceGroup.ProjectService
+)

@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	projectService "optimus/server/service/project"
+	projectSvc "optimus/server/service/project"
 	"optimus/server/utils"
 
 	"github.com/gin-gonic/gin"
@@ -17,19 +17,19 @@ func writeProjectServiceUnavailable(c *gin.Context) {
 
 func writeProjectError(c *gin.Context, err error) {
 	switch {
-	case errors.Is(err, projectService.ErrProjectNotFound),
-		errors.Is(err, projectService.ErrMemberNotFound):
+	case errors.Is(err, projectSvc.ErrProjectNotFound),
+		errors.Is(err, projectSvc.ErrMemberNotFound):
 		c.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
-	case errors.Is(err, projectService.ErrProjectCodeTaken),
-		errors.Is(err, projectService.ErrProjectHasAccounts),
-		errors.Is(err, projectService.ErrCannotRemoveLastOwner):
+	case errors.Is(err, projectSvc.ErrProjectCodeTaken),
+		errors.Is(err, projectSvc.ErrProjectHasAccounts),
+		errors.Is(err, projectSvc.ErrCannotRemoveLastOwner):
 		c.JSON(http.StatusConflict, gin.H{"message": err.Error()})
-	case errors.Is(err, projectService.ErrInvalidProjectCode),
-		errors.Is(err, projectService.ErrInvalidProjectName),
-		errors.Is(err, projectService.ErrInvalidProjectRole),
-		errors.Is(err, projectService.ErrUserNotFound):
+	case errors.Is(err, projectSvc.ErrInvalidProjectCode),
+		errors.Is(err, projectSvc.ErrInvalidProjectName),
+		errors.Is(err, projectSvc.ErrInvalidProjectRole),
+		errors.Is(err, projectSvc.ErrUserNotFound):
 		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
-	case errors.Is(err, projectService.ErrForbidden):
+	case errors.Is(err, projectSvc.ErrForbidden):
 		c.JSON(http.StatusForbidden, gin.H{"message": err.Error()})
 	default:
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "internal error"})

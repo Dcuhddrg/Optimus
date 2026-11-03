@@ -13,7 +13,7 @@ import (
 type HealthApi struct{}
 
 func (h *HealthApi) Health(c *gin.Context) {
-	service := systemServices.Status
+	service := *statusService
 	if service == nil {
 		service = &systemService.Service{}
 	}

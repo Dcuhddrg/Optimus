@@ -4,11 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"optimus/server/global"
+	cloudModel "optimus/server/model/cloud"
 	cloudRequest "optimus/server/model/cloud/request"
 	cloudResponse "optimus/server/model/cloud/response"
 	"regexp"
 	"strings"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 var (
@@ -82,45 +86,18 @@ func ParseTagFilter(token string) (TagFilter, error) {
 	return TagFilter{Key: key, Value: value, Exists: true}, nil
 }
 
-// AccountRow is the raw store-level representation (credential is encrypted).
-type AccountRow struct {
-	ID             uint
-	ProjectID      uint
-	Name           string
-	Provider       string
-	AccountID      string
-	CredentialType string
-	CredentialJSON string
-	Tags           map[string]string
-	Status         string
-	LastSyncedAt   *time.Time
-}
-
-// AccountStore is the persistence interface for cloud accounts.
-type AccountStore interface {
-	Create(ctx context.Context, projectID uint, row AccountRow) (AccountRow, error)
-	Get(ctx context.Context, accessibleProjectIDs []uint, id uint) (AccountRow, error)
-	GetForSync(ctx context.Context, id uint) (AccountRow, error)
-	List(ctx context.Context, accessibleProjectIDs []uint, tagFilters []TagFilter) ([]AccountRow, error)
-	Update(ctx context.Context, accessibleProjectIDs []uint, id uint, name *string, encryptedCredential *string) (AccountRow, error)
-	UpdateTags(ctx context.Context, accessibleProjectIDs []uint, id uint, tags map[string]string) (AccountRow, error)
-	Delete(ctx context.Context, accessibleProjectIDs []uint, id uint) error
-	UpdateSyncStatus(ctx context.Context, id uint, lastSyncedAt *time.Time, status string) error
-}
-
 // CloudAccountService manages cloud accounts and credential encryption.
 type CloudAccountService struct {
-	store  AccountStore
 	encKey []byte
 }
 
-func NewCloudAccountService(store AccountStore, encKey []byte) (*CloudAccountService, error) {
+func NewCloudAccountService(encKey []byte) (*CloudAccountService, error) {
 	if len(encKey) != 32 {
 		return nil, ErrInvalidEncryptionKey
 	}
 	keyCopy := make([]byte, 32)
 	copy(keyCopy, encKey)
-	return &CloudAccountService{store: store, encKey: keyCopy}, nil
+	return &CloudAccountService{encKey: keyCopy}, nil
 }
 
 func (s *CloudAccountService) Create(ctx context.Context, projectID uint, req cloudRequest.CreateAccountRequest) (cloudResponse.AccountView, error) {
@@ -136,41 +113,59 @@ func (s *CloudAccountService) Create(ctx context.Context, projectID uint, req cl
 	if err != nil {
 		return cloudResponse.AccountView{}, err
 	}
-	row := AccountRow{
+	tagsJSON, err := marshalTags(cleanedTags)
+	if err != nil {
+		return cloudResponse.AccountView{}, err
+	}
+	m := cloudModel.CloudAccount{
 		ProjectID:      projectID,
 		Name:           req.Name,
 		Provider:       req.Provider,
 		AccountID:      req.AccountID,
 		CredentialType: req.CredentialType,
 		CredentialJSON: encrypted,
-		Tags:           cleanedTags,
+		TagsJSON:       tagsJSON,
+		Status:         "active",
 	}
-	saved, err := s.store.Create(ctx, projectID, row)
-	if err != nil {
+	if err := global.OPTIMUS_DB.WithContext(ctx).Create(&m).Error; err != nil {
 		return cloudResponse.AccountView{}, err
 	}
-	return toAccountView(saved), nil
+	return toAccountView(m)
 }
 
 // Get returns ErrAccountNotFound if no account exists with the given id.
 func (s *CloudAccountService) Get(ctx context.Context, accessibleProjectIDs []uint, id uint) (cloudResponse.AccountView, error) {
-	row, err := s.store.Get(ctx, accessibleProjectIDs, id)
+	row, err := findAccount(ctx, accessibleProjectIDs, id)
 	if err != nil {
 		return cloudResponse.AccountView{}, err
 	}
-	return toAccountView(row), nil
+	return toAccountView(row)
 }
 
 func (s *CloudAccountService) List(ctx context.Context, accessibleProjectIDs []uint, tagFilters []TagFilter) ([]cloudResponse.AccountView, error) {
-	rows, err := s.store.List(ctx, accessibleProjectIDs, tagFilters)
-	if err != nil {
+	if len(accessibleProjectIDs) == 0 {
+		return []cloudResponse.AccountView{}, nil
+	}
+	tx := global.OPTIMUS_DB.WithContext(ctx).Where("project_id IN ?", accessibleProjectIDs)
+	for _, filter := range tagFilters {
+		expr, args := tagFilterToSQL(filter)
+		tx = tx.Where(expr, args...)
+	}
+	var models []cloudModel.CloudAccount
+	if err := tx.
+		Order("created_at DESC").
+		Find(&models).Error; err != nil {
 		return nil, err
 	}
-	views := make([]cloudResponse.AccountView, len(rows))
-	for i, r := range rows {
-		views[i] = toAccountView(r)
+	rows := make([]cloudResponse.AccountView, 0, len(models))
+	for _, m := range models {
+		row, err := toAccountView(m)
+		if err != nil {
+			return nil, err
+		}
+		rows = append(rows, row)
 	}
-	return views, nil
+	return rows, nil
 }
 
 func (s *CloudAccountService) Update(ctx context.Context, accessibleProjectIDs []uint, id uint, req cloudRequest.UpdateAccountRequest) (cloudResponse.AccountView, error) {
@@ -186,11 +181,26 @@ func (s *CloudAccountService) Update(ctx context.Context, accessibleProjectIDs [
 		}
 		encCredential = &enc
 	}
-	row, err := s.store.Update(ctx, accessibleProjectIDs, id, req.Name, encCredential)
+	m, err := findAccount(ctx, accessibleProjectIDs, id)
 	if err != nil {
 		return cloudResponse.AccountView{}, err
 	}
-	return toAccountView(row), nil
+	updates := map[string]any{}
+	if req.Name != nil {
+		updates["name"] = *req.Name
+	}
+	if encCredential != nil {
+		updates["credential_json"] = *encCredential
+	}
+	if len(updates) > 0 {
+		if err := global.OPTIMUS_DB.WithContext(ctx).Model(&m).Updates(updates).Error; err != nil {
+			return cloudResponse.AccountView{}, err
+		}
+		if err := global.OPTIMUS_DB.WithContext(ctx).First(&m, m.ID).Error; err != nil {
+			return cloudResponse.AccountView{}, err
+		}
+	}
+	return toAccountView(m)
 }
 
 func (s *CloudAccountService) UpdateTags(ctx context.Context, accessibleProjectIDs []uint, id uint, req cloudRequest.UpdateAccountTagsRequest) (cloudResponse.AccountView, error) {
@@ -198,29 +208,66 @@ func (s *CloudAccountService) UpdateTags(ctx context.Context, accessibleProjectI
 	if err != nil {
 		return cloudResponse.AccountView{}, err
 	}
-	row, err := s.store.UpdateTags(ctx, accessibleProjectIDs, id, cleaned)
+	m, err := findAccount(ctx, accessibleProjectIDs, id)
 	if err != nil {
 		return cloudResponse.AccountView{}, err
 	}
-	return toAccountView(row), nil
+	tagsJSON, err := marshalTags(cleaned)
+	if err != nil {
+		return cloudResponse.AccountView{}, err
+	}
+	if err := global.OPTIMUS_DB.WithContext(ctx).Model(&m).Update("tags_json", tagsJSON).Error; err != nil {
+		return cloudResponse.AccountView{}, err
+	}
+	m.TagsJSON = tagsJSON
+	return toAccountView(m)
 }
 
 func (s *CloudAccountService) Delete(ctx context.Context, accessibleProjectIDs []uint, id uint) error {
-	return s.store.Delete(ctx, accessibleProjectIDs, id)
+	if len(accessibleProjectIDs) == 0 {
+		return ErrAccountNotFound
+	}
+	res := global.OPTIMUS_DB.WithContext(ctx).
+		Where("id = ? AND project_id IN ?", id, accessibleProjectIDs).
+		Delete(&cloudModel.CloudAccount{})
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return ErrAccountNotFound
+	}
+	return nil
 }
 
 // UpdateSyncStatus updates last_synced_at and status after a sync attempt.
 func (s *CloudAccountService) UpdateSyncStatus(ctx context.Context, id uint, lastSyncedAt *time.Time, status string) error {
-	return s.store.UpdateSyncStatus(ctx, id, lastSyncedAt, status)
+	updates := map[string]any{"status": status}
+	if lastSyncedAt != nil {
+		updates["last_synced_at"] = lastSyncedAt
+	}
+	res := global.OPTIMUS_DB.WithContext(ctx).Model(&cloudModel.CloudAccount{}).Where("id = ?", id).Updates(updates)
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return ErrAccountNotFound
+	}
+	return nil
 }
 
 // GetForSync returns a SyncAccount with decrypted credentials for use by AssetRegistryService.
 func (s *CloudAccountService) GetForSync(ctx context.Context, id uint) (SyncAccount, error) {
-	row, err := s.store.GetForSync(ctx, id)
-	if err != nil {
+	var m cloudModel.CloudAccount
+	if err := global.OPTIMUS_DB.WithContext(ctx).First(&m, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return SyncAccount{}, ErrAccountNotFound
+		}
 		return SyncAccount{}, err
 	}
-	plaintext, err := decryptAESGCM(s.encKey, row.CredentialJSON)
+	if _, err := unmarshalTags(m.TagsJSON); err != nil {
+		return SyncAccount{}, err
+	}
+	plaintext, err := decryptAESGCM(s.encKey, m.CredentialJSON)
 	if err != nil {
 		return SyncAccount{}, err
 	}
@@ -229,29 +276,81 @@ func (s *CloudAccountService) GetForSync(ctx context.Context, id uint) (SyncAcco
 		return SyncAccount{}, err
 	}
 	return SyncAccount{
-		ID:             row.ID,
-		Provider:       row.Provider,
-		AccountID:      row.AccountID,
-		CredentialType: row.CredentialType,
+		ID:             m.ID,
+		Provider:       m.Provider,
+		AccountID:      m.AccountID,
+		CredentialType: m.CredentialType,
 		Credential:     cred,
 	}, nil
 }
 
-func toAccountView(row AccountRow) cloudResponse.AccountView {
-	tags := row.Tags
-	if tags == nil {
-		tags = map[string]string{}
+func toAccountView(m cloudModel.CloudAccount) (cloudResponse.AccountView, error) {
+	tags, err := unmarshalTags(m.TagsJSON)
+	if err != nil {
+		return cloudResponse.AccountView{}, err
 	}
 	return cloudResponse.AccountView{
-		ID:             row.ID,
-		ProjectID:      row.ProjectID,
-		Name:           row.Name,
-		Provider:       row.Provider,
-		AccountID:      row.AccountID,
-		CredentialType: row.CredentialType,
+		ID:             m.ID,
+		ProjectID:      m.ProjectID,
+		Name:           m.Name,
+		Provider:       m.Provider,
+		AccountID:      m.AccountID,
+		CredentialType: m.CredentialType,
 		Credential:     "***",
 		Tags:           tags,
-		Status:         row.Status,
-		LastSyncedAt:   row.LastSyncedAt,
+		Status:         m.Status,
+		LastSyncedAt:   m.LastSyncedAt,
+	}, nil
+}
+
+func findAccount(ctx context.Context, accessibleProjectIDs []uint, id uint) (cloudModel.CloudAccount, error) {
+	if len(accessibleProjectIDs) == 0 {
+		return cloudModel.CloudAccount{}, ErrAccountNotFound
 	}
+	var m cloudModel.CloudAccount
+	if err := global.OPTIMUS_DB.WithContext(ctx).
+		Where("id = ? AND project_id IN ?", id, accessibleProjectIDs).
+		First(&m).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return cloudModel.CloudAccount{}, ErrAccountNotFound
+		}
+		return cloudModel.CloudAccount{}, err
+	}
+	return m, nil
+}
+
+func marshalTags(tags map[string]string) (string, error) {
+	if tags == nil {
+		return "{}", nil
+	}
+	b, err := json.Marshal(tags)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
+}
+
+func unmarshalTags(s string) (map[string]string, error) {
+	if s == "" {
+		return map[string]string{}, nil
+	}
+	var out map[string]string
+	if err := json.Unmarshal([]byte(s), &out); err != nil {
+		return nil, err
+	}
+	if out == nil {
+		out = map[string]string{}
+	}
+	return out, nil
+}
+
+func tagFilterToSQL(f TagFilter) (string, []any) {
+	path := "$." + f.Key
+	if !f.Exists {
+		return "JSON_EXTRACT(tags_json, ?) IS NULL", []any{path}
+	}
+	if f.Value == "" {
+		return "JSON_EXTRACT(tags_json, ?) IS NOT NULL", []any{path}
+	}
+	return "JSON_UNQUOTE(JSON_EXTRACT(tags_json, ?)) = ?", []any{path, f.Value}
 }

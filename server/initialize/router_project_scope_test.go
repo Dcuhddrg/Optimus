@@ -121,7 +121,7 @@ func newRouterWithProjectStore(t *testing.T, store *routerScopeStore, allowed bo
 		SigningKey: "project-scope-router-test", ExpiresTime: 3600,
 		BufferTime: 300, Issuer: "project-scope-router-test",
 	}
-	InitializeServices(nil, global.OPTIMUS_CONFIG)
+	initializeTestServices(t, nil, global.OPTIMUS_CONFIG)
 	service.ServiceGroupApp.SystemServiceGroup.RBAC = routerScopeAuthorizer{allowed: allowed}
 	service.ServiceGroupApp.ProjectServiceGroup.ProjectService = projectService.NewProjectService(store)
 	token, err := systemService.IssueJWT(systemService.TokenSubject{

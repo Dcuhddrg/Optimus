@@ -13,11 +13,12 @@ import (
 type LDAPApi struct{}
 
 func (h *LDAPApi) LDAPConfig(c *gin.Context) {
-	if systemServices.LDAPService == nil {
+	svc := *ldapService
+	if svc == nil {
 		writeServiceUnavailable(c, "ldap service is not available")
 		return
 	}
-	cfg, err := systemServices.LDAPService.GetConfig(c.Request.Context())
+	cfg, err := svc.GetConfig(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to load ldap config"})
 		return
@@ -26,7 +27,8 @@ func (h *LDAPApi) LDAPConfig(c *gin.Context) {
 }
 
 func (h *LDAPApi) UpdateLDAPConfig(c *gin.Context) {
-	if systemServices.LDAPService == nil {
+	svc := *ldapService
+	if svc == nil {
 		writeServiceUnavailable(c, "ldap service is not available")
 		return
 	}
@@ -35,7 +37,7 @@ func (h *LDAPApi) UpdateLDAPConfig(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid ldap config request"})
 		return
 	}
-	cfg, err := systemServices.LDAPService.SaveConfig(c.Request.Context(), actorID(c), req, auditMeta(c))
+	cfg, err := svc.SaveConfig(c.Request.Context(), actorID(c), req, auditMeta(c))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to save ldap config"})
 		return
@@ -44,7 +46,8 @@ func (h *LDAPApi) UpdateLDAPConfig(c *gin.Context) {
 }
 
 func (h *LDAPApi) TestLDAPConfig(c *gin.Context) {
-	if systemServices.LDAPService == nil {
+	svc := *ldapService
+	if svc == nil {
 		writeServiceUnavailable(c, "ldap service is not available")
 		return
 	}
@@ -53,7 +56,7 @@ func (h *LDAPApi) TestLDAPConfig(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid ldap test request"})
 		return
 	}
-	result, err := systemServices.LDAPService.TestConfig(c.Request.Context(), actorID(c), req, auditMeta(c))
+	result, err := svc.TestConfig(c.Request.Context(), actorID(c), req, auditMeta(c))
 	if errors.Is(err, systemService.ErrInvalidLDAPConfig) {
 		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return

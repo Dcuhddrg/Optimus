@@ -20,12 +20,14 @@ func TestServiceGroupInitializationKeepsAliasAddressesStable(t *testing.T) {
 	t.Cleanup(func() { *service.ServiceGroupApp = saved })
 	root, system := service.ServiceGroupApp, &service.ServiceGroupApp.SystemServiceGroup
 	authAPI := &api.ApiGroupApp.SystemApiGroup.AuthApi
-	InitializeServices(nil, config.Config{})
+	initializeTestServices(t, nil, config.Config{})
 	require.Same(t, root, service.ServiceGroupApp)
 	require.Same(t, system, &service.ServiceGroupApp.SystemServiceGroup)
 	require.Nil(t, system.AuthService)
 	require.NotNil(t, system.Status)
-	InitializeServices(&gorm.DB{}, config.Config{})
+	db := &gorm.DB{}
+	initializeTestServices(t, db, config.Config{})
+	require.Same(t, db, global.OPTIMUS_DB)
 	require.Same(t, system, &service.ServiceGroupApp.SystemServiceGroup)
 	require.Same(t, authAPI, &api.ApiGroupApp.SystemApiGroup.AuthApi)
 	require.NotNil(t, system.AuthService)
@@ -39,7 +41,7 @@ func TestRealRouterReadsCurrentGroupAuthorizer(t *testing.T) {
 	t.Cleanup(func() { *service.ServiceGroupApp = saved; global.OPTIMUS_CONFIG = cfg })
 	global.OPTIMUS_CONFIG.System.RouterPrefix = "/api/v1"
 	global.OPTIMUS_CONFIG.JWT = config.JWT{SigningKey: "group-contract-key", ExpiresTime: 3600, Issuer: "group-contract"}
-	InitializeServices(nil, global.OPTIMUS_CONFIG)
+	initializeTestServices(t, nil, global.OPTIMUS_CONFIG)
 	token, err := systemService.IssueJWT(systemService.TokenSubject{ID: 1, RoleIDs: []uint{1}}, global.OPTIMUS_CONFIG.JWT, time.Now())
 	require.NoError(t, err)
 	for _, allowed := range []bool{false, true} {
@@ -63,7 +65,7 @@ func TestMissingDatabaseAuthorizerPreservesRecoveryStatus(t *testing.T) {
 	t.Cleanup(func() { *service.ServiceGroupApp = saved; global.OPTIMUS_CONFIG = cfg })
 	global.OPTIMUS_CONFIG.System.RouterPrefix = "/api/v1"
 	global.OPTIMUS_CONFIG.JWT = config.JWT{SigningKey: "missing-db-contract", ExpiresTime: 3600, Issuer: "missing-db-contract"}
-	InitializeServices(nil, global.OPTIMUS_CONFIG)
+	initializeTestServices(t, nil, global.OPTIMUS_CONFIG)
 	token, err := systemService.IssueJWT(systemService.TokenSubject{ID: 1, RoleIDs: []uint{1}}, global.OPTIMUS_CONFIG.JWT, time.Now())
 	require.NoError(t, err)
 	req := httptest.NewRequest("GET", "/api/v1/system/permissions/tree", nil)
@@ -72,4 +74,11 @@ func TestMissingDatabaseAuthorizerPreservesRecoveryStatus(t *testing.T) {
 	Routers().ServeHTTP(w, req)
 	require.Equal(t, 500, w.Code)
 	require.Empty(t, w.Body.String())
+}
+
+func initializeTestServices(t *testing.T, db *gorm.DB, cfg config.Config) {
+	t.Helper()
+	previousDB := global.OPTIMUS_DB
+	t.Cleanup(func() { global.OPTIMUS_DB = previousDB })
+	InitializeServices(db, cfg)
 }

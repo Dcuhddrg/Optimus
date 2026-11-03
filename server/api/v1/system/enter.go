@@ -12,4 +12,12 @@ type ApiGroup struct {
 	HealthApi
 }
 
-var systemServices = &service.ServiceGroupApp.SystemServiceGroup
+// Each alias points to its service slot so startup can publish the service.
+var (
+	authService = &service.ServiceGroupApp.SystemServiceGroup.AuthService
+	userService = &service.ServiceGroupApp.SystemServiceGroup.UserService
+	roleService = &service.ServiceGroupApp.SystemServiceGroup.RoleService
+	ldapService = &service.ServiceGroupApp.SystemServiceGroup.LDAPService
+	auditService = &service.ServiceGroupApp.SystemServiceGroup.AuditService
+	statusService = &service.ServiceGroupApp.SystemServiceGroup.Status
+)

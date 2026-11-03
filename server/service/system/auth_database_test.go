@@ -1,11 +1,10 @@
-package store
+package system
 
 import (
 	"context"
 	"testing"
 
 	systemModel "optimus/server/model/system"
-	systemService "optimus/server/service/system"
 
 	"github.com/stretchr/testify/require"
 )
@@ -13,8 +12,8 @@ import (
 func TestMenuPermissionCodesForRolesOrdersDistinctCodes(t *testing.T) {
 	db := openPersistenceTestDB(t)
 
-	adminRole := systemModel.SystemRole{Code: "admin", Name: "Administrator", Status: enabledRoleStatus}
-	opsRole := systemModel.SystemRole{Code: "ops", Name: "Ops", Status: enabledRoleStatus}
+	adminRole := systemModel.SystemRole{Code: "admin", Name: "Administrator", Status: defaultRoleStatus}
+	opsRole := systemModel.SystemRole{Code: "ops", Name: "Ops", Status: defaultRoleStatus}
 	require.NoError(t, db.Create(&[]systemModel.SystemRole{adminRole, opsRole}).Error)
 	require.NoError(t, db.Where("code = ?", "admin").First(&adminRole).Error)
 	require.NoError(t, db.Where("code = ?", "ops").First(&opsRole).Error)
@@ -31,20 +30,20 @@ func TestMenuPermissionCodesForRolesOrdersDistinctCodes(t *testing.T) {
 		require.NoError(t, db.Create(&systemModel.SystemRolePermission{RoleID: opsRole.ID, PermissionID: p.ID}).Error)
 	}
 
-	codes, err := NewGormAuthStore(db).MenuPermissionCodesForRoles(context.Background(), []uint{adminRole.ID, opsRole.ID})
+	codes, err := (&AuthService{}).menuPermissionCodesForRoles(context.Background(), []uint{adminRole.ID, opsRole.ID})
 
 	require.NoError(t, err)
 	require.Equal(t, []string{"dashboard.view", "system.users.menu"}, codes)
 }
 
-func TestGormAuthStoreSyncLDAPUserCreatesDefaultRole(t *testing.T) {
+func TestAuthServiceDatabaseSyncLDAPUserCreatesDefaultRole(t *testing.T) {
 	db := openPersistenceTestDB(t)
 
-	userRole := systemModel.SystemRole{Code: "user", Name: "User", Status: enabledRoleStatus}
+	userRole := systemModel.SystemRole{Code: "user", Name: "User", Status: defaultRoleStatus}
 	require.NoError(t, db.Create(&userRole).Error)
 
-	store := NewGormAuthStore(db)
-	user, err := store.SyncLDAPUser(context.Background(), systemService.LDAPUser{
+	store := (&AuthService{})
+	user, err := store.syncLDAPUser(context.Background(), LDAPUser{
 		Username:    "alice",
 		DisplayName: "Alice",
 		Email:       "alice@example.com",

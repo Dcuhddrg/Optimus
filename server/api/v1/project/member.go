@@ -10,11 +10,12 @@ import (
 type MemberApi struct{}
 
 func (h *MemberApi) ListMembers(c *gin.Context) {
-	if projectServices.ProjectService == nil {
+	svc := *projectService
+	if svc == nil {
 		writeProjectServiceUnavailable(c)
 		return
 	}
-	members, err := projectServices.ProjectService.ListMembers(c.Request.Context(), projectActorID(c), c.Param("code"))
+	members, err := svc.ListMembers(c.Request.Context(), projectActorID(c), c.Param("code"))
 	if err != nil {
 		writeProjectError(c, err)
 		return
@@ -23,7 +24,8 @@ func (h *MemberApi) ListMembers(c *gin.Context) {
 }
 
 func (h *MemberApi) AddMember(c *gin.Context) {
-	if projectServices.ProjectService == nil {
+	svc := *projectService
+	if svc == nil {
 		writeProjectServiceUnavailable(c)
 		return
 	}
@@ -36,7 +38,7 @@ func (h *MemberApi) AddMember(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "userId is required"})
 		return
 	}
-	if err := projectServices.ProjectService.AddMember(c.Request.Context(), projectActorID(c), c.Param("code"), req.UserID, req.ProjectRole); err != nil {
+	if err := svc.AddMember(c.Request.Context(), projectActorID(c), c.Param("code"), req.UserID, req.ProjectRole); err != nil {
 		writeProjectError(c, err)
 		return
 	}
@@ -44,7 +46,8 @@ func (h *MemberApi) AddMember(c *gin.Context) {
 }
 
 func (h *MemberApi) UpdateMemberRole(c *gin.Context) {
-	if projectServices.ProjectService == nil {
+	svc := *projectService
+	if svc == nil {
 		writeProjectServiceUnavailable(c)
 		return
 	}
@@ -57,7 +60,7 @@ func (h *MemberApi) UpdateMemberRole(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid member payload"})
 		return
 	}
-	if err := projectServices.ProjectService.UpdateMemberRole(c.Request.Context(), projectActorID(c), c.Param("code"), userID, req.ProjectRole); err != nil {
+	if err := svc.UpdateMemberRole(c.Request.Context(), projectActorID(c), c.Param("code"), userID, req.ProjectRole); err != nil {
 		writeProjectError(c, err)
 		return
 	}
@@ -65,7 +68,8 @@ func (h *MemberApi) UpdateMemberRole(c *gin.Context) {
 }
 
 func (h *MemberApi) RemoveMember(c *gin.Context) {
-	if projectServices.ProjectService == nil {
+	svc := *projectService
+	if svc == nil {
 		writeProjectServiceUnavailable(c)
 		return
 	}
@@ -73,7 +77,7 @@ func (h *MemberApi) RemoveMember(c *gin.Context) {
 	if !ok {
 		return
 	}
-	if err := projectServices.ProjectService.RemoveMember(c.Request.Context(), projectActorID(c), c.Param("code"), userID); err != nil {
+	if err := svc.RemoveMember(c.Request.Context(), projectActorID(c), c.Param("code"), userID); err != nil {
 		writeProjectError(c, err)
 		return
 	}

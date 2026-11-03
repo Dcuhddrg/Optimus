@@ -26,7 +26,8 @@
 - 新模块与存量模块统一采用 `Router -> API -> Service -> Model`，同时统一目录、包依赖与注册入口。
 - 禁止新建或长期保留旧 `usecase/infra` 结构；既有三模块迁移和验收见 [#11](https://github.com/Dcuhddrg/Optimus/issues/11)，决定依据见 [ADR-002](docs/memory/long-term/decisions/ADR-002-backend-structure-migration.md)。
 - 结构迁移保持现有接口及权限行为，接口协议变更按独立 Issue 实施，不与结构迁移混批。
-- 所有后端模块（含插件、新增与存量模块）统一按职责拆分子 Router，由模块 `enter.go` 的 `RouterGroup` 匿名嵌入聚合，并通过模块级入口协调注册；具体端点绑定放在对应职责文件。API/Service 统一参考 gin-vue-admin 的根级与模块级 GroupApp 聚合，由 initialize 在启动期完成依赖装配；保留现有授权和接口行为，详见 [Router 组织约定](docs/modules/backend-layer-rules.md#router-组织约定)。存量差异按迁移清单分批整改，不构成规范豁免。
+- 所有后端模块（含插件、新增与存量模块）统一按职责拆分子 Router，由模块 `enter.go` 的 `RouterGroup` 匿名嵌入聚合。`initialize` 直接调用职责路由的注册方法，具体端点绑定放在对应职责文件。API/Service 统一参考 gin-vue-admin 的根级与模块级 GroupApp 聚合，由 initialize 在启动期完成依赖装配；保留现有授权和接口行为，详见 [Router 组织约定](docs/modules/backend-layer-rules.md#router-组织约定)。存量差异按迁移清单分批整改，不构成规范豁免。
+- 数据库查询与事务归对应职责 Service，生产路径使用 `global.OPTIMUS_DB` 或当前事务句柄；测试替身接口与外部客户端按实际职责管理。
 - API 层处理 HTTP 相关逻辑，Service 层不要依赖 `gin.Context`。
 - HTTP 请求体和查询条件使用 `model/<module>/request/` 的命名 DTO；状态、角色、权限等操作也不得在 API 内保留匿名请求结构。分页查询 DTO 复用公共 PageInfo，再由 API 显式映射为内部 Service 条件，保留既有参数解析行为。
 - 各层 `enter.go` 只声明对应 Group 聚合类型并集中维护必要别名；职责 API、Service、Router 的具体类型和支持接口定义放在对应职责文件，不能把类型声明全部堆到聚合入口。

@@ -11,7 +11,8 @@ import (
 )
 
 func TestLDAPServiceConfigMasksBindPassword(t *testing.T) {
-	store := &fakeLDAPStore{config: systemModel.SystemLDAPConfig{
+	db := openExternalPersistenceDB(t)
+	cfg := systemModel.SystemLDAPConfig{
 		Enabled:         true,
 		URL:             "ldap://example.test:389",
 		BaseDN:          "dc=example,dc=test",
@@ -21,8 +22,9 @@ func TestLDAPServiceConfigMasksBindPassword(t *testing.T) {
 		UsernameAttr:    "uid",
 		DisplayNameAttr: "cn",
 		EmailAttr:       "mail",
-	}}
-	service := systemService.NewLDAPService(store, &fakeLDAPClientUC{})
+	}
+	require.NoError(t, db.Create(&cfg).Error)
+	service := systemService.NewLDAPService(&fakeLDAPClientUC{})
 
 	config, err := service.GetConfig(context.Background())
 

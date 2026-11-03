@@ -3,21 +3,17 @@ package system
 import (
 	"context"
 	"errors"
-	"optimus/server/global"
-	systemRequest "optimus/server/model/system/request"
-	systemResponse "optimus/server/model/system/response"
 	"strings"
 
+	"optimus/server/global"
 	systemModel "optimus/server/model/system"
+	systemRequest "optimus/server/model/system/request"
+	systemResponse "optimus/server/model/system/response"
+
+	"gorm.io/gorm"
 )
 
 var ErrInvalidLDAPConfig = errors.New("invalid ldap config")
-
-type LDAPStore interface {
-	GetLDAPConfig(ctx context.Context) (systemModel.SystemLDAPConfig, error)
-	SaveLDAPConfig(ctx context.Context, cfg systemModel.SystemLDAPConfig) (systemModel.SystemLDAPConfig, error)
-	WriteAudit(ctx context.Context, event AuditEvent) error
-}
 
 type LDAPTester interface {
 	Test(ctx context.Context, cfg LDAPConnectionConfig) error
@@ -28,7 +24,6 @@ type LDAPAuthenticator interface {
 }
 
 type LDAPService struct {
-	store  LDAPStore
 	client LDAPTester
 }
 
@@ -49,12 +44,12 @@ type LDAPUser struct {
 	Email       string
 }
 
-func NewLDAPService(store LDAPStore, client LDAPTester) *LDAPService {
-	return &LDAPService{store: store, client: client}
+func NewLDAPService(client LDAPTester) *LDAPService {
+	return &LDAPService{client: client}
 }
 
 func (s *LDAPService) GetConfig(ctx context.Context) (systemResponse.LDAPConfigResult, error) {
-	cfg, err := s.store.GetLDAPConfig(ctx)
+	cfg, err := s.getLDAPConfig(ctx)
 	if err != nil {
 		return systemResponse.LDAPConfigResult{}, err
 	}
@@ -63,8 +58,8 @@ func (s *LDAPService) GetConfig(ctx context.Context) (systemResponse.LDAPConfigR
 
 func (s *LDAPService) SaveConfig(ctx context.Context, actorID uint, req systemRequest.LDAPConfigRequest, meta AuditMeta) (systemResponse.LDAPConfigResult, error) {
 	event := failedAudit(actorID, meta, "ldap.config.update", "ldap", 0)
-	defer func() { recordAudit(ctx, s.store, event) }()
-	current, currentErr := s.store.GetLDAPConfig(ctx)
+	defer func() { recordAudit(ctx, event) }()
+	current, currentErr := s.getLDAPConfig(ctx)
 	cfg := systemModel.SystemLDAPConfig{
 		OPTIMUS_MODEL:   global.OPTIMUS_MODEL{ID: current.ID},
 		Enabled:         req.Enabled,
@@ -80,7 +75,7 @@ func (s *LDAPService) SaveConfig(ctx context.Context, actorID uint, req systemRe
 	if cfg.BindPassword == "" {
 		cfg.BindPassword = current.BindPassword
 	}
-	saved, err := s.store.SaveLDAPConfig(ctx, cfg)
+	saved, err := s.saveLDAPConfig(ctx, cfg)
 	if err != nil {
 		event.Detail = auditDetails("update_failed", nil)
 		return systemResponse.LDAPConfigResult{}, err
@@ -105,16 +100,16 @@ func (s *LDAPService) TestConfig(ctx context.Context, actorID uint, req systemRe
 	if err != nil {
 		event := failedAudit(actorID, meta, "ldap.test.failure", "ldap", 0)
 		event.Detail = auditDetails("invalid_config", nil)
-		recordAudit(ctx, s.store, event)
+		recordAudit(ctx, event)
 		return systemResponse.LDAPTestResult{}, err
 	}
 	if err := s.client.Test(ctx, cfg); err != nil {
 		event := failedAudit(actorID, meta, "ldap.test.failure", "ldap", 0)
 		event.Detail = auditDetails("connection_test_failed", nil)
-		recordAudit(ctx, s.store, event)
+		recordAudit(ctx, event)
 		return systemResponse.LDAPTestResult{}, err
 	}
-	recordAudit(ctx, s.store, AuditEvent{ActorUserID: actorID, ActorUsername: meta.ActorUsername, Action: "ldap.test.success", ResourceType: "ldap", Result: "success", IP: meta.IP, UserAgent: meta.UserAgent, Detail: auditDetails("connection_test_passed", nil)})
+	recordAudit(ctx, AuditEvent{ActorUserID: actorID, ActorUsername: meta.ActorUsername, Action: "ldap.test.success", ResourceType: "ldap", Result: "success", IP: meta.IP, UserAgent: meta.UserAgent, Detail: auditDetails("connection_test_passed", nil)})
 	return systemResponse.LDAPTestResult{Success: true, Message: "LDAP connection test passed"}, nil
 }
 
@@ -124,7 +119,7 @@ func (s *LDAPService) connectionConfig(ctx context.Context, req systemRequest.LD
 	}
 	password := req.BindPassword
 	if req.UseSavedBindPassword {
-		current, err := s.store.GetLDAPConfig(ctx)
+		current, err := s.getLDAPConfig(ctx)
 		if err != nil {
 			return LDAPConnectionConfig{}, err
 		}
@@ -170,4 +165,22 @@ func ldapConnectionConfig(cfg systemModel.SystemLDAPConfig) LDAPConnectionConfig
 		DisplayNameAttr: cfg.DisplayNameAttr,
 		EmailAttr:       cfg.EmailAttr,
 	}
+}
+
+func (s *LDAPService) getLDAPConfig(ctx context.Context) (systemModel.SystemLDAPConfig, error) {
+	var cfg systemModel.SystemLDAPConfig
+	err := global.OPTIMUS_DB.WithContext(ctx).Order("id ASC").First(&cfg).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return systemModel.SystemLDAPConfig{}, nil
+	}
+	return cfg, err
+}
+
+func (s *LDAPService) saveLDAPConfig(ctx context.Context, cfg systemModel.SystemLDAPConfig) (systemModel.SystemLDAPConfig, error) {
+	if cfg.ID == 0 {
+		err := global.OPTIMUS_DB.WithContext(ctx).Create(&cfg).Error
+		return cfg, err
+	}
+	err := global.OPTIMUS_DB.WithContext(ctx).Omit("CreatedAt").Save(&cfg).Error
+	return cfg, err
 }

@@ -13,7 +13,7 @@ import (
 type BaseApi struct{}
 
 func (h *BaseApi) Ping(c *gin.Context) {
-	service := systemServices.Status
+	service := *statusService
 	if service == nil {
 		service = &systemService.Service{}
 	}
