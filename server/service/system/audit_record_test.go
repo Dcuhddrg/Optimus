@@ -17,6 +17,8 @@ func (failedAuditWriter) WriteAudit(context.Context, AuditEvent) error {
 	return errors.New("password=SECRET token=SECRET SQL=SECRET")
 }
 func TestAuditRecordFallbackDoesNotLeak(t *testing.T) {
+	db := openPersistenceTestDB(t)
+	require.NoError(t, db.Migrator().DropTable("sys_audit_logs"))
 	old := global.OPTIMUS_LOG
 	global.OPTIMUS_LOG = nil
 	t.Cleanup(func() { global.OPTIMUS_LOG = old })
@@ -24,7 +26,7 @@ func TestAuditRecordFallbackDoesNotLeak(t *testing.T) {
 	var buf bytes.Buffer
 	log.SetOutput(&buf)
 	t.Cleanup(func() { log.SetOutput(out) })
-	recordAudit(context.Background(), failedAuditWriter{}, AuditEvent{Action: "role.permissions.update", ResourceType: "role", ResourceID: "3", Result: "success", Detail: "SECRET"})
+	recordAudit(context.Background(), AuditEvent{Action: "role.permissions.update", ResourceType: "role", ResourceID: "3", Result: "success", Detail: "SECRET"})
 	require.Contains(t, buf.String(), "audit write failed")
 	require.Contains(t, buf.String(), "role.permissions.update")
 	require.NotContains(t, buf.String(), "SECRET")

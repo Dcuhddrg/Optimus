@@ -1,76 +1,71 @@
 package initialize
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
-	"github.com/gin-gonic/gin"
-	"github.com/stretchr/testify/require"
 	"net/http/httptest"
+	"strings"
+	"testing"
+	"time"
+
 	"optimus/server/config"
 	"optimus/server/global"
 	model "optimus/server/model/system"
 	rootService "optimus/server/service"
 	service "optimus/server/service/system"
-	"strings"
-	"testing"
-	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
 )
 
-type auditProtocolStore struct {
-	fail   bool
-	filter service.AuditFilter
-}
-
-type auditProtocolAuthorizer struct{ allowed bool }
-
-func (a auditProtocolAuthorizer) AuthorizeAPI(_ context.Context, method, path string, _ []uint) (bool, error) {
-	return a.allowed && method == "GET" && (path == "/api/v1/system/audit-logs" || path == "/api/v1/system/audit-logs/export"), nil
-}
-
-func (s *auditProtocolStore) QueryLogs(_ context.Context, f service.AuditFilter) (model.AuditPage, error) {
-	s.filter = f
-	if s.fail {
-		return model.AuditPage{}, errors.New("private database error")
-	}
-	return model.AuditPage{Items: nil, Total: 42, Page: f.Page, PageSize: f.PageSize}, nil
-}
-func (s *auditProtocolStore) ExportLogs(context.Context, service.AuditFilter) ([]model.AuditLogEntry, error) {
-	if s.fail {
-		return nil, errors.New("private database error")
-	}
-	return []model.AuditLogEntry{{ID: 1, ActorUsername: "alice", Action: "auth.logout", Result: "success"}}, nil
-}
-func (s *auditProtocolStore) DeleteBefore(context.Context, time.Time) error { return nil }
 func TestAuditProtocolThroughRealRouter(t *testing.T) {
 	for _, prefix := range []string{"/api/v1", "/custom/v2", "/"} {
 		t.Run(prefix, func(t *testing.T) {
 			gin.SetMode(gin.TestMode)
-			oldConfig, oldServices := global.OPTIMUS_CONFIG, *rootService.ServiceGroupApp
-			t.Cleanup(func() { global.OPTIMUS_CONFIG = oldConfig; *rootService.ServiceGroupApp = oldServices })
+			oldConfig, oldDB, oldServices := global.OPTIMUS_CONFIG, global.OPTIMUS_DB, *rootService.ServiceGroupApp
+			t.Cleanup(func() {
+				global.OPTIMUS_CONFIG, global.OPTIMUS_DB, *rootService.ServiceGroupApp = oldConfig, oldDB, oldServices
+			})
+			db, _ := projectScopeRouterDB(t, "", true)
 			global.OPTIMUS_CONFIG.System.RouterPrefix = prefix
 			global.OPTIMUS_CONFIG.JWT = config.JWT{SigningKey: "protocol-test-key", ExpiresTime: 3600, Issuer: "protocol-test"}
-			store := &auditProtocolStore{}
-			allowed := true
-			missing := false
-			InitializeServices(nil, global.OPTIMUS_CONFIG)
-			auditSvc := service.NewAuditService(store)
+			initializeTestServices(t, db, global.OPTIMUS_CONFIG)
+			for _, path := range []string{"/api/v1/system/audit-logs", "/api/v1/system/audit-logs/export"} {
+				permission := model.SystemPermission{Code: path, Name: path, Type: "api", Method: "GET", Path: path}
+				require.NoError(t, db.Create(&permission).Error)
+				require.NoError(t, db.Create(&model.SystemRolePermission{RoleID: 1, PermissionID: permission.ID}).Error)
+			}
+			entries := make([]model.SystemAuditLog, 42)
+			for i := range entries {
+				entries[i] = model.SystemAuditLog{Action: "auth.login.failure", Result: "failure"}
+			}
+			require.NoError(t, db.Create(&entries).Error)
+			require.NoError(t, db.Create(&model.SystemAuditLog{ActorUsername: "alice", Action: "auth.logout", Result: "success"}).Error)
+			failAudit, missing := false, false
+			require.NoError(t, db.Callback().Query().Before("gorm:query").Register("test:fail_audit_query", func(tx *gorm.DB) {
+				if failAudit && tx.Statement.Table == "sys_audit_logs" {
+					tx.AddError(errors.New("private database error"))
+				}
+			}))
+			require.NoError(t, db.Callback().Query().After("gorm:query").Register("test:remove_db_after_authorization", func(tx *gorm.DB) {
+				if missing && tx.Statement.Table == "sys_role_permissions" && tx.Error == nil {
+					global.OPTIMUS_DB = nil
+				}
+			}))
 			token, err := service.IssueJWT(service.TokenSubject{ID: 1, Username: "admin", RoleIDs: []uint{1}, RoleCodes: []string{"admin"}}, global.OPTIMUS_CONFIG.JWT, time.Now())
 			require.NoError(t, err)
 			base := strings.TrimRight(prefix, "/")
 			require.Len(t, Routers().Routes(), 38)
 			request := func(path, credential string) *httptest.ResponseRecorder {
-				rootService.ServiceGroupApp.SystemServiceGroup.RBAC = auditProtocolAuthorizer{allowed: allowed}
-				rootService.ServiceGroupApp.SystemServiceGroup.AuditService = auditSvc
-				if missing {
-					rootService.ServiceGroupApp.SystemServiceGroup.AuditService = nil
-				}
+				global.OPTIMUS_DB = db
 				w := httptest.NewRecorder()
 				req := httptest.NewRequest("GET", base+path, nil)
 				if credential != "" {
 					req.Header.Set("Authorization", "Bearer "+credential)
 				}
 				Routers().ServeHTTP(w, req)
+				global.OPTIMUS_DB = db
 				return w
 			}
 			for _, path := range []string{"/system/audit-logs", "/system/audit-logs/export"} {
@@ -82,31 +77,33 @@ func TestAuditProtocolThroughRealRouter(t *testing.T) {
 				require.Contains(t, body, "data")
 				require.Nil(t, body["data"])
 			}
-			allowed = false
+			var permission model.SystemPermission
+			require.NoError(t, db.Where("method = ? AND path = ?", "GET", "/api/v1/system/audit-logs").First(&permission).Error)
+			require.NoError(t, db.Where("role_id = ? AND permission_id = ?", 1, permission.ID).Delete(&model.SystemRolePermission{}).Error)
 			w := request("/system/audit-logs", token)
 			require.Equal(t, 403, w.Code)
 			require.JSONEq(t, `{"code":7,"data":{},"msg":"permission denied"}`, w.Body.String())
-			allowed = true
+			require.NoError(t, db.Create(&model.SystemRolePermission{RoleID: 1, PermissionID: permission.ID}).Error)
 			w = request("/system/audit-logs?page=2&pageSize=50&result=failure", token)
 			require.Equal(t, 200, w.Code)
 			require.JSONEq(t, `{"code":0,"data":{"list":[],"total":42,"page":2,"pageSize":50},"msg":"success"}`, w.Body.String())
-			require.Equal(t, "failure", *store.filter.Result)
 			w = request("/system/audit-logs/export", token)
 			require.Equal(t, 200, w.Code)
 			require.Contains(t, w.Header().Get("Content-Type"), "text/csv")
 			require.Contains(t, w.Body.String(), "alice")
 			require.NotContains(t, w.Body.String(), `"code"`)
-			store.fail = true
+			failAudit = true
 			w = request("/system/audit-logs", token)
 			require.Equal(t, 500, w.Code)
 			require.JSONEq(t, `{"code":7,"data":{},"msg":"failed to query audit logs"}`, w.Body.String())
 			w = request("/system/audit-logs/export", token)
 			require.Equal(t, 500, w.Code)
 			require.JSONEq(t, `{"code":7,"data":{},"msg":"failed to export audit logs"}`, w.Body.String())
-			missing = true
+			failAudit, missing = false, true
 			w = request("/system/audit-logs", token)
 			require.Equal(t, 503, w.Code)
 			require.JSONEq(t, `{"code":7,"data":{},"msg":"audit service is not available"}`, w.Body.String())
+			missing = false
 			w = request("/system/auth/me", "")
 			require.Equal(t, 401, w.Code)
 			require.Contains(t, w.Body.String(), `"code":7`)

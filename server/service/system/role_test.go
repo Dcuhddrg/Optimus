@@ -12,8 +12,8 @@ import (
 )
 
 func TestRoleServiceCreateRoleWritesAudit(t *testing.T) {
-	store := &fakeRoleStore{}
-	service := systemService.NewRoleService(store)
+	db := openExternalPersistenceDB(t)
+	service := &systemService.RoleService{}
 
 	role, err := service.CreateRole(context.Background(), 1, systemRequest.RoleRequest{
 		Code: "ops",
@@ -22,6 +22,8 @@ func TestRoleServiceCreateRoleWritesAudit(t *testing.T) {
 
 	require.NoError(t, err)
 	require.Equal(t, "ops", role.Code)
+	var audit systemModel.SystemAuditLog
+	require.NoError(t, db.Where("action = ?", "role.create").First(&audit).Error)
 }
 
 type fakeRoleStore struct {
@@ -29,6 +31,11 @@ type fakeRoleStore struct {
 	permissionsByCode map[string]systemModel.SystemPermission
 	audits            []systemService.AuditEvent
 	savedPermIDs      []uint
+}
+
+// Preserve existing fixture compatibility with the new read-only snapshot contract.
+func (s *fakeRoleStore) PermissionCodesForRole(_ context.Context, _ uint) ([]string, error) {
+	return nil, nil
 }
 
 func (s *fakeRoleStore) ListRoles(_ context.Context) ([]systemModel.SystemRole, error) {

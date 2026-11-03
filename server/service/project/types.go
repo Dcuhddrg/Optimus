@@ -1,12 +1,6 @@
 package project
 
-import (
-	"context"
-	"errors"
-	projectResponse "optimus/server/model/project/response"
-
-	projectModel "optimus/server/model/project"
-)
+import "errors"
 
 var (
 	ErrProjectNotFound       = errors.New("project not found")
@@ -31,22 +25,4 @@ const (
 
 func IsValidProjectRole(role string) bool {
 	return role == RoleOwner || role == RoleMember || role == RoleViewer
-}
-
-type ProjectStore interface {
-	Create(ctx context.Context, p *projectModel.Project, ownerID uint) error
-	FindByCode(ctx context.Context, code string) (projectModel.Project, error)
-	List(ctx context.Context, accessibleIDs []uint) ([]projectModel.Project, error)
-	Update(ctx context.Context, code string, fields map[string]any) (projectModel.Project, error)
-	Delete(ctx context.Context, code string) error
-	CountCloudAccounts(ctx context.Context, projectID uint) (int64, error)
-
-	AddOrReplaceMember(ctx context.Context, m projectModel.UserProject) error
-	UpdateMemberRole(ctx context.Context, userID, projectID uint, role string) error
-	RemoveMember(ctx context.Context, userID, projectID uint) error
-	ListMembers(ctx context.Context, projectID uint) ([]projectResponse.ProjectMember, error)
-	FindMember(ctx context.Context, userID, projectID uint) (projectModel.UserProject, error)
-	ListAccessibleProjectIDs(ctx context.Context, userID uint) ([]uint, error)
-	CountOwners(ctx context.Context, projectID uint) (int64, error)
-	UserExists(ctx context.Context, userID uint) (bool, error)
 }

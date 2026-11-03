@@ -7,4 +7,7 @@ type ApiGroup struct {
 	MemberApi
 }
 
-var projectServices = &service.ServiceGroupApp.ProjectServiceGroup
+// Aliases expose the grouped project service.
+var (
+	projectService = service.ServiceGroupApp.ProjectServiceGroup.ProjectService
+)

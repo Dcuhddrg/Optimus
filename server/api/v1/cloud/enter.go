@@ -8,4 +8,8 @@ type ApiGroup struct {
 	AssetApi
 }
 
-var cloudServices = &service.ServiceGroupApp.CloudServiceGroup
+// Service aliases are refreshed after startup publishes the service group.
+var (
+	accountService = service.ServiceGroupApp.CloudServiceGroup.CloudAccountService
+	assetService   = service.ServiceGroupApp.CloudServiceGroup.AssetRegistryService
+)

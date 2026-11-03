@@ -3,6 +3,7 @@ package system
 import (
 	"errors"
 	"net/http"
+	"optimus/server/global"
 	systemRequest "optimus/server/model/system/request"
 
 	"optimus/server/model/common/response"
@@ -15,17 +16,18 @@ import (
 type AuthApi struct{}
 
 func (h *AuthApi) Login(c *gin.Context) {
+	svc := authService
 	var req systemRequest.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.Failure(c, http.StatusBadRequest, "invalid login request")
 		return
 	}
-	if systemServices.AuthService == nil {
+	if global.OPTIMUS_DB == nil || !svc.Ready() {
 		response.Failure(c, http.StatusServiceUnavailable, "auth service is not available")
 		return
 	}
 
-	result, err := systemServices.AuthService.Login(c.Request.Context(), req, auditMeta(c))
+	result, err := svc.Login(c.Request.Context(), req, auditMeta(c))
 	if err != nil {
 		status := http.StatusUnauthorized
 		message := "username or password is incorrect"
@@ -41,6 +43,7 @@ func (h *AuthApi) Login(c *gin.Context) {
 }
 
 func (h *AuthApi) CurrentUser(c *gin.Context) {
+	svc := authService
 	claims, ok := c.Get(utils.ClaimsContextKey)
 	if !ok {
 		response.Failure(c, http.StatusUnauthorized, "claims are required")
@@ -51,12 +54,12 @@ func (h *AuthApi) CurrentUser(c *gin.Context) {
 		response.Failure(c, http.StatusUnauthorized, "invalid claims")
 		return
 	}
-	if systemServices.AuthService == nil {
+	if global.OPTIMUS_DB == nil || !svc.Ready() {
 		response.Failure(c, http.StatusServiceUnavailable, "auth service is not available")
 		return
 	}
 
-	result, err := systemServices.AuthService.CurrentUser(c.Request.Context(), customClaims.BaseClaims.ID)
+	result, err := svc.CurrentUser(c.Request.Context(), customClaims.BaseClaims.ID)
 	if err != nil {
 		response.Failure(c, http.StatusInternalServerError, "failed to load current user")
 		return
@@ -66,10 +69,11 @@ func (h *AuthApi) CurrentUser(c *gin.Context) {
 }
 
 func (h *AuthApi) Logout(c *gin.Context) {
+	svc := authService
 	claims, ok := c.Get(utils.ClaimsContextKey)
-	if ok && systemServices.AuthService != nil {
+	if ok && global.OPTIMUS_DB != nil && svc.Ready() {
 		if customClaims, ok := claims.(*utils.CustomClaims); ok {
-			_ = systemServices.AuthService.Logout(c.Request.Context(), customClaims.BaseClaims.ID, auditMeta(c))
+			_ = svc.Logout(c.Request.Context(), customClaims.BaseClaims.ID, auditMeta(c))
 		}
 	}
 	response.Success(c, http.StatusOK, nil)

@@ -1,42 +1,24 @@
 package initialize
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
-	"optimus/server/service"
 	"testing"
 	"time"
 
 	"optimus/server/config"
 	"optimus/server/global"
+	model "optimus/server/model/system"
+	"optimus/server/service"
 	systemService "optimus/server/service/system"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
 )
 
 // Keep permission keys identical to the real seeds while exercising Routers,
-// JWT verification and the real RBAC service without a database dependency.
-type routerPrefixPermissionStore struct {
-	method string
-	path   string
-}
-
-func (s *routerPrefixPermissionStore) FindAPIPermission(_ context.Context, method, path string) (systemService.SystemPermissionSummary, bool, error) {
-	s.method, s.path = method, path
-	for i, permission := range systemService.DefaultSystemPermissions() {
-		if permission.Type == "api" && permission.Method == method && permission.Path == path {
-			return systemService.SystemPermissionSummary{ID: uint(i + 1), Code: permission.Code}, true, nil
-		}
-	}
-	return systemService.SystemPermissionSummary{}, false, nil
-}
-
-func (*routerPrefixPermissionStore) RoleHasPermission(_ context.Context, roleID, _ uint) (bool, error) {
-	return roleID == 7, nil
-}
-
+// JWT verification and the real RBAC service against an isolated database.
 func TestRoutersAuthorizeCanonicalPermissionWithConfiguredPrefix(t *testing.T) {
 	for _, tt := range []struct {
 		name, prefix, requestPath, permissionPath, method string
@@ -58,20 +40,37 @@ func TestRoutersAuthorizeCanonicalPermissionWithConfiguredPrefix(t *testing.T) {
 				global.OPTIMUS_CONFIG, global.OPTIMUS_DB = previousConfig, previousDB
 				*service.ServiceGroupApp = previousServices
 			})
-			global.OPTIMUS_DB = nil
+			db, _ := projectScopeRouterDB(t, "", false)
 			global.OPTIMUS_CONFIG.System.RouterPrefix = tt.prefix
 			global.OPTIMUS_CONFIG.JWT = config.JWT{SigningKey: "prefix-test-key", ExpiresTime: 3600, Issuer: "prefix-test"}
-			store := &routerPrefixPermissionStore{}
-			InitializeServices(nil, global.OPTIMUS_CONFIG)
-			service.ServiceGroupApp.SystemServiceGroup.RBAC = systemService.NewRBACService(store)
+			initializeTestServices(t, db, global.OPTIMUS_CONFIG)
+			var permission model.SystemPermission
+			err := db.Where("method = ? AND path = ?", tt.method, tt.permissionPath).First(&permission).Error
+			if err == gorm.ErrRecordNotFound {
+				permission = model.SystemPermission{Code: tt.method + " " + tt.permissionPath, Name: tt.permissionPath, Type: "api", Method: tt.method, Path: tt.permissionPath}
+				require.NoError(t, db.Create(&permission).Error)
+			} else {
+				require.NoError(t, err)
+			}
+			require.NoError(t, db.Create(&model.SystemRolePermission{RoleID: 7, PermissionID: permission.ID}).Error)
+			var seenArgs []any
+			require.NoError(t, db.Callback().Query().After("gorm:query").Register("test:capture_permission", func(tx *gorm.DB) {
+				if tx.Statement.Table == "sys_permissions" {
+					seenArgs = append([]any(nil), tx.Statement.Vars...)
+				}
+				if tt.status == http.StatusServiceUnavailable && tx.Statement.Table == "sys_role_permissions" && tx.Error == nil {
+					global.OPTIMUS_DB = nil
+				}
+			}))
 			token, err := systemService.IssueJWT(systemService.TokenSubject{ID: 1, RoleIDs: []uint{7}}, global.OPTIMUS_CONFIG.JWT, time.Now())
 			require.NoError(t, err)
 			request := httptest.NewRequest(tt.method, tt.requestPath, nil)
 			request.Header.Set("Authorization", "Bearer "+token)
 			recorder := httptest.NewRecorder()
 			Routers().ServeHTTP(recorder, request)
-			require.Equal(t, tt.permissionPath, store.path)
-			require.Equal(t, tt.method, store.method)
+			global.OPTIMUS_DB = db
+			require.Contains(t, seenArgs, tt.permissionPath)
+			require.Contains(t, seenArgs, tt.method)
 			require.Equal(t, tt.status, recorder.Code)
 		})
 	}

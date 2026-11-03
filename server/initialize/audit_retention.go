@@ -7,7 +7,7 @@ import (
 	systemService "optimus/server/service/system"
 )
 
-func startAuditRetentionWorker(ctx context.Context, svc *systemService.AuditService, retentionDays int) {
+func startAuditRetentionWorker(ctx context.Context, svc systemService.AuditOperations, retentionDays int) {
 	if retentionDays <= 0 {
 		retentionDays = 90
 	}

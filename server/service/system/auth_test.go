@@ -17,7 +17,8 @@ import (
 func TestAuthServiceLoginAdminSuccess(t *testing.T) {
 	passwordHash, err := hashTestPassword("admin-secret")
 	require.NoError(t, err)
-	store := newFakeAuthStore(systemModel.SystemUser{
+	db := openExternalPersistenceDB(t)
+	user := systemModel.SystemUser{
 		OPTIMUS_MODEL: global.OPTIMUS_MODEL{ID: 1},
 		UUID:          "admin-uuid",
 		Username:      "admin",
@@ -25,8 +26,9 @@ func TestAuthServiceLoginAdminSuccess(t *testing.T) {
 		Source:        "local",
 		Status:        "enabled",
 		PasswordHash:  passwordHash,
-	})
-	service := systemService.NewAuthService(store, fakeTokenIssuer{}, nil)
+	}
+	require.NoError(t, db.Create(&user).Error)
+	service := systemService.NewAuthService(fakeTokenIssuer{}, nil)
 
 	result, err := service.Login(context.Background(), systemRequest.LoginRequest{
 		Username: "admin",

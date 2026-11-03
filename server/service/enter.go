@@ -8,9 +8,7 @@ import (
 
 // ServiceGroupApp keeps stable module addresses for API aliases and workers.
 // Dependencies are assembled once by initialize before routes are registered.
-var ServiceGroupApp = &ServiceGroup{
-	SystemServiceGroup: system.ServiceGroup{RBAC: (*system.RBACService)(nil)},
-}
+var ServiceGroupApp = new(ServiceGroup)
 
 type ServiceGroup struct {
 	SystemServiceGroup  system.ServiceGroup

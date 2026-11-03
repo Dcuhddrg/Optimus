@@ -11,7 +11,8 @@ import (
 type AccountApi struct{}
 
 func (h *AccountApi) ListAccounts(c *gin.Context) {
-	if cloudServices.CloudAccountService == nil {
+	svc := accountService
+	if !svc.Ready() {
 		writeCloudServiceUnavailable(c, "cloud account service is not available")
 		return
 	}
@@ -21,7 +22,7 @@ func (h *AccountApi) ListAccounts(c *gin.Context) {
 		writeCloudError(c, err, "invalid tag filter")
 		return
 	}
-	views, err := cloudServices.CloudAccountService.List(c.Request.Context(), scope.AccessibleProjectIDs, tagFilters)
+	views, err := svc.List(c.Request.Context(), scope.AccessibleProjectIDs, tagFilters)
 	if err != nil {
 		writeCloudError(c, err, "failed to list cloud accounts")
 		return
@@ -30,7 +31,8 @@ func (h *AccountApi) ListAccounts(c *gin.Context) {
 }
 
 func (h *AccountApi) GetAccount(c *gin.Context) {
-	if cloudServices.CloudAccountService == nil {
+	svc := accountService
+	if !svc.Ready() {
 		writeCloudServiceUnavailable(c, "cloud account service is not available")
 		return
 	}
@@ -39,7 +41,7 @@ func (h *AccountApi) GetAccount(c *gin.Context) {
 		return
 	}
 	scope := projectScope(c)
-	view, err := cloudServices.CloudAccountService.Get(c.Request.Context(), scope.AccessibleProjectIDs, id)
+	view, err := svc.Get(c.Request.Context(), scope.AccessibleProjectIDs, id)
 	if err != nil {
 		writeCloudError(c, err, "failed to get cloud account")
 		return
@@ -48,7 +50,8 @@ func (h *AccountApi) GetAccount(c *gin.Context) {
 }
 
 func (h *AccountApi) CreateAccount(c *gin.Context) {
-	if cloudServices.CloudAccountService == nil {
+	svc := accountService
+	if !svc.Ready() {
 		writeCloudServiceUnavailable(c, "cloud account service is not available")
 		return
 	}
@@ -62,7 +65,7 @@ func (h *AccountApi) CreateAccount(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid request body"})
 		return
 	}
-	view, err := cloudServices.CloudAccountService.Create(c.Request.Context(), scope.CurrentProjectID, req)
+	view, err := svc.Create(c.Request.Context(), scope.CurrentProjectID, req)
 	if err != nil {
 		writeCloudError(c, err, "failed to create cloud account")
 		return
@@ -71,7 +74,8 @@ func (h *AccountApi) CreateAccount(c *gin.Context) {
 }
 
 func (h *AccountApi) UpdateAccount(c *gin.Context) {
-	if cloudServices.CloudAccountService == nil {
+	svc := accountService
+	if !svc.Ready() {
 		writeCloudServiceUnavailable(c, "cloud account service is not available")
 		return
 	}
@@ -85,7 +89,7 @@ func (h *AccountApi) UpdateAccount(c *gin.Context) {
 		return
 	}
 	scope := projectScope(c)
-	view, err := cloudServices.CloudAccountService.Update(c.Request.Context(), scope.AccessibleProjectIDs, id, req)
+	view, err := svc.Update(c.Request.Context(), scope.AccessibleProjectIDs, id, req)
 	if err != nil {
 		writeCloudError(c, err, "failed to update cloud account")
 		return
@@ -94,7 +98,8 @@ func (h *AccountApi) UpdateAccount(c *gin.Context) {
 }
 
 func (h *AccountApi) UpdateAccountTags(c *gin.Context) {
-	if cloudServices.CloudAccountService == nil {
+	svc := accountService
+	if !svc.Ready() {
 		writeCloudServiceUnavailable(c, "cloud account service is not available")
 		return
 	}
@@ -108,7 +113,7 @@ func (h *AccountApi) UpdateAccountTags(c *gin.Context) {
 		return
 	}
 	scope := projectScope(c)
-	view, err := cloudServices.CloudAccountService.UpdateTags(c.Request.Context(), scope.AccessibleProjectIDs, id, req)
+	view, err := svc.UpdateTags(c.Request.Context(), scope.AccessibleProjectIDs, id, req)
 	if err != nil {
 		writeCloudError(c, err, "failed to update cloud account tags")
 		return
@@ -117,7 +122,8 @@ func (h *AccountApi) UpdateAccountTags(c *gin.Context) {
 }
 
 func (h *AccountApi) DeleteAccount(c *gin.Context) {
-	if cloudServices.CloudAccountService == nil {
+	svc := accountService
+	if !svc.Ready() {
 		writeCloudServiceUnavailable(c, "cloud account service is not available")
 		return
 	}
@@ -126,7 +132,7 @@ func (h *AccountApi) DeleteAccount(c *gin.Context) {
 		return
 	}
 	scope := projectScope(c)
-	if err := cloudServices.CloudAccountService.Delete(c.Request.Context(), scope.AccessibleProjectIDs, id); err != nil {
+	if err := svc.Delete(c.Request.Context(), scope.AccessibleProjectIDs, id); err != nil {
 		writeCloudError(c, err, "failed to delete cloud account")
 		return
 	}
@@ -134,7 +140,8 @@ func (h *AccountApi) DeleteAccount(c *gin.Context) {
 }
 
 func (h *AccountApi) SyncAccount(c *gin.Context) {
-	if cloudServices.AssetRegistryService == nil {
+	svc := assetService
+	if !svc.Ready() {
 		writeCloudServiceUnavailable(c, "asset registry service is not available")
 		return
 	}
@@ -143,7 +150,7 @@ func (h *AccountApi) SyncAccount(c *gin.Context) {
 		return
 	}
 	scope := projectScope(c)
-	result, err := cloudServices.AssetRegistryService.SyncAccount(c.Request.Context(), scope.AccessibleProjectIDs, id)
+	result, err := svc.SyncAccount(c.Request.Context(), scope.AccessibleProjectIDs, id)
 	if err != nil {
 		writeCloudError(c, err, "sync failed")
 		return

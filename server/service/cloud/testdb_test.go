@@ -1,9 +1,10 @@
-package store
+package cloud
 
 import (
 	"os"
 	"testing"
 
+	"optimus/server/global"
 	cloudModel "optimus/server/model/cloud"
 
 	gormmysql "gorm.io/driver/mysql"
@@ -25,5 +26,13 @@ func openCloudTestDB(t *testing.T) *gorm.DB {
 	require.NoError(t, db.Exec("DROP TABLE IF EXISTS cloud_accounts").Error)
 	require.NoError(t, db.AutoMigrate(&cloudModel.CloudAccount{}, &cloudModel.CloudAsset{}))
 
+	previousDB := global.OPTIMUS_DB
+	global.OPTIMUS_DB = db
+	t.Cleanup(func() {
+		global.OPTIMUS_DB = previousDB
+		sqlDB, err := db.DB()
+		require.NoError(t, err)
+		require.NoError(t, sqlDB.Close())
+	})
 	return db
 }

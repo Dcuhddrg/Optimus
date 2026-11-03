@@ -2,80 +2,37 @@ package cloud
 
 import (
 	"bytes"
-	"context"
 	"net/http"
 	"net/http/httptest"
+	"optimus/server/global"
+	cloudModel "optimus/server/model/cloud"
 	"optimus/server/service"
 	"testing"
-	"time"
 
 	cloudService "optimus/server/service/cloud"
 	"optimus/server/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
 )
 
-type testAccountStore struct {
-	rows map[uint]cloudService.AccountRow
-	next uint
-}
-
-func (s *testAccountStore) Create(_ context.Context, projectID uint, row cloudService.AccountRow) (cloudService.AccountRow, error) {
-	s.next++
-	row.ID = s.next
-	row.ProjectID = projectID
-	row.Status = "active"
-	if row.Tags == nil {
-		row.Tags = map[string]string{}
-	}
-	s.rows[row.ID] = row
-	return row, nil
-}
-
-func (s *testAccountStore) Get(_ context.Context, _ []uint, id uint) (cloudService.AccountRow, error) {
-	row, ok := s.rows[id]
-	if !ok {
-		return cloudService.AccountRow{}, cloudService.ErrAccountNotFound
-	}
-	return row, nil
-}
-
-func (s *testAccountStore) GetForSync(_ context.Context, id uint) (cloudService.AccountRow, error) {
-	return s.Get(context.Background(), nil, id)
-}
-
-func (s *testAccountStore) List(context.Context, []uint, []cloudService.TagFilter) ([]cloudService.AccountRow, error) {
-	return nil, nil
-}
-
-func (s *testAccountStore) Update(context.Context, []uint, uint, *string, *string) (cloudService.AccountRow, error) {
-	return cloudService.AccountRow{}, nil
-}
-
-func (s *testAccountStore) UpdateTags(_ context.Context, _ []uint, id uint, tags map[string]string) (cloudService.AccountRow, error) {
-	row, ok := s.rows[id]
-	if !ok {
-		return cloudService.AccountRow{}, cloudService.ErrAccountNotFound
-	}
-	row.Tags = tags
-	s.rows[id] = row
-	return row, nil
-}
-
-func (s *testAccountStore) Delete(context.Context, []uint, uint) error {
-	return nil
-}
-
-func (s *testAccountStore) UpdateSyncStatus(context.Context, uint, *time.Time, string) error {
-	return nil
+func setCloudServicesForTest(t *testing.T, group cloudService.ServiceGroup) {
+	t.Helper()
+	previousGroup := service.ServiceGroupApp.CloudServiceGroup
+	previousAccount, previousAsset := accountService, assetService
+	t.Cleanup(func() {
+		service.ServiceGroupApp.CloudServiceGroup = previousGroup
+		accountService, assetService = previousAccount, previousAsset
+	})
+	service.ServiceGroupApp.CloudServiceGroup = group
+	RefreshServiceAliases()
 }
 
 func TestAccountHandlerListReturnsServiceUnavailableWhenNil(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	oldServices := service.ServiceGroupApp.CloudServiceGroup
-	t.Cleanup(func() { service.ServiceGroupApp.CloudServiceGroup = oldServices })
-	service.ServiceGroupApp.CloudServiceGroup = cloudService.ServiceGroup{}
+	setCloudServicesForTest(t, cloudService.ServiceGroup{})
 
 	engine := gin.New()
 	engine.GET("/cloud/accounts", (&AccountApi{}).ListAccounts)
@@ -89,9 +46,7 @@ func TestAccountHandlerListReturnsServiceUnavailableWhenNil(t *testing.T) {
 
 func TestAssetHandlerListReturnsServiceUnavailableWhenNil(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	oldServices := service.ServiceGroupApp.CloudServiceGroup
-	t.Cleanup(func() { service.ServiceGroupApp.CloudServiceGroup = oldServices })
-	service.ServiceGroupApp.CloudServiceGroup = cloudService.ServiceGroup{}
+	setCloudServicesForTest(t, cloudService.ServiceGroup{})
 
 	engine := gin.New()
 	engine.GET("/cloud/assets", (&AssetApi{}).ListAssets)
@@ -105,12 +60,9 @@ func TestAssetHandlerListReturnsServiceUnavailableWhenNil(t *testing.T) {
 
 func TestAccountHandlerCreateRequiresCurrentProject(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	accountSvc, err := cloudService.NewCloudAccountService(&testAccountStore{rows: map[uint]cloudService.AccountRow{}}, make([]byte, 32))
+	accountSvc, err := cloudService.NewCloudAccountService(make([]byte, 32))
 	require.NoError(t, err)
-	oldServices := service.ServiceGroupApp.CloudServiceGroup
-	t.Cleanup(func() { service.ServiceGroupApp.CloudServiceGroup = oldServices })
-	service.ServiceGroupApp.CloudServiceGroup = cloudService.ServiceGroup{}
-	service.ServiceGroupApp.CloudServiceGroup.CloudAccountService = accountSvc
+	setCloudServicesForTest(t, cloudService.ServiceGroup{CloudAccountService: *accountSvc})
 
 	engine := gin.New()
 	engine.POST("/cloud/accounts", (&AccountApi{}).CreateAccount)
@@ -125,13 +77,26 @@ func TestAccountHandlerCreateRequiresCurrentProject(t *testing.T) {
 
 func TestAccountHandlerCreateUsesCurrentProject(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	store := &testAccountStore{rows: map[uint]cloudService.AccountRow{}}
-	accountSvc, err := cloudService.NewCloudAccountService(store, make([]byte, 32))
+	db, err := gorm.Open(mysql.New(mysql.Config{
+		DSN:                       "test:test@tcp(127.0.0.1:3306)/optimus",
+		SkipInitializeWithVersion: true,
+	}), &gorm.Config{DryRun: true, DisableAutomaticPing: true, SkipDefaultTransaction: true})
 	require.NoError(t, err)
-	oldServices := service.ServiceGroupApp.CloudServiceGroup
-	t.Cleanup(func() { service.ServiceGroupApp.CloudServiceGroup = oldServices })
-	service.ServiceGroupApp.CloudServiceGroup = cloudService.ServiceGroup{}
-	service.ServiceGroupApp.CloudServiceGroup.CloudAccountService = accountSvc
+	sqlDB, err := db.DB()
+	require.NoError(t, err)
+	previousDB := global.OPTIMUS_DB
+	t.Cleanup(func() {
+		global.OPTIMUS_DB = previousDB
+		require.NoError(t, sqlDB.Close())
+	})
+	var projectID uint
+	require.NoError(t, db.Callback().Create().Before("gorm:create").Register("test:capture_project_id", func(tx *gorm.DB) {
+		projectID = tx.Statement.Dest.(*cloudModel.CloudAccount).ProjectID
+	}))
+	global.OPTIMUS_DB = db
+	accountSvc, err := cloudService.NewCloudAccountService(make([]byte, 32))
+	require.NoError(t, err)
+	setCloudServicesForTest(t, cloudService.ServiceGroup{CloudAccountService: *accountSvc})
 
 	engine := gin.New()
 	engine.Use(func(c *gin.Context) {
@@ -146,5 +111,5 @@ func TestAccountHandlerCreateUsesCurrentProject(t *testing.T) {
 	engine.ServeHTTP(recorder, req)
 
 	require.Equal(t, http.StatusCreated, recorder.Code)
-	require.Equal(t, uint(7), store.rows[1].ProjectID)
+	require.Equal(t, uint(7), projectID)
 }

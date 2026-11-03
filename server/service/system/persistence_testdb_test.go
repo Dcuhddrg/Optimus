@@ -1,15 +1,14 @@
-package store
+package system
 
 import (
 	"os"
 	"testing"
 
-	systemService "optimus/server/service/system"
-
-	gormmysql "gorm.io/driver/mysql"
-	"gorm.io/gorm"
+	"optimus/server/global"
 
 	"github.com/stretchr/testify/require"
+	gormmysql "gorm.io/driver/mysql"
+	"gorm.io/gorm"
 )
 
 func openPersistenceTestDB(t *testing.T) *gorm.DB {
@@ -31,7 +30,14 @@ func openPersistenceTestDB(t *testing.T) *gorm.DB {
 	require.NoError(t, db.Exec("DROP TABLE IF EXISTS sys_ldap_config").Error)
 	require.NoError(t, db.Exec("DROP TABLE IF EXISTS sys_audit_logs").Error)
 
-	require.NoError(t, systemService.AutoMigrateSystem(db))
+	require.NoError(t, AutoMigrateSystem(db))
 
+	sqlDB, err := db.DB()
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, sqlDB.Close()) })
+
+	previousDB := global.OPTIMUS_DB
+	t.Cleanup(func() { global.OPTIMUS_DB = previousDB })
+	global.OPTIMUS_DB = db
 	return db
 }

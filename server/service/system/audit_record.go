@@ -10,13 +10,11 @@ import (
 	"slices"
 	"unicode"
 
-	"go.uber.org/zap"
 	"optimus/server/global"
-)
+	systemModel "optimus/server/model/system"
 
-type auditWriter interface {
-	WriteAudit(context.Context, AuditEvent) error
-}
+	"go.uber.org/zap"
+)
 
 type auditChange struct {
 	Before  any `json:"before"`
@@ -34,9 +32,9 @@ type auditRecordDetail struct {
 }
 
 // Auditing is best effort: do not turn a committed business operation into an API failure.
-// Raw store errors may contain SQL and credentials; only their type is safe to log here.
-func recordAudit(ctx context.Context, writer auditWriter, event AuditEvent) {
-	if err := writer.WriteAudit(ctx, event); err != nil {
+// Raw persistence errors may contain SQL and credentials; only their type is safe to log here.
+func recordAudit(ctx context.Context, event AuditEvent) {
+	if err := writeAuditEvent(ctx, event); err != nil {
 		if logger, ok := global.OPTIMUS_LOG.(*zap.Logger); ok && logger != nil {
 			logger.Error("audit write failed", zap.String("action", event.Action), zap.String("resource_type", event.ResourceType), zap.String("resource_id", event.ResourceID), zap.String("result", event.Result), zap.String("error_type", fmt.Sprintf("%T", err)))
 		} else {
@@ -108,4 +106,19 @@ func auditSetChange[T cmp.Ordered](before, after []T) auditChange {
 		}
 	}
 	return auditChange{Before: before, After: after, Added: added, Removed: removed}
+}
+
+func writeAuditEvent(ctx context.Context, event AuditEvent) error {
+	log := systemModel.SystemAuditLog{
+		ActorUserID:   event.ActorUserID,
+		ActorUsername: event.ActorUsername,
+		Action:        event.Action,
+		ResourceType:  event.ResourceType,
+		ResourceID:    event.ResourceID,
+		Result:        event.Result,
+		IP:            event.IP,
+		UserAgent:     event.UserAgent,
+		Detail:        event.Detail,
+	}
+	return global.OPTIMUS_DB.WithContext(ctx).Create(&log).Error
 }

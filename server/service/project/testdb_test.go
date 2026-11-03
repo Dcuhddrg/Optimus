@@ -1,4 +1,4 @@
-package store
+package project
 
 import (
 	"optimus/server/global"
@@ -36,6 +36,9 @@ func openProjectTestDB(t *testing.T) *gorm.DB {
 		&projectModel.UserProject{},
 		&cloudModel.CloudAccount{},
 	))
+	previousDB := global.OPTIMUS_DB
+	t.Cleanup(func() { global.OPTIMUS_DB = previousDB })
+	global.OPTIMUS_DB = db
 	return db
 }
 

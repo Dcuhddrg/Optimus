@@ -3,6 +3,7 @@ package system
 import (
 	"errors"
 	"net/http"
+	"optimus/server/global"
 	systemRequest "optimus/server/model/system/request"
 
 	systemService "optimus/server/service/system"
@@ -13,11 +14,12 @@ import (
 type RoleApi struct{}
 
 func (h *RoleApi) Roles(c *gin.Context) {
-	if systemServices.RoleService == nil {
+	svc := roleService
+	if global.OPTIMUS_DB == nil {
 		writeServiceUnavailable(c, "role service is not available")
 		return
 	}
-	roles, err := systemServices.RoleService.ListRoles(c.Request.Context())
+	roles, err := svc.ListRoles(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to list roles"})
 		return
@@ -26,7 +28,8 @@ func (h *RoleApi) Roles(c *gin.Context) {
 }
 
 func (h *RoleApi) CreateRole(c *gin.Context) {
-	if systemServices.RoleService == nil {
+	svc := roleService
+	if global.OPTIMUS_DB == nil {
 		writeServiceUnavailable(c, "role service is not available")
 		return
 	}
@@ -35,12 +38,13 @@ func (h *RoleApi) CreateRole(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid role request"})
 		return
 	}
-	role, err := systemServices.RoleService.CreateRole(c.Request.Context(), actorID(c), req, auditMeta(c))
+	role, err := svc.CreateRole(c.Request.Context(), actorID(c), req, auditMeta(c))
 	writeRoleServiceResult(c, role, err)
 }
 
 func (h *RoleApi) UpdateRole(c *gin.Context) {
-	if systemServices.RoleService == nil {
+	svc := roleService
+	if global.OPTIMUS_DB == nil {
 		writeServiceUnavailable(c, "role service is not available")
 		return
 	}
@@ -53,12 +57,13 @@ func (h *RoleApi) UpdateRole(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid role request"})
 		return
 	}
-	role, err := systemServices.RoleService.UpdateRole(c.Request.Context(), actorID(c), id, req, auditMeta(c))
+	role, err := svc.UpdateRole(c.Request.Context(), actorID(c), id, req, auditMeta(c))
 	writeRoleServiceResult(c, role, err)
 }
 
 func (h *RoleApi) UpdateRoleStatus(c *gin.Context) {
-	if systemServices.RoleService == nil {
+	svc := roleService
+	if global.OPTIMUS_DB == nil {
 		writeServiceUnavailable(c, "role service is not available")
 		return
 	}
@@ -71,12 +76,13 @@ func (h *RoleApi) UpdateRoleStatus(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid status request"})
 		return
 	}
-	role, err := systemServices.RoleService.UpdateRoleStatus(c.Request.Context(), actorID(c), id, req.Status, auditMeta(c))
+	role, err := svc.UpdateRoleStatus(c.Request.Context(), actorID(c), id, req.Status, auditMeta(c))
 	writeRoleServiceResult(c, role, err)
 }
 
 func (h *RoleApi) UpdateRolePermissions(c *gin.Context) {
-	if systemServices.RoleService == nil {
+	svc := roleService
+	if global.OPTIMUS_DB == nil {
 		writeServiceUnavailable(c, "role service is not available")
 		return
 	}
@@ -89,7 +95,7 @@ func (h *RoleApi) UpdateRolePermissions(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid permissions request"})
 		return
 	}
-	err := systemServices.RoleService.UpdateRolePermissions(c.Request.Context(), actorID(c), id, req.PermissionCodes, auditMeta(c))
+	err := svc.UpdateRolePermissions(c.Request.Context(), actorID(c), id, req.PermissionCodes, auditMeta(c))
 	if errors.Is(err, systemService.ErrRoleNotFound) {
 		c.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
 		return

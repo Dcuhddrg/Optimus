@@ -3,24 +3,22 @@ package project
 import (
 	"context"
 	"errors"
-	projectRequest "optimus/server/model/project/request"
-	projectResponse "optimus/server/model/project/response"
 	"regexp"
 	"strings"
 	"time"
 
+	"optimus/server/global"
 	projectModel "optimus/server/model/project"
+	projectRequest "optimus/server/model/project/request"
+	projectResponse "optimus/server/model/project/response"
+
+	"gorm.io/gorm"
 )
 
 var projectCodeRegex = regexp.MustCompile(`^[a-z][a-z0-9-]{1,62}$`)
 
-type ProjectService struct {
-	store ProjectStore
-}
-
-func NewProjectService(store ProjectStore) *ProjectService {
-	return &ProjectService{store: store}
-}
+// ProjectService owns project operations.
+type ProjectService struct{}
 
 func (s *ProjectService) Create(ctx context.Context, actorID uint, req projectRequest.CreateProjectRequest) (projectResponse.ProjectView, error) {
 	name := strings.TrimSpace(req.Name)
@@ -34,24 +32,41 @@ func (s *ProjectService) Create(ctx context.Context, actorID uint, req projectRe
 		Name:        name,
 		Code:        req.Code,
 		Description: req.Description,
+		OwnerID:     actorID,
 		Status:      statusActive,
 	}
-	if err := s.store.Create(ctx, p, actorID); err != nil {
+	if err := global.OPTIMUS_DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(p).Error; err != nil {
+			if isDuplicateKeyError(err) {
+				return ErrProjectCodeTaken
+			}
+			return err
+		}
+		ownerRow := projectModel.UserProject{
+			UserID:      actorID,
+			ProjectID:   p.ID,
+			ProjectRole: RoleOwner,
+		}
+		return tx.Create(&ownerRow).Error
+	}); err != nil {
 		return projectResponse.ProjectView{}, err
 	}
 	return toProjectView(*p), nil
 }
 
 func (s *ProjectService) List(ctx context.Context, actorID uint) ([]projectResponse.ProjectView, error) {
-	ids, err := s.store.ListAccessibleProjectIDs(ctx, actorID)
+	ids, err := s.ListAccessibleProjectIDs(ctx, actorID)
 	if err != nil {
 		return nil, err
 	}
 	if len(ids) == 0 {
 		return []projectResponse.ProjectView{}, nil
 	}
-	projects, err := s.store.List(ctx, ids)
-	if err != nil {
+	var projects []projectModel.Project
+	if err := global.OPTIMUS_DB.WithContext(ctx).
+		Where("id IN ?", ids).
+		Order("created_at DESC").
+		Find(&projects).Error; err != nil {
 		return nil, err
 	}
 	views := make([]projectResponse.ProjectView, len(projects))
@@ -62,11 +77,11 @@ func (s *ProjectService) List(ctx context.Context, actorID uint) ([]projectRespo
 }
 
 func (s *ProjectService) Get(ctx context.Context, actorID uint, code string) (projectResponse.ProjectView, error) {
-	p, err := s.store.FindByCode(ctx, code)
+	p, err := s.findByCode(ctx, code)
 	if err != nil {
 		return projectResponse.ProjectView{}, err
 	}
-	if _, err := s.store.FindMember(ctx, actorID, p.ID); err != nil {
+	if _, err := s.findMember(ctx, actorID, p.ID); err != nil {
 		if errors.Is(err, ErrMemberNotFound) {
 			return projectResponse.ProjectView{}, ErrForbidden
 		}
@@ -76,7 +91,7 @@ func (s *ProjectService) Get(ctx context.Context, actorID uint, code string) (pr
 }
 
 func (s *ProjectService) Update(ctx context.Context, actorID uint, code string, req projectRequest.UpdateProjectRequest) (projectResponse.ProjectView, error) {
-	p, err := s.store.FindByCode(ctx, code)
+	p, err := s.findByCode(ctx, code)
 	if err != nil {
 		return projectResponse.ProjectView{}, err
 	}
@@ -98,7 +113,16 @@ func (s *ProjectService) Update(ctx context.Context, actorID uint, code string, 
 		return toProjectView(p), nil
 	}
 	fields["updated_at"] = time.Now()
-	updated, err := s.store.Update(ctx, code, fields)
+	if _, err := s.findByCode(ctx, code); err != nil {
+		return projectResponse.ProjectView{}, err
+	}
+	if err := global.OPTIMUS_DB.WithContext(ctx).
+		Model(&projectModel.Project{}).
+		Where("code = ?", code).
+		Updates(fields).Error; err != nil {
+		return projectResponse.ProjectView{}, err
+	}
+	updated, err := s.findByCode(ctx, code)
 	if err != nil {
 		return projectResponse.ProjectView{}, err
 	}
@@ -106,129 +130,40 @@ func (s *ProjectService) Update(ctx context.Context, actorID uint, code string, 
 }
 
 func (s *ProjectService) Delete(ctx context.Context, actorID uint, code string) error {
-	p, err := s.store.FindByCode(ctx, code)
+	p, err := s.findByCode(ctx, code)
 	if err != nil {
 		return err
 	}
 	if err := s.requireOwner(ctx, actorID, p.ID); err != nil {
 		return err
 	}
-	count, err := s.store.CountCloudAccounts(ctx, p.ID)
+	var count int64
+	err = global.OPTIMUS_DB.WithContext(ctx).
+		Table("cloud_accounts").
+		Where("project_id = ? AND deleted_at IS NULL", p.ID).
+		Count(&count).Error
+	if err != nil && strings.Contains(err.Error(), "Unknown column 'project_id'") {
+		err = nil // SP2 还未跑迁移时 cloud_accounts 无 project_id 列，视为 0
+	}
 	if err != nil {
 		return err
 	}
 	if count > 0 {
 		return ErrProjectHasAccounts
 	}
-	return s.store.Delete(ctx, code)
-}
-
-func (s *ProjectService) AddMember(ctx context.Context, actorID uint, code string, userID uint, role string) error {
-	p, err := s.store.FindByCode(ctx, code)
-	if err != nil {
-		return err
-	}
-	if err := s.requireOwner(ctx, actorID, p.ID); err != nil {
-		return err
-	}
-	if !IsValidProjectRole(role) {
-		return ErrInvalidProjectRole
-	}
-	exists, err := s.store.UserExists(ctx, userID)
-	if err != nil {
-		return err
-	}
-	if !exists {
-		return ErrUserNotFound
-	}
-	return s.store.AddOrReplaceMember(ctx, projectModel.UserProject{
-		UserID:      userID,
-		ProjectID:   p.ID,
-		ProjectRole: role,
+	return global.OPTIMUS_DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var p projectModel.Project
+		if err := tx.Where("code = ?", code).First(&p).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return ErrProjectNotFound
+			}
+			return err
+		}
+		if err := tx.Where("project_id = ?", p.ID).Delete(&projectModel.UserProject{}).Error; err != nil {
+			return err
+		}
+		return tx.Where("code = ?", code).Delete(&projectModel.Project{}).Error
 	})
-}
-
-func (s *ProjectService) UpdateMemberRole(ctx context.Context, actorID uint, code string, userID uint, role string) error {
-	p, err := s.store.FindByCode(ctx, code)
-	if err != nil {
-		return err
-	}
-	if err := s.requireOwner(ctx, actorID, p.ID); err != nil {
-		return err
-	}
-	if !IsValidProjectRole(role) {
-		return ErrInvalidProjectRole
-	}
-	existing, err := s.store.FindMember(ctx, userID, p.ID)
-	if err != nil {
-		return err
-	}
-	if existing.ProjectRole == RoleOwner && role != RoleOwner {
-		owners, err := s.store.CountOwners(ctx, p.ID)
-		if err != nil {
-			return err
-		}
-		if owners <= 1 {
-			return ErrCannotRemoveLastOwner
-		}
-	}
-	return s.store.UpdateMemberRole(ctx, userID, p.ID, role)
-}
-
-func (s *ProjectService) RemoveMember(ctx context.Context, actorID uint, code string, userID uint) error {
-	p, err := s.store.FindByCode(ctx, code)
-	if err != nil {
-		return err
-	}
-	if err := s.requireOwner(ctx, actorID, p.ID); err != nil {
-		return err
-	}
-	existing, err := s.store.FindMember(ctx, userID, p.ID)
-	if err != nil {
-		return err
-	}
-	if existing.ProjectRole == RoleOwner {
-		owners, err := s.store.CountOwners(ctx, p.ID)
-		if err != nil {
-			return err
-		}
-		if owners <= 1 {
-			return ErrCannotRemoveLastOwner
-		}
-	}
-	return s.store.RemoveMember(ctx, userID, p.ID)
-}
-
-func (s *ProjectService) ListMembers(ctx context.Context, actorID uint, code string) ([]projectResponse.ProjectMember, error) {
-	p, err := s.store.FindByCode(ctx, code)
-	if err != nil {
-		return nil, err
-	}
-	if _, err := s.store.FindMember(ctx, actorID, p.ID); err != nil {
-		if errors.Is(err, ErrMemberNotFound) {
-			return nil, ErrForbidden
-		}
-		return nil, err
-	}
-	return s.store.ListMembers(ctx, p.ID)
-}
-
-func (s *ProjectService) ListAccessibleProjectIDs(ctx context.Context, userID uint) ([]uint, error) {
-	return s.store.ListAccessibleProjectIDs(ctx, userID)
-}
-
-func (s *ProjectService) requireOwner(ctx context.Context, actorID, projectID uint) error {
-	m, err := s.store.FindMember(ctx, actorID, projectID)
-	if err != nil {
-		if errors.Is(err, ErrMemberNotFound) {
-			return ErrForbidden
-		}
-		return err
-	}
-	if m.ProjectRole != RoleOwner {
-		return ErrForbidden
-	}
-	return nil
 }
 
 func toProjectView(p projectModel.Project) projectResponse.ProjectView {
@@ -242,4 +177,23 @@ func toProjectView(p projectModel.Project) projectResponse.ProjectView {
 		CreatedAt:   p.CreatedAt,
 		UpdatedAt:   p.UpdatedAt,
 	}
+}
+
+func (s *ProjectService) findByCode(ctx context.Context, code string) (projectModel.Project, error) {
+	var p projectModel.Project
+	if err := global.OPTIMUS_DB.WithContext(ctx).Where("code = ?", code).First(&p).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return projectModel.Project{}, ErrProjectNotFound
+		}
+		return projectModel.Project{}, err
+	}
+	return p, nil
+}
+
+func isDuplicateKeyError(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := err.Error()
+	return strings.Contains(msg, "Duplicate entry") || strings.Contains(msg, "duplicate key value")
 }

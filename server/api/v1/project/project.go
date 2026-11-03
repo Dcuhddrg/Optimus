@@ -2,6 +2,7 @@ package project
 
 import (
 	"net/http"
+	"optimus/server/global"
 	projectRequest "optimus/server/model/project/request"
 
 	"github.com/gin-gonic/gin"
@@ -10,11 +11,12 @@ import (
 type ProjectApi struct{}
 
 func (h *ProjectApi) ListProjects(c *gin.Context) {
-	if projectServices.ProjectService == nil {
+	svc := projectService
+	if global.OPTIMUS_DB == nil {
 		writeProjectServiceUnavailable(c)
 		return
 	}
-	views, err := projectServices.ProjectService.List(c.Request.Context(), projectActorID(c))
+	views, err := svc.List(c.Request.Context(), projectActorID(c))
 	if err != nil {
 		writeProjectError(c, err)
 		return
@@ -23,7 +25,8 @@ func (h *ProjectApi) ListProjects(c *gin.Context) {
 }
 
 func (h *ProjectApi) CreateProject(c *gin.Context) {
-	if projectServices.ProjectService == nil {
+	svc := projectService
+	if global.OPTIMUS_DB == nil {
 		writeProjectServiceUnavailable(c)
 		return
 	}
@@ -32,7 +35,7 @@ func (h *ProjectApi) CreateProject(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid project payload"})
 		return
 	}
-	view, err := projectServices.ProjectService.Create(c.Request.Context(), projectActorID(c), req)
+	view, err := svc.Create(c.Request.Context(), projectActorID(c), req)
 	if err != nil {
 		writeProjectError(c, err)
 		return
@@ -41,11 +44,12 @@ func (h *ProjectApi) CreateProject(c *gin.Context) {
 }
 
 func (h *ProjectApi) GetProject(c *gin.Context) {
-	if projectServices.ProjectService == nil {
+	svc := projectService
+	if global.OPTIMUS_DB == nil {
 		writeProjectServiceUnavailable(c)
 		return
 	}
-	view, err := projectServices.ProjectService.Get(c.Request.Context(), projectActorID(c), c.Param("code"))
+	view, err := svc.Get(c.Request.Context(), projectActorID(c), c.Param("code"))
 	if err != nil {
 		writeProjectError(c, err)
 		return
@@ -54,7 +58,8 @@ func (h *ProjectApi) GetProject(c *gin.Context) {
 }
 
 func (h *ProjectApi) UpdateProject(c *gin.Context) {
-	if projectServices.ProjectService == nil {
+	svc := projectService
+	if global.OPTIMUS_DB == nil {
 		writeProjectServiceUnavailable(c)
 		return
 	}
@@ -63,7 +68,7 @@ func (h *ProjectApi) UpdateProject(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid project payload"})
 		return
 	}
-	view, err := projectServices.ProjectService.Update(c.Request.Context(), projectActorID(c), c.Param("code"), req)
+	view, err := svc.Update(c.Request.Context(), projectActorID(c), c.Param("code"), req)
 	if err != nil {
 		writeProjectError(c, err)
 		return
@@ -72,11 +77,12 @@ func (h *ProjectApi) UpdateProject(c *gin.Context) {
 }
 
 func (h *ProjectApi) DeleteProject(c *gin.Context) {
-	if projectServices.ProjectService == nil {
+	svc := projectService
+	if global.OPTIMUS_DB == nil {
 		writeProjectServiceUnavailable(c)
 		return
 	}
-	if err := projectServices.ProjectService.Delete(c.Request.Context(), projectActorID(c), c.Param("code")); err != nil {
+	if err := svc.Delete(c.Request.Context(), projectActorID(c), c.Param("code")); err != nil {
 		writeProjectError(c, err)
 		return
 	}

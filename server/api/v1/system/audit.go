@@ -3,6 +3,7 @@ package system
 import (
 	"encoding/csv"
 	"net/http"
+	"optimus/server/global"
 	commonRequest "optimus/server/model/common/request"
 	systemRequest "optimus/server/model/system/request"
 	systemResponse "optimus/server/model/system/response"
@@ -39,11 +40,12 @@ type AuditApi struct{}
 // @Failure 503 {object} response.Envelope
 // @Router /system/audit-logs [get]
 func (h *AuditApi) QueryAuditLogs(c *gin.Context) {
-	if systemServices.AuditService == nil {
+	svc := auditService
+	if global.OPTIMUS_DB == nil {
 		response.Failure(c, http.StatusServiceUnavailable, "audit service is not available")
 		return
 	}
-	result, err := systemServices.AuditService.QueryLogs(c.Request.Context(), parseAuditFilter(c))
+	result, err := svc.QueryLogs(c.Request.Context(), parseAuditFilter(c))
 	if err != nil {
 		response.Failure(c, http.StatusInternalServerError, "failed to query audit logs")
 		return
@@ -74,11 +76,12 @@ func (h *AuditApi) QueryAuditLogs(c *gin.Context) {
 // @Failure 503 {object} response.Envelope
 // @Router /system/audit-logs/export [get]
 func (h *AuditApi) ExportAuditLogs(c *gin.Context) {
-	if systemServices.AuditService == nil {
+	svc := auditService
+	if global.OPTIMUS_DB == nil {
 		response.Failure(c, http.StatusServiceUnavailable, "audit service is not available")
 		return
 	}
-	entries, err := systemServices.AuditService.ExportLogs(c.Request.Context(), parseAuditFilter(c))
+	entries, err := svc.ExportLogs(c.Request.Context(), parseAuditFilter(c))
 	if err != nil {
 		response.Failure(c, http.StatusInternalServerError, "failed to export audit logs")
 		return

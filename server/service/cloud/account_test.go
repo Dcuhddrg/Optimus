@@ -3,157 +3,17 @@ package cloud
 import (
 	"context"
 	cloudRequest "optimus/server/model/cloud/request"
-	"sync"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 )
 
-type fakeAccountStore struct {
-	mu   sync.Mutex
-	rows map[uint]AccountRow
-	next uint
-}
-
-func (f *fakeAccountStore) Create(_ context.Context, projectID uint, row AccountRow) (AccountRow, error) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	f.next++
-	row.ID = f.next
-	row.ProjectID = projectID
-	row.Status = "active"
-	if row.Tags == nil {
-		row.Tags = map[string]string{}
-	}
-	f.rows[f.next] = row
-	return row, nil
-}
-
-func (f *fakeAccountStore) Get(_ context.Context, accessibleProjectIDs []uint, id uint) (AccountRow, error) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	row, ok := f.rows[id]
-	if !ok || !containsUint(accessibleProjectIDs, row.ProjectID) {
-		return AccountRow{}, ErrAccountNotFound
-	}
-	return row, nil
-}
-
-func (f *fakeAccountStore) GetForSync(_ context.Context, id uint) (AccountRow, error) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	row, ok := f.rows[id]
-	if !ok {
-		return AccountRow{}, ErrAccountNotFound
-	}
-	return row, nil
-}
-
-func (f *fakeAccountStore) List(_ context.Context, accessibleProjectIDs []uint, filters []TagFilter) ([]AccountRow, error) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	rows := make([]AccountRow, 0, len(f.rows))
-	for _, r := range f.rows {
-		if containsUint(accessibleProjectIDs, r.ProjectID) && matchAllTagFilters(r.Tags, filters) {
-			rows = append(rows, r)
-		}
-	}
-	return rows, nil
-}
-
-func matchAllTagFilters(tags map[string]string, filters []TagFilter) bool {
-	for _, filter := range filters {
-		value, exists := tags[filter.Key]
-		if filter.Exists {
-			if !exists {
-				return false
-			}
-			if filter.Value != "" && value != filter.Value {
-				return false
-			}
-			continue
-		}
-		if exists {
-			return false
-		}
-	}
-	return true
-}
-
-func (f *fakeAccountStore) Update(_ context.Context, accessibleProjectIDs []uint, id uint, name *string, encryptedCredential *string) (AccountRow, error) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	row, ok := f.rows[id]
-	if !ok || !containsUint(accessibleProjectIDs, row.ProjectID) {
-		return AccountRow{}, ErrAccountNotFound
-	}
-	if name != nil {
-		row.Name = *name
-	}
-	if encryptedCredential != nil {
-		row.CredentialJSON = *encryptedCredential
-	}
-	f.rows[id] = row
-	return row, nil
-}
-
-func (f *fakeAccountStore) UpdateTags(_ context.Context, accessibleProjectIDs []uint, id uint, tags map[string]string) (AccountRow, error) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	row, ok := f.rows[id]
-	if !ok || !containsUint(accessibleProjectIDs, row.ProjectID) {
-		return AccountRow{}, ErrAccountNotFound
-	}
-	row.Tags = tags
-	f.rows[id] = row
-	return row, nil
-}
-
-func (f *fakeAccountStore) Delete(_ context.Context, accessibleProjectIDs []uint, id uint) error {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	row, ok := f.rows[id]
-	if !ok || !containsUint(accessibleProjectIDs, row.ProjectID) {
-		return ErrAccountNotFound
-	}
-	delete(f.rows, id)
-	return nil
-}
-
-func (f *fakeAccountStore) UpdateSyncStatus(_ context.Context, id uint, lastSyncedAt *time.Time, status string) error {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	row, ok := f.rows[id]
-	if !ok {
-		return ErrAccountNotFound
-	}
-	row.Status = status
-	row.LastSyncedAt = lastSyncedAt
-	f.rows[id] = row
-	return nil
-}
-
-func containsUint(set []uint, value uint) bool {
-	for _, item := range set {
-		if item == value {
-			return true
-		}
-	}
-	return false
-}
-
-func newTestAccountService() (*CloudAccountService, *fakeAccountStore) {
-	store := &fakeAccountStore{rows: make(map[uint]AccountRow)}
-	key := make([]byte, 32)
-	for i := range key {
-		key[i] = byte(i + 1)
-	}
-	svc, err := NewCloudAccountService(store, key)
-	if err != nil {
-		panic(err)
-	}
-	return svc, store
+func newTestAccountService(t *testing.T) *CloudAccountService {
+	t.Helper()
+	openCloudTestDB(t)
+	svc, err := NewCloudAccountService(make([]byte, 32))
+	require.NoError(t, err)
+	return svc
 }
 
 func sampleCreateAccountRequest() cloudRequest.CreateAccountRequest {
@@ -167,12 +27,12 @@ func sampleCreateAccountRequest() cloudRequest.CreateAccountRequest {
 }
 
 func TestNewCloudAccountServiceRejectsInvalidKey(t *testing.T) {
-	_, err := NewCloudAccountService(&fakeAccountStore{rows: make(map[uint]AccountRow)}, []byte("tooshort"))
+	_, err := NewCloudAccountService([]byte("tooshort"))
 	require.ErrorIs(t, err, ErrInvalidEncryptionKey)
 }
 
 func TestCloudAccountServiceCreateMasksCredential(t *testing.T) {
-	svc, _ := newTestAccountService()
+	svc := newTestAccountService(t)
 	view, err := svc.Create(context.Background(), 7, sampleCreateAccountRequest())
 	require.NoError(t, err)
 	require.Equal(t, "***", view.Credential)
@@ -182,7 +42,7 @@ func TestCloudAccountServiceCreateMasksCredential(t *testing.T) {
 }
 
 func TestCloudAccountServiceGetForSyncDecryptsCredential(t *testing.T) {
-	svc, _ := newTestAccountService()
+	svc := newTestAccountService(t)
 	_, err := svc.Create(context.Background(), 7, sampleCreateAccountRequest())
 	require.NoError(t, err)
 
@@ -193,34 +53,38 @@ func TestCloudAccountServiceGetForSyncDecryptsCredential(t *testing.T) {
 }
 
 func TestCloudAccountServiceDeleteRemovesAccount(t *testing.T) {
-	svc, store := newTestAccountService()
+	svc := newTestAccountService(t)
 	_, err := svc.Create(context.Background(), 7, sampleCreateAccountRequest())
 	require.NoError(t, err)
 	require.NoError(t, svc.Delete(context.Background(), []uint{7}, 1))
-	require.Empty(t, store.rows)
+	_, err = svc.Get(context.Background(), []uint{7}, 1)
+	require.ErrorIs(t, err, ErrAccountNotFound)
 }
 
 func TestCloudAccountServiceGetNotFoundReturnsErrAccountNotFound(t *testing.T) {
-	svc, _ := newTestAccountService()
+	svc := newTestAccountService(t)
 	_, err := svc.Get(context.Background(), []uint{7}, 9999)
 	require.ErrorIs(t, err, ErrAccountNotFound)
 }
 
 func TestCloudAccountServiceUpdateEmptyCredentialIsNoop(t *testing.T) {
-	svc, store := newTestAccountService()
+	svc := newTestAccountService(t)
 	_, err := svc.Create(context.Background(), 7, sampleCreateAccountRequest())
 	require.NoError(t, err)
-	originalCred := store.rows[1].CredentialJSON
+	original, err := findAccount(context.Background(), []uint{7}, 1)
+	require.NoError(t, err)
 
 	newName := "renamed"
 	_, err = svc.Update(context.Background(), []uint{7}, 1, cloudRequest.UpdateAccountRequest{Name: &newName, Credential: map[string]string{}})
 	require.NoError(t, err)
-	require.Equal(t, originalCred, store.rows[1].CredentialJSON)
-	require.Equal(t, "renamed", store.rows[1].Name)
+	updated, err := findAccount(context.Background(), []uint{7}, 1)
+	require.NoError(t, err)
+	require.Equal(t, original.CredentialJSON, updated.CredentialJSON)
+	require.Equal(t, "renamed", updated.Name)
 }
 
 func TestCloudAccountServiceListMasksAllCredentials(t *testing.T) {
-	svc, _ := newTestAccountService()
+	svc := newTestAccountService(t)
 	for i := 0; i < 3; i++ {
 		_, err := svc.Create(context.Background(), 7, sampleCreateAccountRequest())
 		require.NoError(t, err)
@@ -234,7 +98,7 @@ func TestCloudAccountServiceListMasksAllCredentials(t *testing.T) {
 }
 
 func TestCloudAccountServiceListFiltersByAccessibleProjects(t *testing.T) {
-	svc, _ := newTestAccountService()
+	svc := newTestAccountService(t)
 	_, err := svc.Create(context.Background(), 7, sampleCreateAccountRequest())
 	require.NoError(t, err)
 	other := sampleCreateAccountRequest()
@@ -250,7 +114,7 @@ func TestCloudAccountServiceListFiltersByAccessibleProjects(t *testing.T) {
 }
 
 func TestCreateAcceptsTags(t *testing.T) {
-	svc, _ := newTestAccountService()
+	svc := newTestAccountService(t)
 
 	req := sampleCreateAccountRequest()
 	req.Tags = map[string]string{"environment": "prod", "team": "sre"}
@@ -261,16 +125,17 @@ func TestCreateAcceptsTags(t *testing.T) {
 }
 
 func TestCreateRejectsInvalidTagKey(t *testing.T) {
-	svc, _ := newTestAccountService()
+	svc, err := NewCloudAccountService(make([]byte, 32))
+	require.NoError(t, err)
 
 	req := sampleCreateAccountRequest()
 	req.Tags = map[string]string{"Environment": "prod"}
-	_, err := svc.Create(context.Background(), 7, req)
+	_, err = svc.Create(context.Background(), 7, req)
 	require.ErrorIs(t, err, ErrInvalidTagKey)
 }
 
 func TestUpdateTagsFiltersByAccessibleProjects(t *testing.T) {
-	svc, _ := newTestAccountService()
+	svc := newTestAccountService(t)
 
 	view, err := svc.Create(context.Background(), 7, sampleCreateAccountRequest())
 	require.NoError(t, err)
@@ -286,7 +151,7 @@ func TestUpdateTagsFiltersByAccessibleProjects(t *testing.T) {
 }
 
 func TestListFiltersByTag(t *testing.T) {
-	svc, _ := newTestAccountService()
+	svc := newTestAccountService(t)
 
 	req1 := sampleCreateAccountRequest()
 	req1.Tags = map[string]string{"environment": "prod"}

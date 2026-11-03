@@ -27,6 +27,8 @@ func TestEnterFilesOnlyDeclareGroupTypes(t *testing.T) {
 				require.NoError(t, err)
 				groups := 0
 				for _, decl := range f.Decls {
+					_, function := decl.(*ast.FuncDecl)
+					require.False(t, function, "registration belongs in initialize and responsibility files")
 					gen, ok := decl.(*ast.GenDecl)
 					if !ok || gen.Tok != token.TYPE {
 						continue

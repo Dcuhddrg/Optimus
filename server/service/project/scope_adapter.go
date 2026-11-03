@@ -6,7 +6,7 @@ import (
 )
 
 func (s *ProjectService) ResolveProjectByCode(ctx context.Context, code string) (uint, bool, error) {
-	project, err := s.store.FindByCode(ctx, code)
+	project, err := s.findByCode(ctx, code)
 	if err != nil {
 		if errors.Is(err, ErrProjectNotFound) {
 			return 0, false, nil
@@ -17,7 +17,7 @@ func (s *ProjectService) ResolveProjectByCode(ctx context.Context, code string) 
 }
 
 func (s *ProjectService) GetMemberRole(ctx context.Context, userID, projectID uint) (string, bool, error) {
-	member, err := s.store.FindMember(ctx, userID, projectID)
+	member, err := s.findMember(ctx, userID, projectID)
 	if err != nil {
 		if errors.Is(err, ErrMemberNotFound) {
 			return "", false, nil

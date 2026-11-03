@@ -14,7 +14,7 @@
 | --- | --- | --- |
 | server/service/enter.go、service/<module>/enter.go | 根级 ServiceGroupApp 具名聚合模块，模块聚合职责服务 | 当前 NewSystemModule、NewProjectModule、NewCloudModule 构造服务；API handler、JWT/RBAC、ProjectScope、审计保留任务等需改由同一组取得服务 |
 | server/api/v1/enter.go、api/v1/<module>/enter.go | 根级 ApiGroupApp、模块 ApiGroup，集中 service 别名 | 当前 SystemHandlers/CloudHandlers/ProjectHandlers 与 New*Handlers；路由、initialize 及注入测试同步切换，职责 handler 可按 XxxApi 命名统一 |
-| server/router/enter.go、router/<module>/enter.go | 根级模块聚合，模块匿名嵌入职责子 Router，集中 api 别名 | 当前三个 Init*Router 均集中端点；拆到职责文件并从模块入口明确调用注册，保持全部方法、路径和中间件顺序 |
+| server/router/enter.go、router/<module>/enter.go | 根级模块聚合，模块匿名嵌入职责子 Router，集中 api 别名 | 当前三个 Init*Router 均集中端点；拆到职责文件并由 initialize 直接调用注册，保持全部方法、路径和中间件顺序 |
 | model/<module>/request/ | 请求与查询 DTO，按职责分文件，通用分页复用 PageInfo | 当前三个 model/<module>/dto.go 混合请求与结果；API 绑定、Service 参数、测试及 Swagger import 同批更新 |
 | model/<module>/response/ | 面向 HTTP 的结果 DTO，与实体及内部查询结果分离 | AuditListData、用户/项目/云资源 View/Result 移到响应职责；内部 Store/Service 结果按用途归类，不伪装成外部协议 |
 | model/common/request/、model/common/response/ | PageInfo、统一响应与分页公共类型/助手 | 现有 utils/response、model/common/response.go 和模块分页需盘点后合并职责；路由协议标记、错误/CSV/Recovery 调用一起验证，不保留重复定义的兼容包 |
@@ -26,9 +26,9 @@
 
 生产链统一为：基础设施准备 → initialize 装配 ServiceGroupApp → ApiGroupApp 中的职责 API → 模块 RouterGroup 注册 → API → Service → Model/数据访问。
 
-根级与模块级聚合对象在进程内保持稳定地址。可使用构造函数创建模块组内服务、Store、LDAP/云客户端，但 Router 不再持有第二套由 New*Module/New*Handlers 注入的生产链。存量 Store 接口和外部协议适配是 Service 内部实现，按真实解耦和测试用途核查，不要求把业务重新迁回旧层。
+根级与模块级聚合对象在进程内保持稳定地址。构造函数用于创建模块服务和 LDAP、云客户端等外部依赖。查询和事务由职责 Service 使用启动时发布的 global.OPTIMUS_DB 或当前事务句柄执行。测试替身可以通过接口传入。
 
-上游示例的包级值别名适用于无状态服务；本项目云服务、LDAP 和 Store 存在初始化依赖，不能在包初始化时复制尚未装配的服务值。模块别名应引用稳定聚合对象/字段，启动期只更新其内容，或采用不会捕获旧值的等价访问方式；路由注册前必须完成装配。不能仅增设未被实际消费的 GroupApp 外壳。
+ServiceGroup 按参考示例匿名嵌入具体服务值；API 的 Service 别名和 Router 的 API 别名按示例复制聚合值。本项目认证、LDAP 和云服务含启动期依赖，包初始化时的值副本尚未装配，因此 initialize 在装配全部服务后、注册路由前同步 API 别名。请求期间不得刷新；测试替换和恢复服务组时同步恢复别名。不能仅增设未被实际消费的 GroupApp 外壳。
 
 无数据库、缺服务和初始化失败时保留现有返回与启动行为；不能把原本的 503 变成 nil 指针 panic。RBAC capability、项目范围解析、审计清理及云同步依赖必须迁入同一服务生命周期。组全局状态的测试不得并行修改同一实例，替身装配后通过 HTTP 验证真实路径，并在 cleanup 中恢复字段；不得在请求期间重装全局组。
 
