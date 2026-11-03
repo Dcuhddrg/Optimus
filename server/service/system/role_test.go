@@ -33,6 +33,11 @@ type fakeRoleStore struct {
 	savedPermIDs      []uint
 }
 
+// Preserve existing fixture compatibility with the new read-only snapshot contract.
+func (s *fakeRoleStore) PermissionCodesForRole(_ context.Context, _ uint) ([]string, error) {
+	return nil, nil
+}
+
 func (s *fakeRoleStore) ListRoles(_ context.Context) ([]systemModel.SystemRole, error) {
 	return s.roles, nil
 }

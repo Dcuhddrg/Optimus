@@ -2,6 +2,7 @@ package project
 
 import (
 	"net/http"
+	"optimus/server/global"
 	projectRequest "optimus/server/model/project/request"
 
 	"github.com/gin-gonic/gin"
@@ -10,8 +11,8 @@ import (
 type ProjectApi struct{}
 
 func (h *ProjectApi) ListProjects(c *gin.Context) {
-	svc := *projectService
-	if svc == nil {
+	svc := projectService
+	if global.OPTIMUS_DB == nil {
 		writeProjectServiceUnavailable(c)
 		return
 	}
@@ -24,8 +25,8 @@ func (h *ProjectApi) ListProjects(c *gin.Context) {
 }
 
 func (h *ProjectApi) CreateProject(c *gin.Context) {
-	svc := *projectService
-	if svc == nil {
+	svc := projectService
+	if global.OPTIMUS_DB == nil {
 		writeProjectServiceUnavailable(c)
 		return
 	}
@@ -43,8 +44,8 @@ func (h *ProjectApi) CreateProject(c *gin.Context) {
 }
 
 func (h *ProjectApi) GetProject(c *gin.Context) {
-	svc := *projectService
-	if svc == nil {
+	svc := projectService
+	if global.OPTIMUS_DB == nil {
 		writeProjectServiceUnavailable(c)
 		return
 	}
@@ -57,8 +58,8 @@ func (h *ProjectApi) GetProject(c *gin.Context) {
 }
 
 func (h *ProjectApi) UpdateProject(c *gin.Context) {
-	svc := *projectService
-	if svc == nil {
+	svc := projectService
+	if global.OPTIMUS_DB == nil {
 		writeProjectServiceUnavailable(c)
 		return
 	}
@@ -76,8 +77,8 @@ func (h *ProjectApi) UpdateProject(c *gin.Context) {
 }
 
 func (h *ProjectApi) DeleteProject(c *gin.Context) {
-	svc := *projectService
-	if svc == nil {
+	svc := projectService
+	if global.OPTIMUS_DB == nil {
 		writeProjectServiceUnavailable(c)
 		return
 	}

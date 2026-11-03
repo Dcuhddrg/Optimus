@@ -10,6 +10,6 @@ type RouterGroup struct {
 }
 
 var (
-	accountApi = &api.ApiGroupApp.CloudApiGroup.AccountApi
-	assetApi   = &api.ApiGroupApp.CloudApiGroup.AssetApi
+	accountApi = api.ApiGroupApp.CloudApiGroup.AccountApi
+	assetApi   = api.ApiGroupApp.CloudApiGroup.AssetApi
 )

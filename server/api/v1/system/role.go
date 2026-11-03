@@ -3,6 +3,7 @@ package system
 import (
 	"errors"
 	"net/http"
+	"optimus/server/global"
 	systemRequest "optimus/server/model/system/request"
 
 	systemService "optimus/server/service/system"
@@ -13,8 +14,8 @@ import (
 type RoleApi struct{}
 
 func (h *RoleApi) Roles(c *gin.Context) {
-	svc := *roleService
-	if svc == nil {
+	svc := roleService
+	if global.OPTIMUS_DB == nil {
 		writeServiceUnavailable(c, "role service is not available")
 		return
 	}
@@ -27,8 +28,8 @@ func (h *RoleApi) Roles(c *gin.Context) {
 }
 
 func (h *RoleApi) CreateRole(c *gin.Context) {
-	svc := *roleService
-	if svc == nil {
+	svc := roleService
+	if global.OPTIMUS_DB == nil {
 		writeServiceUnavailable(c, "role service is not available")
 		return
 	}
@@ -42,8 +43,8 @@ func (h *RoleApi) CreateRole(c *gin.Context) {
 }
 
 func (h *RoleApi) UpdateRole(c *gin.Context) {
-	svc := *roleService
-	if svc == nil {
+	svc := roleService
+	if global.OPTIMUS_DB == nil {
 		writeServiceUnavailable(c, "role service is not available")
 		return
 	}
@@ -61,8 +62,8 @@ func (h *RoleApi) UpdateRole(c *gin.Context) {
 }
 
 func (h *RoleApi) UpdateRoleStatus(c *gin.Context) {
-	svc := *roleService
-	if svc == nil {
+	svc := roleService
+	if global.OPTIMUS_DB == nil {
 		writeServiceUnavailable(c, "role service is not available")
 		return
 	}
@@ -80,8 +81,8 @@ func (h *RoleApi) UpdateRoleStatus(c *gin.Context) {
 }
 
 func (h *RoleApi) UpdateRolePermissions(c *gin.Context) {
-	svc := *roleService
-	if svc == nil {
+	svc := roleService
+	if global.OPTIMUS_DB == nil {
 		writeServiceUnavailable(c, "role service is not available")
 		return
 	}

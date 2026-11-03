@@ -91,6 +91,11 @@ type CloudAccountService struct {
 	encKey []byte
 }
 
+// Ready reports whether the service was constructed with an encryption key.
+func (s *CloudAccountService) Ready() bool {
+	return s != nil && len(s.encKey) == 32
+}
+
 func NewCloudAccountService(encKey []byte) (*CloudAccountService, error) {
 	if len(encKey) != 32 {
 		return nil, ErrInvalidEncryptionKey

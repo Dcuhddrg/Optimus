@@ -33,11 +33,11 @@ func Routers() *gin.Engine {
 		{Method: "GET", Path: "/system/audit-logs"},
 		{Method: "GET", Path: "/system/audit-logs/export"},
 	}), middleware.JWTAuth(), middleware.CasbinHandlerWithPrefix(
-		service.ServiceGroupApp.SystemServiceGroup.RBAC, privateGroup.BasePath(), defaultRouterPrefix,
+		&service.ServiceGroupApp.SystemServiceGroup.RBACService, privateGroup.BasePath(), defaultRouterPrefix,
 	))
 	cloudGroup := privateGroup.Group("")
-	if service.ServiceGroupApp.ProjectServiceGroup.ProjectService != nil {
-		cloudGroup.Use(middleware.ProjectScope(service.ServiceGroupApp.ProjectServiceGroup.ProjectService))
+	if global.OPTIMUS_DB != nil {
+		cloudGroup.Use(middleware.ProjectScope(&service.ServiceGroupApp.ProjectServiceGroup.ProjectService))
 	}
 
 	routerGroup := router.RouterGroupApp

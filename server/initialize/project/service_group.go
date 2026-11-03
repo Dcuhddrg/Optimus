@@ -11,5 +11,5 @@ func NewServiceGroup(db *gorm.DB, _ config.Config) projectService.ServiceGroup {
 	if db == nil {
 		return projectService.ServiceGroup{}
 	}
-	return projectService.ServiceGroup{ProjectService: &projectService.ProjectService{}}
+	return projectService.ServiceGroup{}
 }

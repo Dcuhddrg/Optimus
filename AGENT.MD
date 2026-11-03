@@ -31,6 +31,7 @@
 - API 层处理 HTTP 相关逻辑，Service 层不要依赖 `gin.Context`。
 - HTTP 请求体和查询条件使用 `model/<module>/request/` 的命名 DTO；状态、角色、权限等操作也不得在 API 内保留匿名请求结构。分页查询 DTO 复用公共 PageInfo，再由 API 显式映射为内部 Service 条件，保留既有参数解析行为。
 - 各层 `enter.go` 只声明对应 Group 聚合类型并集中维护必要别名；职责 API、Service、Router 的具体类型和支持接口定义放在对应职责文件，不能把类型声明全部堆到聚合入口。
+- ServiceGroup 按参考示例匿名嵌入具体服务值；API 的 Service 别名和 Router 的 API 别名使用值复制。有状态服务在启动装配完成后同步 API 值别名，再注册路由，不在请求期间刷新。
 - 对外接口的 Swagger 注释必须和真实行为保持一致。
 - 优先沿用 optimus 现有模式，复用已有模块和基础设施，不做无关大改。
 

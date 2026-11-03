@@ -17,6 +17,7 @@ import (
 
 var projectCodeRegex = regexp.MustCompile(`^[a-z][a-z0-9-]{1,62}$`)
 
+// ProjectService owns project operations.
 type ProjectService struct{}
 
 func (s *ProjectService) Create(ctx context.Context, actorID uint, req projectRequest.CreateProjectRequest) (projectResponse.ProjectView, error) {

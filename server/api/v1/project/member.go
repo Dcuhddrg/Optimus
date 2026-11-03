@@ -2,6 +2,7 @@ package project
 
 import (
 	"net/http"
+	"optimus/server/global"
 	projectRequest "optimus/server/model/project/request"
 
 	"github.com/gin-gonic/gin"
@@ -10,8 +11,8 @@ import (
 type MemberApi struct{}
 
 func (h *MemberApi) ListMembers(c *gin.Context) {
-	svc := *projectService
-	if svc == nil {
+	svc := projectService
+	if global.OPTIMUS_DB == nil {
 		writeProjectServiceUnavailable(c)
 		return
 	}
@@ -24,8 +25,8 @@ func (h *MemberApi) ListMembers(c *gin.Context) {
 }
 
 func (h *MemberApi) AddMember(c *gin.Context) {
-	svc := *projectService
-	if svc == nil {
+	svc := projectService
+	if global.OPTIMUS_DB == nil {
 		writeProjectServiceUnavailable(c)
 		return
 	}
@@ -46,8 +47,8 @@ func (h *MemberApi) AddMember(c *gin.Context) {
 }
 
 func (h *MemberApi) UpdateMemberRole(c *gin.Context) {
-	svc := *projectService
-	if svc == nil {
+	svc := projectService
+	if global.OPTIMUS_DB == nil {
 		writeProjectServiceUnavailable(c)
 		return
 	}
@@ -68,8 +69,8 @@ func (h *MemberApi) UpdateMemberRole(c *gin.Context) {
 }
 
 func (h *MemberApi) RemoveMember(c *gin.Context) {
-	svc := *projectService
-	if svc == nil {
+	svc := projectService
+	if global.OPTIMUS_DB == nil {
 		writeProjectServiceUnavailable(c)
 		return
 	}

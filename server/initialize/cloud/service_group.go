@@ -37,7 +37,7 @@ func NewServiceGroup(db *gorm.DB, cfg config.Config) cloudService.ServiceGroup {
 	assetSvc := cloudService.NewAssetRegistryService(accountSvc, registry)
 
 	return cloudService.ServiceGroup{
-		CloudAccountService:  accountSvc,
-		AssetRegistryService: assetSvc,
+		CloudAccountService:  *accountSvc,
+		AssetRegistryService: *assetSvc,
 	}
 }

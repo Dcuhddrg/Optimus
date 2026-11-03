@@ -35,6 +35,11 @@ type AssetRegistryService struct {
 	now      func() time.Time
 }
 
+// Ready reports whether the service was constructed.
+func (s *AssetRegistryService) Ready() bool {
+	return s != nil && s.now != nil
+}
+
 func NewAssetRegistryService(accounts *CloudAccountService, registry *SyncerRegistry) *AssetRegistryService {
 	return &AssetRegistryService{accounts: accounts, registry: registry, now: time.Now}
 }

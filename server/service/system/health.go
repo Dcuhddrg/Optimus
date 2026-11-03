@@ -1,10 +1,5 @@
 package system
 
-type StatusService interface {
-	Health() HealthPayload
-	Ping() PingPayload
-}
-
 type Service struct{}
 
 type HealthPayload struct {

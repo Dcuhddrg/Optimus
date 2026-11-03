@@ -24,7 +24,13 @@ type LDAPAuthenticator interface {
 }
 
 type LDAPService struct {
-	client LDAPTester
+	client      LDAPTester
+	initialized bool
+}
+
+// Ready reports whether the service was constructed.
+func (s *LDAPService) Ready() bool {
+	return s != nil && s.initialized
 }
 
 type LDAPConnectionConfig struct {
@@ -45,7 +51,7 @@ type LDAPUser struct {
 }
 
 func NewLDAPService(client LDAPTester) *LDAPService {
-	return &LDAPService{client: client}
+	return &LDAPService{client: client, initialized: true}
 }
 
 func (s *LDAPService) GetConfig(ctx context.Context) (systemResponse.LDAPConfigResult, error) {

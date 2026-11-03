@@ -2,6 +2,7 @@ package initialize
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -29,8 +30,8 @@ func TestRoutersUseGroupedAuthService(t *testing.T) {
 		*service.ServiceGroupApp = previousServices
 	})
 
-	initializeTestServices(t, nil, global.OPTIMUS_CONFIG)
-	service.ServiceGroupApp.SystemServiceGroup.AuthService = fakeRouterAuthService{}
+	db, _ := projectScopeRouterDB(t, "", true)
+	initializeTestServices(t, db, global.OPTIMUS_CONFIG)
 
 	engine := Routers()
 
@@ -42,6 +43,34 @@ func TestRoutersUseGroupedAuthService(t *testing.T) {
 
 	require.Equal(t, http.StatusUnauthorized, recorder.Code)
 	require.JSONEq(t, `{"code":7,"data":null,"msg":"username or password is incorrect"}`, recorder.Body.String())
+}
+
+func TestRouterLoginUsesInitializedAuthDependencies(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	previousServices, previousConfig := *service.ServiceGroupApp, global.OPTIMUS_CONFIG
+	t.Cleanup(func() { *service.ServiceGroupApp = previousServices; global.OPTIMUS_CONFIG = previousConfig })
+	global.OPTIMUS_CONFIG.System.RouterPrefix = "/api/v1"
+	global.OPTIMUS_CONFIG.JWT = config.JWT{SigningKey: "router-login-test", ExpiresTime: 3600, Issuer: "router-login-test"}
+	db, _ := projectScopeRouterDB(t, "", true)
+	hash, err := systemService.HashPassword("admin-secret")
+	require.NoError(t, err)
+	user := systemModel.SystemUser{UUID: "router-admin", Username: "admin", DisplayName: "Admin", Source: "local", Status: "enabled", PasswordHash: hash}
+	require.NoError(t, db.Create(&user).Error)
+	initializeTestServices(t, db, global.OPTIMUS_CONFIG)
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/system/auth/login", strings.NewReader(`{"username":"admin","password":"admin-secret"}`))
+	req.Header.Set("Content-Type", "application/json")
+	Routers().ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	var body struct {
+		Code int `json:"code"`
+		Data struct {
+			Token string `json:"token"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	require.Zero(t, body.Code)
+	require.NotEmpty(t, body.Data.Token)
 }
 
 func TestRoutersUseGroupedRBACCapability(t *testing.T) {
@@ -60,8 +89,8 @@ func TestRoutersUseGroupedRBACCapability(t *testing.T) {
 		BufferTime:  300,
 		Issuer:      "optimus-router-test",
 	}
-	initializeTestServices(t, nil, global.OPTIMUS_CONFIG)
-	service.ServiceGroupApp.SystemServiceGroup.RBAC = fakeRouterRBAC{allowed: true}
+	db, _ := projectScopeRouterDB(t, "", true)
+	initializeTestServices(t, db, global.OPTIMUS_CONFIG)
 
 	engine := Routers()
 	token, err := systemService.IssueJWT(systemService.TokenSubject{

@@ -10,6 +10,6 @@ type RouterGroup struct {
 }
 
 var (
-	projectApi = &api.ApiGroupApp.ProjectApiGroup.ProjectApi
-	memberApi  = &api.ApiGroupApp.ProjectApiGroup.MemberApi
+	projectApi = api.ApiGroupApp.ProjectApiGroup.ProjectApi
+	memberApi  = api.ApiGroupApp.ProjectApiGroup.MemberApi
 )

@@ -3,6 +3,7 @@ package system
 import (
 	"net/http"
 	"net/http/httptest"
+	"optimus/server/global"
 	"optimus/server/service"
 	"strings"
 	"testing"
@@ -15,7 +16,9 @@ func TestAuthHandlerLoginReturnsServiceUnavailableWhenServiceMissing(t *testing.
 	gin.SetMode(gin.TestMode)
 	previousServices := service.ServiceGroupApp.SystemServiceGroup
 	t.Cleanup(func() { service.ServiceGroupApp.SystemServiceGroup = previousServices })
-	service.ServiceGroupApp.SystemServiceGroup.AuthService = nil
+	previousDB := global.OPTIMUS_DB
+	global.OPTIMUS_DB = nil
+	t.Cleanup(func() { global.OPTIMUS_DB = previousDB })
 
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
@@ -33,7 +36,9 @@ func TestAuditHandlerQueryAuditLogsReturnsServiceUnavailableWhenServiceMissing(t
 	gin.SetMode(gin.TestMode)
 	previousServices := service.ServiceGroupApp.SystemServiceGroup
 	t.Cleanup(func() { service.ServiceGroupApp.SystemServiceGroup = previousServices })
-	service.ServiceGroupApp.SystemServiceGroup.AuditService = nil
+	previousDB := global.OPTIMUS_DB
+	global.OPTIMUS_DB = nil
+	t.Cleanup(func() { global.OPTIMUS_DB = previousDB })
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
 	ctx.Request = httptest.NewRequest(http.MethodGet, "/system/audit-logs", nil)
@@ -49,7 +54,9 @@ func TestAuditHandlerExportAuditLogsReturnsServiceUnavailableWhenServiceMissing(
 	gin.SetMode(gin.TestMode)
 	previousServices := service.ServiceGroupApp.SystemServiceGroup
 	t.Cleanup(func() { service.ServiceGroupApp.SystemServiceGroup = previousServices })
-	service.ServiceGroupApp.SystemServiceGroup.AuditService = nil
+	previousDB := global.OPTIMUS_DB
+	global.OPTIMUS_DB = nil
+	t.Cleanup(func() { global.OPTIMUS_DB = previousDB })
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
 	ctx.Request = httptest.NewRequest(http.MethodGet, "/system/audit-logs/export", nil)

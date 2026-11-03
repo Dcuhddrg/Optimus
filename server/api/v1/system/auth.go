@@ -3,6 +3,7 @@ package system
 import (
 	"errors"
 	"net/http"
+	"optimus/server/global"
 	systemRequest "optimus/server/model/system/request"
 
 	"optimus/server/model/common/response"
@@ -15,13 +16,13 @@ import (
 type AuthApi struct{}
 
 func (h *AuthApi) Login(c *gin.Context) {
-	svc := *authService
+	svc := authService
 	var req systemRequest.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.Failure(c, http.StatusBadRequest, "invalid login request")
 		return
 	}
-	if svc == nil {
+	if global.OPTIMUS_DB == nil || !svc.Ready() {
 		response.Failure(c, http.StatusServiceUnavailable, "auth service is not available")
 		return
 	}
@@ -42,7 +43,7 @@ func (h *AuthApi) Login(c *gin.Context) {
 }
 
 func (h *AuthApi) CurrentUser(c *gin.Context) {
-	svc := *authService
+	svc := authService
 	claims, ok := c.Get(utils.ClaimsContextKey)
 	if !ok {
 		response.Failure(c, http.StatusUnauthorized, "claims are required")
@@ -53,7 +54,7 @@ func (h *AuthApi) CurrentUser(c *gin.Context) {
 		response.Failure(c, http.StatusUnauthorized, "invalid claims")
 		return
 	}
-	if svc == nil {
+	if global.OPTIMUS_DB == nil || !svc.Ready() {
 		response.Failure(c, http.StatusServiceUnavailable, "auth service is not available")
 		return
 	}
@@ -68,9 +69,9 @@ func (h *AuthApi) CurrentUser(c *gin.Context) {
 }
 
 func (h *AuthApi) Logout(c *gin.Context) {
-	svc := *authService
+	svc := authService
 	claims, ok := c.Get(utils.ClaimsContextKey)
-	if ok && svc != nil {
+	if ok && global.OPTIMUS_DB != nil && svc.Ready() {
 		if customClaims, ok := claims.(*utils.CustomClaims); ok {
 			_ = svc.Logout(c.Request.Context(), customClaims.BaseClaims.ID, auditMeta(c))
 		}

@@ -15,8 +15,8 @@ import (
 type AssetApi struct{}
 
 func (h *AssetApi) ListAssets(c *gin.Context) {
-	svc := *assetService
-	if svc == nil {
+	svc := assetService
+	if !svc.Ready() {
 		writeCloudServiceUnavailable(c, "asset registry service is not available")
 		return
 	}

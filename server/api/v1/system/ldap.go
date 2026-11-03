@@ -3,6 +3,7 @@ package system
 import (
 	"errors"
 	"net/http"
+	"optimus/server/global"
 	systemRequest "optimus/server/model/system/request"
 
 	systemService "optimus/server/service/system"
@@ -13,8 +14,8 @@ import (
 type LDAPApi struct{}
 
 func (h *LDAPApi) LDAPConfig(c *gin.Context) {
-	svc := *ldapService
-	if svc == nil {
+	svc := ldapService
+	if global.OPTIMUS_DB == nil || !svc.Ready() {
 		writeServiceUnavailable(c, "ldap service is not available")
 		return
 	}
@@ -27,8 +28,8 @@ func (h *LDAPApi) LDAPConfig(c *gin.Context) {
 }
 
 func (h *LDAPApi) UpdateLDAPConfig(c *gin.Context) {
-	svc := *ldapService
-	if svc == nil {
+	svc := ldapService
+	if global.OPTIMUS_DB == nil || !svc.Ready() {
 		writeServiceUnavailable(c, "ldap service is not available")
 		return
 	}
@@ -46,8 +47,8 @@ func (h *LDAPApi) UpdateLDAPConfig(c *gin.Context) {
 }
 
 func (h *LDAPApi) TestLDAPConfig(c *gin.Context) {
-	svc := *ldapService
-	if svc == nil {
+	svc := ldapService
+	if global.OPTIMUS_DB == nil || !svc.Ready() {
 		writeServiceUnavailable(c, "ldap service is not available")
 		return
 	}

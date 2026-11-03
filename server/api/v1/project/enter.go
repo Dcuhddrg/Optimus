@@ -7,7 +7,7 @@ type ApiGroup struct {
 	MemberApi
 }
 
-// Each alias points to its service slot so startup can publish the service.
+// Aliases expose the grouped project service.
 var (
-	projectService = &service.ServiceGroupApp.ProjectServiceGroup.ProjectService
+	projectService = service.ServiceGroupApp.ProjectServiceGroup.ProjectService
 )

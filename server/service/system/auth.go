@@ -30,20 +30,21 @@ type TokenIssuer interface {
 	IssueToken(subject TokenSubject) (string, error)
 }
 
-type AuthOperations interface {
-	Login(context.Context, systemRequest.LoginRequest, AuditMeta) (systemResponse.LoginResult, error)
-	CurrentUser(context.Context, uint) (systemResponse.CurrentUserResult, error)
-	Logout(context.Context, uint, AuditMeta) error
-}
-
 type AuthService struct {
 	tokenIssuer TokenIssuer
 	ldap        LDAPAuthenticator
 	now         func() time.Time
+	initialized bool
+}
+
+// Ready reports whether the service was constructed.
+func (s *AuthService) Ready() bool {
+	return s != nil && s.initialized
 }
 
 func NewAuthService(tokenIssuer TokenIssuer, ldap LDAPAuthenticator) *AuthService {
 	return &AuthService{
+		initialized: true,
 		tokenIssuer: tokenIssuer,
 		ldap:        ldap,
 		now:         time.Now,

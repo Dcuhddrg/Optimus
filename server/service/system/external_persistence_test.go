@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 // The DSN must point to a database reserved for tests; its system tables are reset.
@@ -19,7 +20,7 @@ func openExternalPersistenceDB(t *testing.T) *gorm.DB {
 	if dsn == "" {
 		t.Skip("OPTIMUS_TEST_MYSQL_DSN is not set")
 	}
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
 	require.NoError(t, err)
 	for _, table := range []string{"sys_role_permissions", "sys_user_roles", "sys_permissions", "sys_roles", "sys_users", "sys_ldap_config", "sys_audit_logs"} {
 		require.NoError(t, db.Exec("DROP TABLE IF EXISTS `"+table+"`").Error)

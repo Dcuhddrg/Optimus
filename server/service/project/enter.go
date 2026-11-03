@@ -1,3 +1,3 @@
 package project
 
-type ServiceGroup struct{ *ProjectService }
+type ServiceGroup struct{ ProjectService }

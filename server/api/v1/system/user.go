@@ -3,6 +3,7 @@ package system
 import (
 	"errors"
 	"net/http"
+	"optimus/server/global"
 	systemRequest "optimus/server/model/system/request"
 	systemResponse "optimus/server/model/system/response"
 	"strconv"
@@ -17,8 +18,8 @@ import (
 type UserApi struct{}
 
 func (h *UserApi) Users(c *gin.Context) {
-	svc := *userService
-	if svc == nil {
+	svc := userService
+	if global.OPTIMUS_DB == nil {
 		response.Failure(c, http.StatusServiceUnavailable, "user service is not available")
 		return
 	}
@@ -31,8 +32,8 @@ func (h *UserApi) Users(c *gin.Context) {
 }
 
 func (h *UserApi) UpdateUser(c *gin.Context) {
-	svc := *userService
-	if svc == nil {
+	svc := userService
+	if global.OPTIMUS_DB == nil {
 		response.Failure(c, http.StatusServiceUnavailable, "user service is not available")
 		return
 	}
@@ -50,8 +51,8 @@ func (h *UserApi) UpdateUser(c *gin.Context) {
 }
 
 func (h *UserApi) UpdateUserStatus(c *gin.Context) {
-	svc := *userService
-	if svc == nil {
+	svc := userService
+	if global.OPTIMUS_DB == nil {
 		response.Failure(c, http.StatusServiceUnavailable, "user service is not available")
 		return
 	}
@@ -69,8 +70,8 @@ func (h *UserApi) UpdateUserStatus(c *gin.Context) {
 }
 
 func (h *UserApi) UpdateUserRoles(c *gin.Context) {
-	svc := *userService
-	if svc == nil {
+	svc := userService
+	if global.OPTIMUS_DB == nil {
 		response.Failure(c, http.StatusServiceUnavailable, "user service is not available")
 		return
 	}

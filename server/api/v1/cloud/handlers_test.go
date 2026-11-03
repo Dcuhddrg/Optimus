@@ -18,11 +18,21 @@ import (
 	"gorm.io/gorm"
 )
 
+func setCloudServicesForTest(t *testing.T, group cloudService.ServiceGroup) {
+	t.Helper()
+	previousGroup := service.ServiceGroupApp.CloudServiceGroup
+	previousAccount, previousAsset := accountService, assetService
+	t.Cleanup(func() {
+		service.ServiceGroupApp.CloudServiceGroup = previousGroup
+		accountService, assetService = previousAccount, previousAsset
+	})
+	service.ServiceGroupApp.CloudServiceGroup = group
+	RefreshServiceAliases()
+}
+
 func TestAccountHandlerListReturnsServiceUnavailableWhenNil(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	oldServices := service.ServiceGroupApp.CloudServiceGroup
-	t.Cleanup(func() { service.ServiceGroupApp.CloudServiceGroup = oldServices })
-	service.ServiceGroupApp.CloudServiceGroup = cloudService.ServiceGroup{}
+	setCloudServicesForTest(t, cloudService.ServiceGroup{})
 
 	engine := gin.New()
 	engine.GET("/cloud/accounts", (&AccountApi{}).ListAccounts)
@@ -36,9 +46,7 @@ func TestAccountHandlerListReturnsServiceUnavailableWhenNil(t *testing.T) {
 
 func TestAssetHandlerListReturnsServiceUnavailableWhenNil(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	oldServices := service.ServiceGroupApp.CloudServiceGroup
-	t.Cleanup(func() { service.ServiceGroupApp.CloudServiceGroup = oldServices })
-	service.ServiceGroupApp.CloudServiceGroup = cloudService.ServiceGroup{}
+	setCloudServicesForTest(t, cloudService.ServiceGroup{})
 
 	engine := gin.New()
 	engine.GET("/cloud/assets", (&AssetApi{}).ListAssets)
@@ -54,10 +62,7 @@ func TestAccountHandlerCreateRequiresCurrentProject(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	accountSvc, err := cloudService.NewCloudAccountService(make([]byte, 32))
 	require.NoError(t, err)
-	oldServices := service.ServiceGroupApp.CloudServiceGroup
-	t.Cleanup(func() { service.ServiceGroupApp.CloudServiceGroup = oldServices })
-	service.ServiceGroupApp.CloudServiceGroup = cloudService.ServiceGroup{}
-	service.ServiceGroupApp.CloudServiceGroup.CloudAccountService = accountSvc
+	setCloudServicesForTest(t, cloudService.ServiceGroup{CloudAccountService: *accountSvc})
 
 	engine := gin.New()
 	engine.POST("/cloud/accounts", (&AccountApi{}).CreateAccount)
@@ -91,10 +96,7 @@ func TestAccountHandlerCreateUsesCurrentProject(t *testing.T) {
 	global.OPTIMUS_DB = db
 	accountSvc, err := cloudService.NewCloudAccountService(make([]byte, 32))
 	require.NoError(t, err)
-	oldServices := service.ServiceGroupApp.CloudServiceGroup
-	t.Cleanup(func() { service.ServiceGroupApp.CloudServiceGroup = oldServices })
-	service.ServiceGroupApp.CloudServiceGroup = cloudService.ServiceGroup{}
-	service.ServiceGroupApp.CloudServiceGroup.CloudAccountService = accountSvc
+	setCloudServicesForTest(t, cloudService.ServiceGroup{CloudAccountService: *accountSvc})
 
 	engine := gin.New()
 	engine.Use(func(c *gin.Context) {

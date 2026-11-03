@@ -14,11 +14,11 @@ type RouterGroup struct {
 }
 
 var (
-	healthApi = &api.ApiGroupApp.SystemApiGroup.HealthApi
-	baseApi   = &api.ApiGroupApp.SystemApiGroup.BaseApi
-	authApi   = &api.ApiGroupApp.SystemApiGroup.AuthApi
-	userApi   = &api.ApiGroupApp.SystemApiGroup.UserApi
-	roleApi   = &api.ApiGroupApp.SystemApiGroup.RoleApi
-	ldapApi   = &api.ApiGroupApp.SystemApiGroup.LDAPApi
-	auditApi  = &api.ApiGroupApp.SystemApiGroup.AuditApi
+	healthApi = api.ApiGroupApp.SystemApiGroup.HealthApi
+	baseApi   = api.ApiGroupApp.SystemApiGroup.BaseApi
+	authApi   = api.ApiGroupApp.SystemApiGroup.AuthApi
+	userApi   = api.ApiGroupApp.SystemApiGroup.UserApi
+	roleApi   = api.ApiGroupApp.SystemApiGroup.RoleApi
+	ldapApi   = api.ApiGroupApp.SystemApiGroup.LDAPApi
+	auditApi  = api.ApiGroupApp.SystemApiGroup.AuditApi
 )

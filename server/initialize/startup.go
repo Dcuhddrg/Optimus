@@ -47,5 +47,5 @@ func Startup() {
 		logDependencyInitFailure("cloud", "backfill project scope", err)
 	}
 
-	startAuditRetentionWorker(context.Background(), service.ServiceGroupApp.SystemServiceGroup.AuditService, global.OPTIMUS_CONFIG.System.AuditLogRetentionDays)
+	startAuditRetentionWorker(context.Background(), &service.ServiceGroupApp.SystemServiceGroup.AuditService, global.OPTIMUS_CONFIG.System.AuditLogRetentionDays)
 }
