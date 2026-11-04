@@ -59,6 +59,6 @@ func newAuthServiceForTest(t testing.TB) *AuthService {
 	t.Helper()
 	saved := global.OPTIMUS_CONFIG.JWT
 	t.Cleanup(func() { global.OPTIMUS_CONFIG.JWT = saved })
-	global.OPTIMUS_CONFIG.JWT = config.JWT{SigningKey: "test-signing-key", ExpiresTime: 3600, Issuer: "optimus-test"}
+	global.OPTIMUS_CONFIG.JWT = config.JWT{SigningKey: "test-signing-key", ExpiresTime: "1h", Issuer: "optimus-test"}
 	return &AuthService{}
 }

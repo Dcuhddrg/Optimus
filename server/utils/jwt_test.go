@@ -2,6 +2,7 @@ package utils
 
 import (
 	"testing"
+	"time"
 
 	"optimus/server/config"
 	"optimus/server/global"
@@ -12,7 +13,7 @@ import (
 func TestCreateAndParseToken(t *testing.T) {
 	saved := global.OPTIMUS_CONFIG.JWT
 	t.Cleanup(func() { global.OPTIMUS_CONFIG.JWT = saved })
-	global.OPTIMUS_CONFIG.JWT = config.JWT{SigningKey: "test-signing-key", ExpiresTime: 3600, BufferTime: 300, Issuer: "optimus-test"}
+	global.OPTIMUS_CONFIG.JWT = config.JWT{SigningKey: "test-signing-key", ExpiresTime: "1h", BufferTime: "5m", Issuer: "optimus-test"}
 
 	j := NewJWT()
 	token, err := j.CreateToken(j.CreateClaims(BaseClaims{
@@ -44,4 +45,23 @@ func TestTokenRequiresSigningKey(t *testing.T) {
 	require.Error(t, err)
 	_, err = NewJWT().ParseToken("x.y.z")
 	require.Error(t, err)
+}
+
+func TestParseDurationSupportsDays(t *testing.T) {
+	for in, want := range map[string]time.Duration{"7d": 7 * 24 * time.Hour, "1d12h": 36 * time.Hour, "1h": time.Hour, "90m": 90 * time.Minute} {
+		got, err := ParseDuration(in)
+		require.NoError(t, err, in)
+		require.Equal(t, want, got, in)
+	}
+}
+
+func TestParseTokenReportsExpiry(t *testing.T) {
+	saved := global.OPTIMUS_CONFIG.JWT
+	t.Cleanup(func() { global.OPTIMUS_CONFIG.JWT = saved })
+	global.OPTIMUS_CONFIG.JWT = config.JWT{SigningKey: "k", ExpiresTime: "-1m", BufferTime: "0s"}
+	j := NewJWT()
+	token, err := j.CreateToken(j.CreateClaims(BaseClaims{ID: 1}))
+	require.NoError(t, err)
+	_, err = j.ParseToken(token)
+	require.ErrorIs(t, err, TokenExpired)
 }

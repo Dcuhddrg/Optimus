@@ -46,7 +46,7 @@ func TestRoutersAuthorizeCanonicalPermissionWithConfiguredPrefix(t *testing.T) {
 			})
 			db, _ := projectScopeRouterDB(t, "", false)
 			global.OPTIMUS_CONFIG.System.RouterPrefix = tt.prefix
-			global.OPTIMUS_CONFIG.JWT = config.JWT{SigningKey: "prefix-test-key", ExpiresTime: 3600, Issuer: "prefix-test"}
+			global.OPTIMUS_CONFIG.JWT = config.JWT{SigningKey: "prefix-test-key", ExpiresTime: "1h", Issuer: "prefix-test"}
 			setTestDatabase(t, db)
 			var permission model.SystemPermission
 			err := db.Where("method = ? AND path = ?", tt.method, tt.permissionPath).First(&permission).Error
@@ -69,7 +69,7 @@ func TestRoutersAuthorizeCanonicalPermissionWithConfiguredPrefix(t *testing.T) {
 			token, err := utils.NewJWT().CreateToken(utils.NewJWT().CreateClaims(utils.BaseClaims{ID: 1, RoleIDs: []uint{7}}))
 			require.NoError(t, err)
 			request := httptest.NewRequest(tt.method, tt.requestPath, nil)
-			request.Header.Set("Authorization", "Bearer "+token)
+			request.Header.Set("x-token", token)
 			recorder := httptest.NewRecorder()
 			Routers().ServeHTTP(recorder, request)
 			global.OPTIMUS_DB = db

@@ -36,7 +36,7 @@ func TestRealRouterReadsCurrentGroupAuthorizer(t *testing.T) {
 	saved, cfg := *service.ServiceGroupApp, global.OPTIMUS_CONFIG
 	t.Cleanup(func() { *service.ServiceGroupApp = saved; global.OPTIMUS_CONFIG = cfg })
 	global.OPTIMUS_CONFIG.System.RouterPrefix = "/api/v1"
-	global.OPTIMUS_CONFIG.JWT = config.JWT{SigningKey: "group-contract-key", ExpiresTime: 3600, Issuer: "group-contract"}
+	global.OPTIMUS_CONFIG.JWT = config.JWT{SigningKey: "group-contract-key", ExpiresTime: "1h", Issuer: "group-contract"}
 	db, _ := projectScopeRouterDB(t, "", true)
 	setTestDatabase(t, db)
 	var permission systemModel.SystemPermission
@@ -50,7 +50,7 @@ func TestRealRouterReadsCurrentGroupAuthorizer(t *testing.T) {
 			require.NoError(t, db.Where("role_id = ? AND permission_id = ?", 1, permission.ID).Delete(&systemModel.SystemRolePermission{}).Error)
 		}
 		req := httptest.NewRequest("GET", "/api/v1/system/permissions/tree", nil)
-		req.Header.Set("Authorization", "Bearer "+token)
+		req.Header.Set("x-token", token)
 		w := httptest.NewRecorder()
 		Routers().ServeHTTP(w, req)
 		require.Equal(t, 200, w.Code)
@@ -68,12 +68,12 @@ func TestMissingDatabaseAuthorizerPreservesRecoveryStatus(t *testing.T) {
 	saved, cfg := *service.ServiceGroupApp, global.OPTIMUS_CONFIG
 	t.Cleanup(func() { *service.ServiceGroupApp = saved; global.OPTIMUS_CONFIG = cfg })
 	global.OPTIMUS_CONFIG.System.RouterPrefix = "/api/v1"
-	global.OPTIMUS_CONFIG.JWT = config.JWT{SigningKey: "missing-db-contract", ExpiresTime: 3600, Issuer: "missing-db-contract"}
+	global.OPTIMUS_CONFIG.JWT = config.JWT{SigningKey: "missing-db-contract", ExpiresTime: "1h", Issuer: "missing-db-contract"}
 	setTestDatabase(t, nil)
 	token, err := utils.NewJWT().CreateToken(utils.NewJWT().CreateClaims(utils.BaseClaims{ID: 1, RoleIDs: []uint{1}}))
 	require.NoError(t, err)
 	req := httptest.NewRequest("GET", "/api/v1/system/permissions/tree", nil)
-	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("x-token", token)
 	w := httptest.NewRecorder()
 	Routers().ServeHTTP(w, req)
 	require.Equal(t, 500, w.Code)

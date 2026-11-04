@@ -26,8 +26,8 @@ redis:
   db: 0
 jwt:
   signing-key: optimus
-  expires-time: 86400
-  buffer-time: 3600
+  expires-time: 7d
+  buffer-time: 1d
   issuer: optimus
 casbin:
   enable: false

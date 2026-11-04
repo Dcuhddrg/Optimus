@@ -33,7 +33,7 @@ describe('audit queries and CSV downloads', () => {
     const [path, options] = fetcher.mock.calls[0]; const url = new URL(path, 'http://test');
     expect(url.pathname).toBe('/api/v1/system/audit-logs/export');
     expect(Object.fromEntries(url.searchParams)).toEqual({ result: 'success' });
-    expect(options.headers.get('Authorization')).toBe('Bearer test-token');
+    expect(options.headers.get('x-token')).toBe('test-token');
     expect(options.headers.get('Accept')).toBe('text/csv');
   });
 

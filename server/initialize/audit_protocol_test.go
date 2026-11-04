@@ -28,7 +28,7 @@ func TestAuditProtocolThroughRealRouter(t *testing.T) {
 			})
 			db, _ := projectScopeRouterDB(t, "", true)
 			global.OPTIMUS_CONFIG.System.RouterPrefix = prefix
-			global.OPTIMUS_CONFIG.JWT = config.JWT{SigningKey: "protocol-test-key", ExpiresTime: 3600, Issuer: "protocol-test"}
+			global.OPTIMUS_CONFIG.JWT = config.JWT{SigningKey: "protocol-test-key", ExpiresTime: "1h", Issuer: "protocol-test"}
 			setTestDatabase(t, db)
 			for _, path := range []string{"/api/v1/system/audit-logs", "/api/v1/system/audit-logs/export"} {
 				permission := model.SystemPermission{Code: path, Name: path, Type: "api", Method: "GET", Path: path}
@@ -61,7 +61,7 @@ func TestAuditProtocolThroughRealRouter(t *testing.T) {
 				w := httptest.NewRecorder()
 				req := httptest.NewRequest("GET", base+path, nil)
 				if credential != "" {
-					req.Header.Set("Authorization", "Bearer "+credential)
+					req.Header.Set("x-token", credential)
 				}
 				Routers().ServeHTTP(w, req)
 				global.OPTIMUS_DB = db

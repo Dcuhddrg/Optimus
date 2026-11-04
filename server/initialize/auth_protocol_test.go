@@ -15,7 +15,7 @@ func TestAuthProtocolErrors(t *testing.T) {
 		expected           string
 	}{
 		{"POST", "/system/auth/login", "{", 200, `{"code":7,"data":{},"msg":"invalid login request"}`},
-		{"GET", "/system/auth/me", "", 401, `{"code":7,"data":null,"msg":"authorization header is required"}`},
+		{"GET", "/system/auth/me", "", 401, `{"code":7,"data":null,"msg":"not logged in or invalid access"}`},
 	} {
 		w := httptest.NewRecorder()
 		req := httptest.NewRequest(tc.method, "/api/v1"+tc.path, strings.NewReader(tc.body))

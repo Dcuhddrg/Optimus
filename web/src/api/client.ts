@@ -64,7 +64,7 @@ async function requestResponse(path: string, options: RequestOptions, accept: st
 
   const token = auth === 'required' ? getStoredToken() : null;
   if (token) {
-    headers.set('Authorization', `Bearer ${token}`);
+    headers.set('x-token', token);
   }
   if (currentProjectCode) {
     headers.set('X-Project-Code', currentProjectCode);
@@ -75,6 +75,13 @@ async function requestResponse(path: string, options: RequestOptions, accept: st
     response = await fetch(`/api/v1${path}`, { ...requestOptions, headers });
   } catch {
     throw new ApiError('Unable to reach the server', undefined, 'network');
+  }
+
+  // As GVA: the server refreshes a token inside its buffer window and returns it in
+  // the new-token header. Only the token this request sent may be replaced.
+  const newToken = response.headers.get('new-token');
+  if (newToken && token && token === getStoredToken()) {
+    setStoredToken(newToken);
   }
 
   // A cancelled request or a response for an older token cannot expire the current session.

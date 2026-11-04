@@ -80,7 +80,7 @@ func TestRegisteredRoutesAndUnauthenticatedContracts(t *testing.T) {
 						return
 					}
 					require.Equal(t, 401, w.Code)
-					require.JSONEq(t, `{"code":7,"data":null,"msg":"authorization header is required"}`, w.Body.String())
+					require.JSONEq(t, `{"code":7,"data":null,"msg":"not logged in or invalid access"}`, w.Body.String())
 				})
 			}
 		})

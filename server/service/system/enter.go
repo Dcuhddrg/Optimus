@@ -8,5 +8,6 @@ type ServiceGroup struct {
 	LDAPService
 	AuditService
 	RBACService
+	JwtService
 	Service
 }
