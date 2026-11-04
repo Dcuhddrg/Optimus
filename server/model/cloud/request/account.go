@@ -1,5 +1,10 @@
 package request
 
+// AccountSearch is the query for GET /cloud/accounts.
+type AccountSearch struct {
+	Tags []string `form:"tag"`
+}
+
 // CreateAccountRequest is the body for POST /cloud/accounts.
 type CreateAccountRequest struct {
 	Name           string            `json:"name" binding:"required"`

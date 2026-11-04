@@ -5,7 +5,9 @@ import "github.com/gin-gonic/gin"
 type AuthRouter struct{}
 
 func (r *AuthRouter) InitAuthRouter(publicGroup, privateGroup *gin.RouterGroup) {
-	publicGroup.POST("/system/auth/login", authApi.Login)
-	privateGroup.GET("/system/auth/me", authApi.CurrentUser)
-	privateGroup.POST("/system/auth/logout", authApi.Logout)
+	publicAuthRouter := publicGroup.Group("system/auth")
+	privateAuthRouter := privateGroup.Group("system/auth")
+	publicAuthRouter.POST("login", authApi.Login)
+	privateAuthRouter.GET("me", authApi.CurrentUser)
+	privateAuthRouter.POST("logout", authApi.Logout)
 }
