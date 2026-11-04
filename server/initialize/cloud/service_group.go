@@ -16,24 +16,17 @@ func NewServiceGroup(db *gorm.DB, cfg config.Config) cloudService.ServiceGroup {
 	}
 
 	encKey := []byte(cfg.Cloud.CredentialEncryptionKey)
-	if len(encKey) != 32 {
+	accountSvc, err := cloudService.NewCloudAccountService(encKey)
+	if err != nil {
 		if logger, ok := global.OPTIMUS_LOG.(*zap.Logger); ok && logger != nil {
-			logger.Warn("cloud credential encryption key is not 32 bytes; using zero-padded fallback — set cloud.credential-encryption-key in config before storing credentials",
-				zap.Int("configured_len", len(encKey)))
+			logger.Error("cloud credential encryption key is invalid; cloud services are unavailable",
+				zap.Int("configured_len", len(encKey)), zap.Error(err))
 		}
-		padded := make([]byte, 32)
-		copy(padded, encKey)
-		encKey = padded
+		return cloudService.ServiceGroup{}
 	}
 
 	registry := cloudService.NewSyncerRegistry()
 	registry.Register("aliyun", aliyun.NewECSSyncer())
-
-	accountSvc, err := cloudService.NewCloudAccountService(encKey)
-	if err != nil {
-		// Key was padded to 32 bytes above, so this should never happen
-		return cloudService.ServiceGroup{}
-	}
 	assetSvc := cloudService.NewAssetRegistryService(accountSvc, registry)
 
 	return cloudService.ServiceGroup{
