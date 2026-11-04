@@ -1,24 +1,27 @@
-package system_test
+package system
 
 import (
 	"context"
-	systemRequest "optimus/server/model/system/request"
+	"encoding/json"
 	"testing"
 
+	"optimus/server/global"
 	systemModel "optimus/server/model/system"
-	systemService "optimus/server/service/system"
+	systemRequest "optimus/server/model/system/request"
 
 	"github.com/stretchr/testify/require"
+	gormmysql "gorm.io/driver/mysql"
+	"gorm.io/gorm"
 )
 
 func TestRoleServiceCreateRoleWritesAudit(t *testing.T) {
-	db := openExternalPersistenceDB(t)
-	service := &systemService.RoleService{}
+	db := openTestDB(t)
+	service := &RoleService{}
 
 	role, err := service.CreateRole(context.Background(), 1, systemRequest.RoleRequest{
 		Code: "ops",
 		Name: "Operations",
-	}, systemService.AuditMeta{})
+	}, AuditMeta{})
 
 	require.NoError(t, err)
 	require.Equal(t, "ops", role.Code)
@@ -26,57 +29,86 @@ func TestRoleServiceCreateRoleWritesAudit(t *testing.T) {
 	require.NoError(t, db.Where("action = ?", "role.create").First(&audit).Error)
 }
 
-type fakeRoleStore struct {
-	roles             []systemModel.SystemRole
-	permissionsByCode map[string]systemModel.SystemPermission
-	audits            []systemService.AuditEvent
-	savedPermIDs      []uint
-}
-
 // Preserve existing fixture compatibility with the new read-only snapshot contract.
-func (s *fakeRoleStore) PermissionCodesForRole(_ context.Context, _ uint) ([]string, error) {
-	return nil, nil
+
+func TestRoleServiceDatabaseReplaceRolePermissions(t *testing.T) {
+	db := openTestDB(t)
+
+	role := systemModel.SystemRole{Code: "editor", Name: "Editor", Status: defaultRoleStatus}
+	require.NoError(t, db.Create(&role).Error)
+
+	p1 := systemModel.SystemPermission{Code: "content.create", Name: "Create Content", Type: "api"}
+	p2 := systemModel.SystemPermission{Code: "content.delete", Name: "Delete Content", Type: "api"}
+	require.NoError(t, db.Create(&[]systemModel.SystemPermission{p1, p2}).Error)
+	require.NoError(t, db.Where("code = ?", "content.create").First(&p1).Error)
+	require.NoError(t, db.Where("code = ?", "content.delete").First(&p2).Error)
+
+	store := (&RoleService{})
+
+	require.NoError(t, store.replaceRolePermissions(context.Background(), role.ID, []uint{p1.ID}))
+	var rps []systemModel.SystemRolePermission
+	require.NoError(t, db.Where("role_id = ?", role.ID).Find(&rps).Error)
+	require.Len(t, rps, 1)
+
+	require.NoError(t, store.replaceRolePermissions(context.Background(), role.ID, []uint{p1.ID, p2.ID}))
+	require.NoError(t, db.Where("role_id = ?", role.ID).Find(&rps).Error)
+	require.Len(t, rps, 2)
 }
 
-func (s *fakeRoleStore) ListRoles(_ context.Context) ([]systemModel.SystemRole, error) {
-	return s.roles, nil
+func TestProtectedAdminRoleAudit(t *testing.T) {
+	db := openTestDB(t)
+	require.NoError(t, db.Create(&systemModel.SystemRole{OPTIMUS_MODEL: global.OPTIMUS_MODEL{ID: 3}, Code: "admin", Name: "admin", Status: "enabled"}).Error)
+	err := (&RoleService{}).UpdateRolePermissions(context.Background(), 1, 3, []string{"read"}, AuditMeta{})
+	require.ErrorIs(t, err, ErrProtectedAdminRole)
+	var audit systemModel.SystemAuditLog
+	require.NoError(t, db.Last(&audit).Error)
+	require.Equal(t, "failure", audit.Result)
+	require.Contains(t, audit.Detail, "admin_role_protected")
 }
 
-func (s *fakeRoleStore) FindRoleByID(_ context.Context, id uint) (systemModel.SystemRole, error) {
-	for _, r := range s.roles {
-		if r.ID == id {
-			return r, nil
-		}
-	}
-	return systemModel.SystemRole{}, systemService.ErrRoleNotFound
+func TestRolePermissionAuditUsesPersistedCodes(t *testing.T) {
+	db := openTestDB(t)
+	role := systemModel.SystemRole{OPTIMUS_MODEL: global.OPTIMUS_MODEL{ID: 3}, Code: "ops", Name: "ops", Status: "enabled"}
+	read := systemModel.SystemPermission{Code: "read", Name: "read", Type: "api"}
+	write := systemModel.SystemPermission{Code: "write", Name: "write", Type: "api"}
+	require.NoError(t, db.Create(&role).Error)
+	require.NoError(t, db.Create(&read).Error)
+	require.NoError(t, db.Create(&write).Error)
+	require.NoError(t, db.Create(&systemModel.SystemRolePermission{RoleID: role.ID, PermissionID: read.ID}).Error)
+	require.NoError(t, (&RoleService{}).UpdateRolePermissions(context.Background(), 1, 3, []string{"write", "not-a-real-code"}, AuditMeta{}))
+	var audit systemModel.SystemAuditLog
+	require.NoError(t, db.Last(&audit).Error)
+	var detail map[string]any
+	require.NoError(t, json.Unmarshal([]byte(audit.Detail), &detail))
+	require.Equal(t, float64(1), detail["version"])
+	changes := detail["changes"].(map[string]any)["permissionCodes"].(map[string]any)
+	require.Equal(t, []any{"write"}, changes["after"])
+	require.Equal(t, []any{"write"}, changes["added"])
+	require.Equal(t, []any{"read"}, changes["removed"])
 }
 
-func (s *fakeRoleStore) CreateRole(_ context.Context, role systemModel.SystemRole) (systemModel.SystemRole, error) {
-	role.ID = 100
-	s.roles = append(s.roles, role)
-	return role, nil
-}
+func TestRoleServiceQueriesStartupDatabase(t *testing.T) {
+	db, err := gorm.Open(gormmysql.New(gormmysql.Config{
+		DSN:                       "unused:unused@tcp(127.0.0.1:3306)/unused",
+		SkipInitializeWithVersion: true,
+	}), &gorm.Config{DryRun: true, DisableAutomaticPing: true})
+	require.NoError(t, err)
+	sqlDB, err := db.DB()
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, sqlDB.Close()) })
+	oldDB := global.OPTIMUS_DB
+	t.Cleanup(func() { global.OPTIMUS_DB = oldDB })
+	global.OPTIMUS_DB = db
 
-func (s *fakeRoleStore) UpdateRole(_ context.Context, role systemModel.SystemRole) (systemModel.SystemRole, error) {
-	return role, nil
-}
+	var query string
+	require.NoError(t, db.Callback().Query().After("gorm:query").Register("test:capture", func(tx *gorm.DB) {
+		query = tx.Statement.SQL.String()
+	}))
 
-func (s *fakeRoleStore) PermissionsByCodes(_ context.Context, codes []string) ([]systemModel.SystemPermission, error) {
-	var perms []systemModel.SystemPermission
-	for _, code := range codes {
-		if p, ok := s.permissionsByCode[code]; ok {
-			perms = append(perms, p)
-		}
-	}
-	return perms, nil
-}
-
-func (s *fakeRoleStore) ReplaceRolePermissions(_ context.Context, _ uint, permIDs []uint) error {
-	s.savedPermIDs = permIDs
-	return nil
-}
-
-func (s *fakeRoleStore) WriteAudit(_ context.Context, event systemService.AuditEvent) error {
-	s.audits = append(s.audits, event)
-	return nil
+	require.NotPanics(t, func() {
+		_, err := (&RoleService{}).ListRoles(context.Background())
+		require.NoError(t, err)
+	})
+	require.Contains(t, query, "sys_roles")
+	require.Contains(t, query, "ORDER BY id ASC")
 }

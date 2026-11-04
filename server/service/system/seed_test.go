@@ -1,15 +1,12 @@
 package system
 
 import (
-	"os"
 	"testing"
 
 	systemModel "optimus/server/model/system"
 	"optimus/server/utils"
 
 	"github.com/stretchr/testify/require"
-	gormmysql "gorm.io/driver/mysql"
-	"gorm.io/gorm"
 )
 
 func TestDefaultSystemRolesAndPermissions(t *testing.T) {
@@ -25,7 +22,7 @@ func TestDefaultSystemRolesAndPermissions(t *testing.T) {
 }
 
 func TestSeedSystemDataCreatesAdminRolePermissionsAndUserMySQL(t *testing.T) {
-	db := openSeedTestDB(t)
+	db := resetTestDB(t)
 
 	require.NoError(t, AutoMigrateSystem(db))
 	require.NoError(t, SeedSystemData(db, "admin-secret"))
@@ -46,7 +43,7 @@ func TestSeedSystemDataCreatesAdminRolePermissionsAndUserMySQL(t *testing.T) {
 }
 
 func TestSeedSystemDataIsIdempotentMySQL(t *testing.T) {
-	db := openSeedTestDB(t)
+	db := resetTestDB(t)
 
 	require.NoError(t, AutoMigrateSystem(db))
 	require.NoError(t, SeedSystemData(db, "admin-secret"))
@@ -65,7 +62,7 @@ func TestSeedSystemDataIsIdempotentMySQL(t *testing.T) {
 }
 
 func TestSeedSystemDataDoesNotOverwriteRolePermissionEditsMySQL(t *testing.T) {
-	db := openSeedTestDB(t)
+	db := resetTestDB(t)
 
 	require.NoError(t, AutoMigrateSystem(db))
 	require.NoError(t, SeedSystemData(db, "admin-secret"))
@@ -80,28 +77,6 @@ func TestSeedSystemDataDoesNotOverwriteRolePermissionEditsMySQL(t *testing.T) {
 		Where("role_id = ?", userRole.ID).
 		Count(&rolePermissionCount).Error)
 	require.Equal(t, int64(0), rolePermissionCount)
-}
-
-func openSeedTestDB(t *testing.T) *gorm.DB {
-	t.Helper()
-
-	dsn := os.Getenv("OPTIMUS_TEST_MYSQL_DSN")
-	if dsn == "" {
-		t.Skip("OPTIMUS_TEST_MYSQL_DSN is not set")
-	}
-
-	db, err := gorm.Open(gormmysql.Open(dsn), &gorm.Config{})
-	require.NoError(t, err)
-
-	require.NoError(t, db.Exec("DROP TABLE IF EXISTS sys_role_permissions").Error)
-	require.NoError(t, db.Exec("DROP TABLE IF EXISTS sys_user_roles").Error)
-	require.NoError(t, db.Exec("DROP TABLE IF EXISTS sys_permissions").Error)
-	require.NoError(t, db.Exec("DROP TABLE IF EXISTS sys_roles").Error)
-	require.NoError(t, db.Exec("DROP TABLE IF EXISTS sys_users").Error)
-	require.NoError(t, db.Exec("DROP TABLE IF EXISTS sys_ldap_config").Error)
-	require.NoError(t, db.Exec("DROP TABLE IF EXISTS sys_audit_logs").Error)
-
-	return db
 }
 
 func roleCodes(roles []systemModel.SystemRole) []string {

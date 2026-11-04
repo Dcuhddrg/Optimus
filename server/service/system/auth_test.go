@@ -1,15 +1,14 @@
-package system_test
+package system
 
 import (
 	"context"
+	"encoding/json"
+	"strings"
 	"testing"
-	"time"
 
-	"optimus/server/config"
 	"optimus/server/global"
 	systemModel "optimus/server/model/system"
 	systemRequest "optimus/server/model/system/request"
-	systemService "optimus/server/service/system"
 	"optimus/server/utils"
 
 	"github.com/stretchr/testify/require"
@@ -18,7 +17,7 @@ import (
 func TestAuthServiceLoginAdminSuccess(t *testing.T) {
 	passwordHash, err := hashTestPassword("admin-secret")
 	require.NoError(t, err)
-	db := openExternalPersistenceDB(t)
+	db := openTestDB(t)
 	user := systemModel.SystemUser{
 		OPTIMUS_MODEL: global.OPTIMUS_MODEL{ID: 1},
 		UUID:          "admin-uuid",
@@ -29,12 +28,12 @@ func TestAuthServiceLoginAdminSuccess(t *testing.T) {
 		PasswordHash:  passwordHash,
 	}
 	require.NoError(t, db.Create(&user).Error)
-	service := systemService.NewAuthServiceForTest(t)
+	service := newAuthServiceForTest(t)
 
 	result, err := service.Login(context.Background(), systemRequest.LoginRequest{
 		Username: "admin",
 		Password: "admin-secret",
-	}, systemService.AuditMeta{IP: "127.0.0.1", UserAgent: "test"})
+	}, AuditMeta{IP: "127.0.0.1", UserAgent: "test"})
 
 	require.NoError(t, err)
 	require.NotEmpty(t, result.Token)
@@ -43,74 +42,98 @@ func TestAuthServiceLoginAdminSuccess(t *testing.T) {
 
 // --- fakes ---
 
-type fakeAuthStore struct {
-	user             systemModel.SystemUser
-	roles            []systemModel.SystemRoleSummary
-	menuPermissions  []string
-	audits           []systemService.AuditEvent
-	lastLoginUpdated bool
-	ldapConfig       systemModel.SystemLDAPConfig
-}
-
-func newFakeAuthStore(user systemModel.SystemUser) *fakeAuthStore {
-	return &fakeAuthStore{
-		user: user,
-		roles: []systemModel.SystemRoleSummary{
-			{ID: 1, Code: "admin", Name: "Administrator"},
-		},
-		menuPermissions: []string{"dashboard.view", "system.users.menu"},
-	}
-}
-
-func (s *fakeAuthStore) FindUserByUsername(_ context.Context, username string) (systemModel.SystemUser, error) {
-	if username != s.user.Username {
-		return systemModel.SystemUser{}, systemService.ErrInvalidCredentials
-	}
-	return s.user, nil
-}
-
-func (s *fakeAuthStore) FindUserByID(_ context.Context, id uint) (systemModel.SystemUser, error) {
-	if id != s.user.ID {
-		return systemModel.SystemUser{}, systemService.ErrUserNotFound
-	}
-	return s.user, nil
-}
-
-func (s *fakeAuthStore) RolesForUser(_ context.Context, _ uint) ([]systemModel.SystemRoleSummary, error) {
-	return s.roles, nil
-}
-
-func (s *fakeAuthStore) MenuPermissionCodesForRoles(_ context.Context, _ []uint) ([]string, error) {
-	return s.menuPermissions, nil
-}
-
-func (s *fakeAuthStore) UpdateLastLogin(_ context.Context, _ uint, _ time.Time) error {
-	s.lastLoginUpdated = true
-	return nil
-}
-
-func (s *fakeAuthStore) WriteAudit(_ context.Context, event systemService.AuditEvent) error {
-	s.audits = append(s.audits, event)
-	return nil
-}
-
-func (s *fakeAuthStore) GetLDAPConfig(_ context.Context) (systemModel.SystemLDAPConfig, error) {
-	return s.ldapConfig, nil
-}
-
-func (s *fakeAuthStore) SyncLDAPUser(_ context.Context, user systemService.LDAPUser) (systemModel.SystemUser, error) {
-	return systemModel.SystemUser{}, nil
-}
-
 func hashTestPassword(password string) (string, error) {
 	return utils.BcryptHash(password)
 }
 
-func testAuthJWTConfig() config.JWT {
-	return config.JWT{
-		SigningKey:  "auth-test-signing-key",
-		ExpiresTime: 3600,
-		BufferTime:  300,
-		Issuer:      "optimus-test",
+func TestMenuPermissionCodesForRolesOrdersDistinctCodes(t *testing.T) {
+	db := openTestDB(t)
+
+	adminRole := systemModel.SystemRole{Code: "admin", Name: "Administrator", Status: defaultRoleStatus}
+	opsRole := systemModel.SystemRole{Code: "ops", Name: "Ops", Status: defaultRoleStatus}
+	require.NoError(t, db.Create(&[]systemModel.SystemRole{adminRole, opsRole}).Error)
+	require.NoError(t, db.Where("code = ?", "admin").First(&adminRole).Error)
+	require.NoError(t, db.Where("code = ?", "ops").First(&opsRole).Error)
+
+	first := systemModel.SystemPermission{Code: "system.users.menu", Name: "Users", Type: "menu", Sort: 20}
+	second := systemModel.SystemPermission{Code: "dashboard.view", Name: "Dashboard", Type: "menu", Sort: 10}
+	apiPerm := systemModel.SystemPermission{Code: "system.users.view", Name: "Users API", Type: "api", Sort: 5}
+	require.NoError(t, db.Create(&[]systemModel.SystemPermission{first, second, apiPerm}).Error)
+
+	var permissions []systemModel.SystemPermission
+	require.NoError(t, db.Find(&permissions).Error)
+	for _, p := range permissions {
+		require.NoError(t, db.Create(&systemModel.SystemRolePermission{RoleID: adminRole.ID, PermissionID: p.ID}).Error)
+		require.NoError(t, db.Create(&systemModel.SystemRolePermission{RoleID: opsRole.ID, PermissionID: p.ID}).Error)
 	}
+
+	codes, err := (&AuthService{}).menuPermissionCodesForRoles(context.Background(), []uint{adminRole.ID, opsRole.ID})
+
+	require.NoError(t, err)
+	require.Equal(t, []string{"dashboard.view", "system.users.menu"}, codes)
+}
+
+func TestAuthServiceDatabaseSyncLDAPUserCreatesDefaultRole(t *testing.T) {
+	db := openTestDB(t)
+
+	userRole := systemModel.SystemRole{Code: "user", Name: "User", Status: defaultRoleStatus}
+	require.NoError(t, db.Create(&userRole).Error)
+
+	store := (&AuthService{})
+	user, err := store.syncLDAPUser(context.Background(), LDAPUser{
+		Username:    "alice",
+		DisplayName: "Alice",
+		Email:       "alice@example.com",
+	})
+
+	require.NoError(t, err)
+	require.Equal(t, "alice", user.Username)
+	require.Equal(t, "ldap", user.Source)
+
+	var userRoles []systemModel.SystemUserRole
+	require.NoError(t, db.Where("user_id = ?", user.ID).Find(&userRoles).Error)
+	require.Len(t, userRoles, 1)
+	require.Equal(t, userRole.ID, userRoles[0].RoleID)
+}
+
+func TestFailedLoginAuditUsesUnverifiedAttempt(t *testing.T) {
+	db := openTestDB(t)
+	svc := (&AuthService{})
+	_, err := svc.Login(context.Background(), systemRequest.LoginRequest{Username: "unknown\naccount", Password: "PASSWORD_SECRET"}, AuditMeta{})
+	require.ErrorIs(t, err, ErrInvalidCredentials)
+	var audit systemModel.SystemAuditLog
+	require.NoError(t, db.Last(&audit).Error)
+	require.Zero(t, audit.ActorUserID)
+	require.Empty(t, audit.ActorUsername)
+	require.Empty(t, audit.ResourceID)
+	require.NotContains(t, audit.Detail, "PASSWORD_SECRET")
+	var detail map[string]any
+	require.NoError(t, json.Unmarshal([]byte(audit.Detail), &detail))
+	require.Equal(t, float64(1), detail["version"])
+	require.Equal(t, "unknown account", detail["attemptedUsername"])
+}
+
+func TestDisabledLoginAuditDoesNotClaimActor(t *testing.T) {
+	db := openTestDB(t)
+	require.NoError(t, db.Create(&systemModel.SystemUser{OPTIMUS_MODEL: global.OPTIMUS_MODEL{ID: 7}, UUID: "test-user", Username: "admin", Source: "local", Status: "disabled"}).Error)
+	_, err := (&AuthService{}).Login(context.Background(), systemRequest.LoginRequest{Username: "admin", Password: "PASSWORD_SECRET"}, AuditMeta{})
+	require.ErrorIs(t, err, ErrUserDisabled)
+	var audit systemModel.SystemAuditLog
+	require.NoError(t, db.Last(&audit).Error)
+	require.Zero(t, audit.ActorUserID)
+	require.Empty(t, audit.ActorUsername)
+	var detail map[string]any
+	require.NoError(t, json.Unmarshal([]byte(audit.Detail), &detail))
+	require.Equal(t, float64(7), detail["targetUserId"])
+}
+
+func TestFailedLoginAuditBoundsAttempt(t *testing.T) {
+	db := openTestDB(t)
+	_, err := (&AuthService{}).Login(context.Background(), systemRequest.LoginRequest{Username: strings.Repeat("界", 300)}, AuditMeta{})
+	require.ErrorIs(t, err, ErrInvalidCredentials)
+	var audit systemModel.SystemAuditLog
+	require.NoError(t, db.Last(&audit).Error)
+	var detail map[string]any
+	require.NoError(t, json.Unmarshal([]byte(audit.Detail), &detail))
+	require.LessOrEqual(t, len([]rune(detail["attemptedUsername"].(string))), 128)
 }
