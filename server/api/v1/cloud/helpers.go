@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	cloudRequest "optimus/server/model/cloud/request"
 	cloudService "optimus/server/service/cloud"
 	"optimus/server/utils"
 
@@ -32,7 +33,11 @@ func writeCloudError(c *gin.Context, err error, fallback string) {
 }
 
 func parseTagFilters(c *gin.Context) ([]cloudService.TagFilter, error) {
-	return parseTagFilterTokens(c.QueryArray("tag"))
+	var query cloudRequest.AccountSearch
+	if err := c.ShouldBindQuery(&query); err != nil {
+		return nil, err
+	}
+	return parseTagFilterTokens(query.Tags)
 }
 
 func parseTagFilterTokens(tokens []string) ([]cloudService.TagFilter, error) {
