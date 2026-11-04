@@ -92,7 +92,7 @@ describe('session recovery through real requests and route guard', () => {
 
   it('renders recovery errors and retry in Chinese', async () => {
     localStorage.setItem('optimus.locale', 'zh-CN');
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('{}', { status: 403 })));
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ code: 7, data: {}, msg: 'permission denied' }), { headers: { 'Content-Type': 'application/json' } })));
     await mount();
     expect(container.textContent).toContain('无法访问当前用户信息');
     expect(container.querySelector('button')?.textContent).toBe('重试');

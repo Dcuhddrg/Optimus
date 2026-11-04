@@ -98,7 +98,7 @@ describe('audit log page', () => {
   });
 
   it('reports an export permission failure without discarding the list', async () => {
-    await mount(); fetcher.mockImplementationOnce(() => Promise.resolve(new Response('{}', { status: 403 })));
+    await mount(); fetcher.mockImplementationOnce(() => Promise.resolve(new Response(JSON.stringify({ code: 7, data: {}, msg: 'permission denied' }), { headers: { 'Content-Type': 'application/json' } })));
     await click('Export CSV'); expect(container.textContent).toContain('You do not have permission to export'); expect(container.textContent).toContain('alice');
   });
 

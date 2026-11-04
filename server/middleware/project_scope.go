@@ -2,8 +2,8 @@ package middleware
 
 import (
 	"context"
-	"net/http"
 
+	"optimus/server/model/common/response"
 	"optimus/server/utils"
 
 	"github.com/gin-gonic/gin"
@@ -35,7 +35,8 @@ func ProjectScope(resolver ProjectScopeResolver) gin.HandlerFunc {
 
 		accessible, err := resolver.ListAccessibleProjectIDs(c.Request.Context(), claims.BaseClaims.ID)
 		if err != nil {
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "failed to resolve project scope"})
+			response.FailWithMessage("failed to resolve project scope", c)
+			c.Abort()
 			return
 		}
 
@@ -49,25 +50,30 @@ func ProjectScope(resolver ProjectScopeResolver) gin.HandlerFunc {
 
 		projectID, exists, err := resolver.ResolveProjectByCode(c.Request.Context(), code)
 		if err != nil {
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "failed to resolve project"})
+			response.FailWithMessage("failed to resolve project", c)
+			c.Abort()
 			return
 		}
 		if !exists {
-			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "project not found"})
+			response.FailWithMessage("project not found", c)
+			c.Abort()
 			return
 		}
 		if !containsUint(accessible, projectID) {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"message": "no access to project"})
+			response.FailWithMessage("no access to project", c)
+			c.Abort()
 			return
 		}
 
 		role, exists, err := resolver.GetMemberRole(c.Request.Context(), claims.BaseClaims.ID, projectID)
 		if err != nil {
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "failed to resolve project role"})
+			response.FailWithMessage("failed to resolve project role", c)
+			c.Abort()
 			return
 		}
 		if !exists {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"message": "no access to project"})
+			response.FailWithMessage("no access to project", c)
+			c.Abort()
 			return
 		}
 

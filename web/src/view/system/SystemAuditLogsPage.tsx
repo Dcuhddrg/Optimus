@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { ApiError } from '../../api/client';
+import { ApiError, isPermissionDenied } from '../../api/client';
 import { exportAuditLogs, listAuditLogs } from '../../api/system';
 import { AUDIT_ACTION_CODES, getAuditActionLabel, getAuditResourceTypeLabel, getAuditResultLabel } from '../../locale/systemLabels';
 import { useI18n } from '../../locale/useI18n';
@@ -80,7 +80,7 @@ export function SystemAuditLogsPage() {
         link.remove(); URL.revokeObjectURL(url);
       }
     } catch (error) {
-      if (!controller.signal.aborted) setExportError(error instanceof ApiError && error.status === 403 ? 'exportForbidden' : 'exportFailed');
+      if (!controller.signal.aborted) setExportError(isPermissionDenied(error) ? 'exportForbidden' : 'exportFailed');
     } finally {
       if (!controller.signal.aborted) setExporting(false);
     }

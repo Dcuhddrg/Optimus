@@ -80,12 +80,12 @@ func TestAuditProtocolThroughRealRouter(t *testing.T) {
 			require.NoError(t, db.Where("method = ? AND path = ?", "GET", "/api/v1/system/audit-logs").First(&permission).Error)
 			require.NoError(t, db.Where("role_id = ? AND permission_id = ?", 1, permission.ID).Delete(&model.SystemRolePermission{}).Error)
 			w := request("/system/audit-logs", token)
-			require.Equal(t, 403, w.Code)
+			require.Equal(t, 200, w.Code) // GVA permission denial
 			require.JSONEq(t, `{"code":7,"data":{},"msg":"permission denied"}`, w.Body.String())
 			require.NoError(t, db.Create(&model.SystemRolePermission{RoleID: 1, PermissionID: permission.ID}).Error)
 			w = request("/system/audit-logs?page=2&pageSize=50&result=failure", token)
 			require.Equal(t, 200, w.Code)
-			require.JSONEq(t, `{"code":0,"data":{"list":[],"total":42,"page":2,"pageSize":50},"msg":"success"}`, w.Body.String())
+			require.JSONEq(t, `{"code":0,"data":{"list":[],"total":42,"page":2,"pageSize":50},"msg":"成功"}`, w.Body.String())
 			w = request("/system/audit-logs/export", token)
 			require.Equal(t, 200, w.Code)
 			require.Contains(t, w.Header().Get("Content-Type"), "text/csv")
@@ -93,14 +93,14 @@ func TestAuditProtocolThroughRealRouter(t *testing.T) {
 			require.NotContains(t, w.Body.String(), `"code"`)
 			failAudit = true
 			w = request("/system/audit-logs", token)
-			require.Equal(t, 500, w.Code)
+			require.Equal(t, 200, w.Code)
 			require.JSONEq(t, `{"code":7,"data":{},"msg":"failed to query audit logs"}`, w.Body.String())
 			w = request("/system/audit-logs/export", token)
-			require.Equal(t, 500, w.Code)
+			require.Equal(t, 200, w.Code)
 			require.JSONEq(t, `{"code":7,"data":{},"msg":"failed to export audit logs"}`, w.Body.String())
 			failAudit, missing = false, true
 			w = request("/system/audit-logs", token)
-			require.Equal(t, 503, w.Code)
+			require.Equal(t, 200, w.Code)
 			require.JSONEq(t, `{"code":7,"data":{},"msg":"audit service is not available"}`, w.Body.String())
 			missing = false
 			w = request("/system/auth/me", "")

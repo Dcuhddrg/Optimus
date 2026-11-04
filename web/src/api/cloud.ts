@@ -1,4 +1,4 @@
-import { apiRequestEnvelope } from './client';
+import { apiRequest } from './client';
 import type {
   CloudAccount,
   CloudAssetFilters,
@@ -36,33 +36,33 @@ function buildAssetQuery(filters: CloudAssetFilters): string {
 }
 
 export function listCloudAccounts(tagFilters: string[] = []) {
-  return apiRequestEnvelope<CloudList<CloudAccount>>(`/cloud/accounts${buildTagQuery(tagFilters)}`);
+  return apiRequest<CloudList<CloudAccount>>(`/cloud/accounts${buildTagQuery(tagFilters)}`);
 }
 
 export function createCloudAccount(payload: CreateCloudAccountPayload) {
-  return apiRequestEnvelope<CloudAccount>('/cloud/accounts', {
+  return apiRequest<CloudAccount>('/cloud/accounts', {
     method: 'POST',
     body: JSON.stringify(payload),
   });
 }
 
 export function deleteCloudAccount(id: number) {
-  return apiRequestEnvelope<Record<string, never>>(`/cloud/accounts/${id}`, { method: 'DELETE' });
+  return apiRequest<Record<string, never>>(`/cloud/accounts/${id}`, { method: 'DELETE' });
 }
 
 export function syncCloudAccount(id: number) {
-  return apiRequestEnvelope<{ upserted: number; errors: number }>(`/cloud/accounts/${id}/sync`, {
+  return apiRequest<{ upserted: number; errors: number }>(`/cloud/accounts/${id}/sync`, {
     method: 'POST',
   });
 }
 
 export function updateCloudAccountTags(id: number, payload: UpdateCloudAccountTagsPayload) {
-  return apiRequestEnvelope<CloudAccount>(`/cloud/accounts/${id}/tags`, {
+  return apiRequest<CloudAccount>(`/cloud/accounts/${id}/tags`, {
     method: 'PUT',
     body: JSON.stringify(payload),
   });
 }
 
 export function listCloudAssets(filters: CloudAssetFilters = {}) {
-  return apiRequestEnvelope<CloudAssetPage>(`/cloud/assets${buildAssetQuery(filters)}`);
+  return apiRequest<CloudAssetPage>(`/cloud/assets${buildAssetQuery(filters)}`);
 }

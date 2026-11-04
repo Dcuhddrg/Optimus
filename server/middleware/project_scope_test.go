@@ -104,7 +104,7 @@ func TestProjectScopeValidHeaderSetsCurrentProject(t *testing.T) {
 	require.Contains(t, rec.Body.String(), "\"CurrentProjectRole\":\"owner\"")
 }
 
-func TestProjectScopeUnknownCodeReturns404(t *testing.T) {
+func TestProjectScopeUnknownCodeFails(t *testing.T) {
 	r := setupProjectScopeRouter(&fakeProjectScopeResolver{
 		accessible: map[uint][]uint{42: []uint{7}},
 	}, true)
@@ -114,10 +114,11 @@ func TestProjectScopeUnknownCodeReturns404(t *testing.T) {
 	req.Header.Set("X-Project-Code", "missing")
 	r.ServeHTTP(rec, req)
 
-	require.Equal(t, http.StatusNotFound, rec.Code)
+	require.Equal(t, http.StatusOK, rec.Code)
+	require.Contains(t, rec.Body.String(), `"code":7`)
 }
 
-func TestProjectScopeInaccessibleCodeReturns403(t *testing.T) {
+func TestProjectScopeInaccessibleCodeFails(t *testing.T) {
 	resolver := &fakeProjectScopeResolver{
 		accessible: map[uint][]uint{42: []uint{8}},
 		codes:      map[string]uint{"prod": 7},
@@ -130,14 +131,16 @@ func TestProjectScopeInaccessibleCodeReturns403(t *testing.T) {
 	req.Header.Set("X-Project-Code", "prod")
 	r.ServeHTTP(rec, req)
 
-	require.Equal(t, http.StatusForbidden, rec.Code)
+	require.Equal(t, http.StatusOK, rec.Code)
+	require.Contains(t, rec.Body.String(), `"code":7`)
 }
 
-func TestProjectScopeResolverErrorReturns500(t *testing.T) {
+func TestProjectScopeResolverErrorFails(t *testing.T) {
 	r := setupProjectScopeRouter(erroringProjectScopeResolver{}, true)
 
 	rec := httptest.NewRecorder()
 	r.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
 
-	require.Equal(t, http.StatusInternalServerError, rec.Code)
+	require.Equal(t, http.StatusOK, rec.Code)
+	require.Contains(t, rec.Body.String(), `"code":7`)
 }

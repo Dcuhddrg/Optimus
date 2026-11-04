@@ -1,12 +1,14 @@
 package initialize
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"optimus/server/config"
 	"optimus/server/global"
+	"optimus/server/model/common/response"
 	model "optimus/server/model/system"
 	"optimus/server/service"
 	"optimus/server/utils"
@@ -21,15 +23,18 @@ import (
 func TestRoutersAuthorizeCanonicalPermissionWithConfiguredPrefix(t *testing.T) {
 	for _, tt := range []struct {
 		name, prefix, requestPath, permissionPath, method string
-		status                                            int
+		// GVA: authorized requests are HTTP 200; dropDB makes the handler report
+		// its service unavailable as a business failure (code 7).
+		code   int
+		dropDB bool
 	}{
-		{"empty", "", "/api/v1/system/permissions/tree", "/api/v1/system/permissions/tree", http.MethodGet, http.StatusOK},
-		{"default", "/api/v1", "/api/v1/system/permissions/tree", "/api/v1/system/permissions/tree", http.MethodGet, http.StatusOK},
-		{"custom", "/custom", "/custom/system/permissions/tree", "/api/v1/system/permissions/tree", http.MethodGet, http.StatusOK},
-		{"without leading slash", "custom", "/custom/system/permissions/tree", "/api/v1/system/permissions/tree", http.MethodGet, http.StatusOK},
-		{"root", "/", "/system/permissions/tree", "/api/v1/system/permissions/tree", http.MethodGet, http.StatusOK},
-		{"trailing slash", "/custom/", "/custom/system/permissions/tree", "/api/v1/system/permissions/tree", http.MethodGet, http.StatusOK},
-		{"parameter route", "/custom", "/custom/system/users/42", "/api/v1/system/users/:id", http.MethodPut, http.StatusServiceUnavailable},
+		{"empty", "", "/api/v1/system/permissions/tree", "/api/v1/system/permissions/tree", http.MethodGet, response.SUCCESS, false},
+		{"default", "/api/v1", "/api/v1/system/permissions/tree", "/api/v1/system/permissions/tree", http.MethodGet, response.SUCCESS, false},
+		{"custom", "/custom", "/custom/system/permissions/tree", "/api/v1/system/permissions/tree", http.MethodGet, response.SUCCESS, false},
+		{"without leading slash", "custom", "/custom/system/permissions/tree", "/api/v1/system/permissions/tree", http.MethodGet, response.SUCCESS, false},
+		{"root", "/", "/system/permissions/tree", "/api/v1/system/permissions/tree", http.MethodGet, response.SUCCESS, false},
+		{"trailing slash", "/custom/", "/custom/system/permissions/tree", "/api/v1/system/permissions/tree", http.MethodGet, response.SUCCESS, false},
+		{"parameter route", "/custom", "/custom/system/users/42", "/api/v1/system/users/:id", http.MethodPut, response.ERROR, true},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			gin.SetMode(gin.TestMode)
@@ -57,7 +62,7 @@ func TestRoutersAuthorizeCanonicalPermissionWithConfiguredPrefix(t *testing.T) {
 				if tx.Statement.Table == "sys_permissions" {
 					seenArgs = append([]any(nil), tx.Statement.Vars...)
 				}
-				if tt.status == http.StatusServiceUnavailable && tx.Statement.Table == "sys_role_permissions" && tx.Error == nil {
+				if tt.dropDB && tx.Statement.Table == "sys_role_permissions" && tx.Error == nil {
 					global.OPTIMUS_DB = nil
 				}
 			}))
@@ -70,7 +75,10 @@ func TestRoutersAuthorizeCanonicalPermissionWithConfiguredPrefix(t *testing.T) {
 			global.OPTIMUS_DB = db
 			require.Contains(t, seenArgs, tt.permissionPath)
 			require.Contains(t, seenArgs, tt.method)
-			require.Equal(t, tt.status, recorder.Code)
+			require.Equal(t, http.StatusOK, recorder.Code)
+			var body response.Response
+			require.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &body), recorder.Body.String())
+			require.Equal(t, tt.code, body.Code, recorder.Body.String())
 		})
 	}
 }

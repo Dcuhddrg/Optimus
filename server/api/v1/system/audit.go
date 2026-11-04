@@ -32,11 +32,8 @@ type AuditApi struct{}
 // @Param startTime query string false "Start time in RFC3339"
 // @Param endTime query string false "End time in RFC3339"
 // @Param keyword query string false "Recorded detail keyword"
-// @Success 200 {object} response.Envelope{data=systemResponse.AuditListData}
-// @Failure 401 {object} response.Envelope
-// @Failure 403 {object} response.Envelope
-// @Failure 500 {object} response.Envelope
-// @Failure 503 {object} response.Envelope
+// @Success 200 {object} response.Response{data=systemResponse.AuditListData}
+// @Failure 401 {object} response.Response
 // @Router /system/audit-logs [get]
 func (h *AuditApi) QueryAuditLogs(c *gin.Context) {
 	svc := auditService
@@ -69,10 +66,7 @@ func (h *AuditApi) QueryAuditLogs(c *gin.Context) {
 // @Param endTime query string false "End time in RFC3339"
 // @Param keyword query string false "Recorded detail keyword"
 // @Success 200 {string} string "CSV attachment"
-// @Failure 401 {object} response.Envelope
-// @Failure 403 {object} response.Envelope
-// @Failure 500 {object} response.Envelope
-// @Failure 503 {object} response.Envelope
+// @Failure 401 {object} response.Response
 // @Router /system/audit-logs/export [get]
 func (h *AuditApi) ExportAuditLogs(c *gin.Context) {
 	svc := auditService

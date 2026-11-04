@@ -27,7 +27,7 @@ Router -> API -> Service -> Model
 - 数据库查询和事务归对应职责 Service，生产路径使用 `global.OPTIMUS_DB` 或当前事务句柄。需要替换的测试依赖与外部客户端可以使用接口，启动装配不创建平行 Store 实现。
 - 外部 SDK、协议适配和公共能力按职责迁入明确的模块或插件位置，每项给出旧路径、新路径、调用者与测试映射；避免仅给旧层改名后保留平行体系。
 - 同批调整 API 导入、服务构造、`enter.go`、初始化注入和测试。必要接口可保留用于解耦与测试，不能成为旧包长期存在的豁免理由。
-- 结构调整保持已有接口返回、HTTP 状态、权限和项目隔离行为；响应协议改造由 #18 独立实施。
+- 结构调整保持已有接口返回、权限和项目隔离行为；响应协议照 GVA，见[接口契约](../frontend-backend/boundary.md#4-响应协议与-http-语义)。
 - 结构调整须清除临时兼容入口，并按影响范围验证构建和隔离 MySQL 回归；进度与剩余差异在 GitHub 跟进。
 
 现行决定及替代关系见 [ADR-002](../memory/long-term/decisions/ADR-002-backend-structure-migration.md)，迁移结果及验证依据见 [结构迁移 #11](https://github.com/Dcuhddrg/Optimus/issues/11)。
