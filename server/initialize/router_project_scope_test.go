@@ -1,6 +1,7 @@
 package initialize
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -9,6 +10,7 @@ import (
 
 	"optimus/server/config"
 	"optimus/server/global"
+	"optimus/server/model/common/response"
 	projectModel "optimus/server/model/project"
 	systemModel "optimus/server/model/system"
 	"optimus/server/service"
@@ -90,25 +92,25 @@ func newScopeTestRouter(t *testing.T, scenario string, allowed bool) (*gin.Engin
 
 func TestRoutersLimitProjectScopeToCloudResources(t *testing.T) {
 	for _, tc := range []struct {
-		name, scenario                           string
-		projectStatus, cloudStatus, detailStatus int
+		name, scenario string
+		// GVA: every business result is HTTP 200; code 0 succeeds, code 7 fails.
+		projectCode, cloudCode, detailCode int
+		checkDetail                        bool
 	}{
-		{"deleted selected project", "missing", http.StatusOK, http.StatusNotFound, http.StatusNotFound},
-		{"inaccessible selected project", "inaccessible", http.StatusOK, http.StatusForbidden, http.StatusForbidden},
-		{"removed selected project membership", "removed", http.StatusOK, http.StatusForbidden, http.StatusForbidden},
-		{"project resolver unavailable", "unavailable", http.StatusInternalServerError, http.StatusInternalServerError, 0},
+		{"deleted selected project", "missing", response.SUCCESS, response.ERROR, response.ERROR, true},
+		{"inaccessible selected project", "inaccessible", response.SUCCESS, response.ERROR, response.ERROR, true},
+		{"removed selected project membership", "removed", response.SUCCESS, response.ERROR, response.ERROR, true},
+		{"project resolver unavailable", "unavailable", response.ERROR, response.ERROR, 0, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			engine, token, calls := newScopeTestRouter(t, tc.scenario, true)
-			routes := []struct {
-				path   string
-				status int
-			}{{"/api/v1/system/permissions/tree", http.StatusOK}, {"/api/v1/projects", tc.projectStatus}, {"/api/v1/cloud/accounts", tc.cloudStatus}}
-			if tc.detailStatus != 0 {
-				routes = append(routes, struct {
-					path   string
-					status int
-				}{"/api/v1/projects/stale", tc.detailStatus})
+			type route struct {
+				path string
+				code int
+			}
+			routes := []route{{"/api/v1/system/permissions/tree", response.SUCCESS}, {"/api/v1/projects", tc.projectCode}, {"/api/v1/cloud/accounts", tc.cloudCode}}
+			if tc.checkDetail {
+				routes = append(routes, route{"/api/v1/projects/stale", tc.detailCode})
 			}
 			for _, route := range routes {
 				t.Run(route.path, func(t *testing.T) {
@@ -118,7 +120,10 @@ func TestRoutersLimitProjectScopeToCloudResources(t *testing.T) {
 					req.Header.Set("X-Project-Code", "stale")
 					recorder := httptest.NewRecorder()
 					engine.ServeHTTP(recorder, req)
-					require.Equal(t, route.status, recorder.Code, recorder.Body.String())
+					require.Equal(t, http.StatusOK, recorder.Code, recorder.Body.String())
+					var body response.Response
+					require.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &body), recorder.Body.String())
+					require.Equal(t, route.code, body.Code, recorder.Body.String())
 					if route.path == "/api/v1/system/permissions/tree" {
 						require.Equal(t, before, *calls, "system route must not resolve project scope")
 					}
@@ -134,14 +139,15 @@ func TestRoutersKeepAuthenticationBeforeProjectScope(t *testing.T) {
 			engine, token, calls := newScopeTestRouter(t, "unavailable", allowed)
 			req := httptest.NewRequest(http.MethodGet, "/api/v1/cloud/accounts", nil)
 			req.Header.Set("X-Project-Code", "stale")
-			want := http.StatusUnauthorized
+			want := http.StatusUnauthorized // GVA NoAuth
 			if !allowed {
 				req.Header.Set("Authorization", "Bearer "+token)
-				want = http.StatusForbidden
+				want = http.StatusOK // GVA permission denial: HTTP 200, code 7
 			}
 			recorder := httptest.NewRecorder()
 			engine.ServeHTTP(recorder, req)
 			require.Equal(t, want, recorder.Code)
+			require.Contains(t, recorder.Body.String(), `"code":7`)
 			require.Zero(t, *calls)
 		})
 	}

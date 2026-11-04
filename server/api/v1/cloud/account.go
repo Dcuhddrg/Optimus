@@ -1,8 +1,8 @@
 package cloud
 
 import (
-	"net/http"
 	cloudRequest "optimus/server/model/cloud/request"
+	"optimus/server/model/common/response"
 
 	"github.com/gin-gonic/gin"
 )
@@ -27,7 +27,7 @@ func (h *AccountApi) ListAccounts(c *gin.Context) {
 		writeCloudError(c, err, "failed to list cloud accounts")
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"items": views, "total": len(views)})
+	response.OkWithData(gin.H{"list": views}, c)
 }
 
 func (h *AccountApi) GetAccount(c *gin.Context) {
@@ -46,7 +46,7 @@ func (h *AccountApi) GetAccount(c *gin.Context) {
 		writeCloudError(c, err, "failed to get cloud account")
 		return
 	}
-	c.JSON(http.StatusOK, view)
+	response.OkWithData(view, c)
 }
 
 func (h *AccountApi) CreateAccount(c *gin.Context) {
@@ -57,12 +57,12 @@ func (h *AccountApi) CreateAccount(c *gin.Context) {
 	}
 	scope := projectScope(c)
 	if scope.CurrentProjectID == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "X-Project-Code header is required to create a cloud account"})
+		response.FailWithMessage("X-Project-Code header is required to create a cloud account", c)
 		return
 	}
 	var req cloudRequest.CreateAccountRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid request body"})
+		response.FailWithMessage("invalid request body", c)
 		return
 	}
 	view, err := svc.Create(c.Request.Context(), scope.CurrentProjectID, req)
@@ -70,7 +70,7 @@ func (h *AccountApi) CreateAccount(c *gin.Context) {
 		writeCloudError(c, err, "failed to create cloud account")
 		return
 	}
-	c.JSON(http.StatusCreated, view)
+	response.OkWithData(view, c)
 }
 
 func (h *AccountApi) UpdateAccount(c *gin.Context) {
@@ -85,7 +85,7 @@ func (h *AccountApi) UpdateAccount(c *gin.Context) {
 	}
 	var req cloudRequest.UpdateAccountRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid request body"})
+		response.FailWithMessage("invalid request body", c)
 		return
 	}
 	scope := projectScope(c)
@@ -94,7 +94,7 @@ func (h *AccountApi) UpdateAccount(c *gin.Context) {
 		writeCloudError(c, err, "failed to update cloud account")
 		return
 	}
-	c.JSON(http.StatusOK, view)
+	response.OkWithData(view, c)
 }
 
 func (h *AccountApi) UpdateAccountTags(c *gin.Context) {
@@ -109,7 +109,7 @@ func (h *AccountApi) UpdateAccountTags(c *gin.Context) {
 	}
 	var req cloudRequest.UpdateAccountTagsRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid tags payload"})
+		response.FailWithMessage("invalid tags payload", c)
 		return
 	}
 	scope := projectScope(c)
@@ -118,7 +118,7 @@ func (h *AccountApi) UpdateAccountTags(c *gin.Context) {
 		writeCloudError(c, err, "failed to update cloud account tags")
 		return
 	}
-	c.JSON(http.StatusOK, view)
+	response.OkWithData(view, c)
 }
 
 func (h *AccountApi) DeleteAccount(c *gin.Context) {
@@ -136,7 +136,7 @@ func (h *AccountApi) DeleteAccount(c *gin.Context) {
 		writeCloudError(c, err, "failed to delete cloud account")
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "cloud account deleted"})
+	response.Ok(c)
 }
 
 func (h *AccountApi) SyncAccount(c *gin.Context) {
@@ -155,5 +155,5 @@ func (h *AccountApi) SyncAccount(c *gin.Context) {
 		writeCloudError(c, err, "sync failed")
 		return
 	}
-	c.JSON(http.StatusOK, result)
+	response.OkWithData(result, c)
 }

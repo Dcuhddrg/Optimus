@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"context"
-	"net/http"
 	"strings"
 
 	"optimus/server/model/common/response"
@@ -50,23 +49,27 @@ func CasbinHandler(authorizer APIAuthorizer) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		claimsValue, ok := c.Get(utils.ClaimsContextKey)
 		if !ok {
-			response.AbortFailure(c, http.StatusForbidden, "permission denied")
+			response.FailWithMessage("permission denied", c)
+			c.Abort()
 			return
 		}
 		claims, ok := claimsValue.(*utils.CustomClaims)
 		if !ok {
-			response.AbortFailure(c, http.StatusForbidden, "permission denied")
+			response.FailWithMessage("permission denied", c)
+			c.Abort()
 			return
 		}
 
 		if authorizer == nil {
-			response.AbortFailure(c, http.StatusForbidden, "permission denied")
+			response.FailWithMessage("permission denied", c)
+			c.Abort()
 			return
 		}
 
 		allowed, err := authorizer.AuthorizeAPI(c.Request.Context(), c.Request.Method, c.FullPath(), claims.BaseClaims.RoleIDs)
 		if err != nil || !allowed {
-			response.AbortFailure(c, http.StatusForbidden, "permission denied")
+			response.FailWithMessage("permission denied", c)
+			c.Abort()
 			return
 		}
 

@@ -2,8 +2,8 @@ package system
 
 import (
 	"errors"
-	"net/http"
 	"optimus/server/global"
+	"optimus/server/model/common/response"
 	systemRequest "optimus/server/model/system/request"
 
 	systemService "optimus/server/service/system"
@@ -21,10 +21,10 @@ func (h *RoleApi) Roles(c *gin.Context) {
 	}
 	roles, err := svc.ListRoles(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to list roles"})
+		response.FailWithMessage("failed to list roles", c)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"items": roles, "total": len(roles)})
+	response.OkWithData(gin.H{"list": roles, "total": len(roles)}, c)
 }
 
 func (h *RoleApi) CreateRole(c *gin.Context) {
@@ -35,7 +35,7 @@ func (h *RoleApi) CreateRole(c *gin.Context) {
 	}
 	var req systemRequest.RoleRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid role request"})
+		response.FailWithMessage("invalid role request", c)
 		return
 	}
 	role, err := svc.CreateRole(c.Request.Context(), actorID(c), req, auditMeta(c))
@@ -54,7 +54,7 @@ func (h *RoleApi) UpdateRole(c *gin.Context) {
 	}
 	var req systemRequest.RoleRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid role request"})
+		response.FailWithMessage("invalid role request", c)
 		return
 	}
 	role, err := svc.UpdateRole(c.Request.Context(), actorID(c), id, req, auditMeta(c))
@@ -73,7 +73,7 @@ func (h *RoleApi) UpdateRoleStatus(c *gin.Context) {
 	}
 	var req systemRequest.UpdateRoleStatusRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid status request"})
+		response.FailWithMessage("invalid status request", c)
 		return
 	}
 	role, err := svc.UpdateRoleStatus(c.Request.Context(), actorID(c), id, req.Status, auditMeta(c))
@@ -92,41 +92,41 @@ func (h *RoleApi) UpdateRolePermissions(c *gin.Context) {
 	}
 	var req systemRequest.UpdateRolePermissionsRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid permissions request"})
+		response.FailWithMessage("invalid permissions request", c)
 		return
 	}
 	err := svc.UpdateRolePermissions(c.Request.Context(), actorID(c), id, req.PermissionCodes, auditMeta(c))
 	if errors.Is(err, systemService.ErrRoleNotFound) {
-		c.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
+		response.FailWithMessage(err.Error(), c)
 		return
 	}
 	if errors.Is(err, systemService.ErrProtectedAdminRole) {
-		c.JSON(http.StatusForbidden, gin.H{"message": err.Error()})
+		response.FailWithMessage(err.Error(), c)
 		return
 	}
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to update role permissions"})
+		response.FailWithMessage("failed to update role permissions", c)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "role permissions updated"})
+	response.Ok(c)
 }
 
 func (h *RoleApi) PermissionTree(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"items": systemService.DefaultSystemPermissions()})
+	response.OkWithData(gin.H{"list": systemService.DefaultSystemPermissions()}, c)
 }
 
 func writeRoleServiceResult(c *gin.Context, role any, err error) {
 	if errors.Is(err, systemService.ErrRoleNotFound) {
-		c.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
+		response.FailWithMessage(err.Error(), c)
 		return
 	}
 	if errors.Is(err, systemService.ErrProtectedAdminRole) {
-		c.JSON(http.StatusForbidden, gin.H{"message": err.Error()})
+		response.FailWithMessage(err.Error(), c)
 		return
 	}
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to update role"})
+		response.FailWithMessage("failed to update role", c)
 		return
 	}
-	c.JSON(http.StatusOK, role)
+	response.OkWithData(role, c)
 }

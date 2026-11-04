@@ -53,10 +53,11 @@ func TestRealRouterReadsCurrentGroupAuthorizer(t *testing.T) {
 		req.Header.Set("Authorization", "Bearer "+token)
 		w := httptest.NewRecorder()
 		Routers().ServeHTTP(w, req)
+		require.Equal(t, 200, w.Code)
 		if allowed {
-			require.Equal(t, 200, w.Code)
+			require.Contains(t, w.Body.String(), `"code":0`)
 		} else {
-			require.Equal(t, 403, w.Code)
+			require.JSONEq(t, `{"code":7,"data":{},"msg":"permission denied"}`, w.Body.String())
 		}
 	}
 }

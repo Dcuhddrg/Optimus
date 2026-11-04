@@ -2,9 +2,9 @@ package project
 
 import (
 	"errors"
-	"net/http"
 	"strconv"
 
+	"optimus/server/model/common/response"
 	projectSvc "optimus/server/service/project"
 	"optimus/server/utils"
 
@@ -12,27 +12,27 @@ import (
 )
 
 func writeProjectServiceUnavailable(c *gin.Context) {
-	c.JSON(http.StatusServiceUnavailable, gin.H{"message": "project service is not available"})
+	response.FailWithMessage("project service is not available", c)
 }
 
 func writeProjectError(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, projectSvc.ErrProjectNotFound),
 		errors.Is(err, projectSvc.ErrMemberNotFound):
-		c.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
+		response.FailWithMessage(err.Error(), c)
 	case errors.Is(err, projectSvc.ErrProjectCodeTaken),
 		errors.Is(err, projectSvc.ErrProjectHasAccounts),
 		errors.Is(err, projectSvc.ErrCannotRemoveLastOwner):
-		c.JSON(http.StatusConflict, gin.H{"message": err.Error()})
+		response.FailWithMessage(err.Error(), c)
 	case errors.Is(err, projectSvc.ErrInvalidProjectCode),
 		errors.Is(err, projectSvc.ErrInvalidProjectName),
 		errors.Is(err, projectSvc.ErrInvalidProjectRole),
 		errors.Is(err, projectSvc.ErrUserNotFound):
-		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		response.FailWithMessage(err.Error(), c)
 	case errors.Is(err, projectSvc.ErrForbidden):
-		c.JSON(http.StatusForbidden, gin.H{"message": err.Error()})
+		response.FailWithMessage(err.Error(), c)
 	default:
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "internal error"})
+		response.FailWithMessage("internal error", c)
 	}
 }
 
@@ -51,7 +51,7 @@ func projectActorID(c *gin.Context) uint {
 func projectParseUintParam(c *gin.Context, name string) (uint, bool) {
 	n, err := strconv.ParseUint(c.Param(name), 10, 64)
 	if err != nil || n == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid " + name})
+		response.FailWithMessage("invalid "+name, c)
 		return 0, false
 	}
 	return uint(n), true

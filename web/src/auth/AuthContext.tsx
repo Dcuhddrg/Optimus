@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 
 import {
   ApiError,
+  isPermissionDenied,
   clearStoredToken,
   getStoredToken,
   setStoredToken,
@@ -78,7 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .catch((error: unknown) => {
         if (!cancelled && !controller.signal.aborted) {
           setCurrent(null);
-          setSessionError(error instanceof ApiError && error.status === 403 ? 'forbidden' : 'unavailable');
+          setSessionError(isPermissionDenied(error) ? 'forbidden' : 'unavailable');
         }
       })
       .finally(() => {

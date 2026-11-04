@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"net/http"
-	"optimus/server/model/common/response"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -15,10 +14,6 @@ func Recovery() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		if response.IsEnvelope(c) {
-			response.AbortFailure(c, http.StatusInternalServerError, "internal server error")
-		} else {
-			c.AbortWithStatus(http.StatusInternalServerError)
-		}
+		c.AbortWithStatus(http.StatusInternalServerError)
 	})
 }

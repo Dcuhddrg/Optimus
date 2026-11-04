@@ -29,7 +29,8 @@ func TestCasbinHandlerDeniesUnauthorizedRoute(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/system/users", nil)
 	engine.ServeHTTP(w, req)
 
-	require.Equal(t, http.StatusForbidden, w.Code)
+	require.Equal(t, http.StatusOK, w.Code)
+	require.Contains(t, w.Body.String(), `"code":7`)
 }
 
 func TestCasbinHandlerDeniesMissingClaims(t *testing.T) {
@@ -43,7 +44,8 @@ func TestCasbinHandlerDeniesMissingClaims(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/system/users", nil)
 	engine.ServeHTTP(w, req)
 
-	require.Equal(t, http.StatusForbidden, w.Code)
+	require.Equal(t, http.StatusOK, w.Code)
+	require.Contains(t, w.Body.String(), `"code":7`)
 }
 
 func TestCasbinHandlerUsesInjectedAuthorizer(t *testing.T) {
@@ -115,10 +117,10 @@ func TestCasbinHandlerWithPrefixMapsOnlyMatchingRoutePrefix(t *testing.T) {
 		{"custom", "/custom", "/custom/system/users/:id", "/custom/system/users/42", "/api/v1/system/users/:id", http.StatusOK, 1},
 		{"trailing slash", "/custom/", "/custom/system/users/:id", "/custom/system/users/42", "/api/v1/system/users/:id", http.StatusOK, 1},
 		{"root", "/", "/system/users/:id", "/system/users/42", "/api/v1/system/users/:id", http.StatusOK, 1},
-		{"prefix boundary", "/custom", "/customized/system/users/:id", "/customized/system/users/42", "", http.StatusForbidden, 0},
-		{"unrelated prefix", "/custom", "/other/system/users/:id", "/other/system/users/42", "", http.StatusForbidden, 0},
-		{"missing prefix", "", "/custom/system/users/:id", "/custom/system/users/42", "", http.StatusForbidden, 0},
-		{"unknown permission", "/custom", "/custom/system/unknown", "/custom/system/unknown", "/api/v1/system/unknown", http.StatusForbidden, 1},
+		{"prefix boundary", "/custom", "/customized/system/users/:id", "/customized/system/users/42", "", http.StatusOK, 0},
+		{"unrelated prefix", "/custom", "/other/system/users/:id", "/other/system/users/42", "", http.StatusOK, 0},
+		{"missing prefix", "", "/custom/system/users/:id", "/custom/system/users/42", "", http.StatusOK, 0},
+		{"unknown permission", "/custom", "/custom/system/unknown", "/custom/system/unknown", "/api/v1/system/unknown", http.StatusOK, 1},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			gin.SetMode(gin.TestMode)
@@ -146,6 +148,7 @@ func TestCasbinHandlerWithPrefixDeniesUnmatchedRoute(t *testing.T) {
 	engine.Use(seedRBACClaims(), CasbinHandlerWithPrefix(authorizer, "/", "/api/v1"))
 	recorder := httptest.NewRecorder()
 	engine.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/missing", nil))
-	require.Equal(t, http.StatusForbidden, recorder.Code)
+	require.Equal(t, http.StatusOK, recorder.Code)
+	require.Contains(t, recorder.Body.String(), `"code":7`)
 	require.Zero(t, authorizer.calls)
 }

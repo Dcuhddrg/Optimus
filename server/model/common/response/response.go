@@ -1,59 +1,57 @@
-// Package response provides explicit HTTP responses for migrated routes.
+// Package response is GVA's common response protocol: every business result is
+// HTTP 200 with {code,data,msg}; code 0 succeeds and code 7 fails. Only an
+// unauthenticated request (NoAuth) uses HTTP 401.
 package response
 
 import (
-	"github.com/gin-gonic/gin"
 	"net/http"
-	"strings"
+
+	"github.com/gin-gonic/gin"
 )
 
-const envelopeKey = "optimus.response.envelope"
-
-type Envelope struct {
+type Response struct {
 	Code int    `json:"code"`
 	Data any    `json:"data"`
 	Msg  string `json:"msg"`
 }
-type Route struct{ Method, Path string }
 
-// EnvelopeForRoutes marks only the registered method+FullPath pairs, before authentication.
-// It never intercepts or wraps a response and does not negotiate from a client header.
-func EnvelopeForRoutes(prefix string, routes []Route) gin.HandlerFunc {
-	paths := make(map[string]struct{}, len(routes))
-	base := strings.TrimRight(prefix, "/")
-	for _, r := range routes {
-		paths[r.Method+" "+base+r.Path] = struct{}{}
-	}
-	return func(c *gin.Context) {
-		if _, ok := paths[c.Request.Method+" "+c.FullPath()]; ok {
-			c.Set(envelopeKey, true)
-		}
-		c.Next()
-	}
-}
-func Success(c *gin.Context, status int, data any) {
-	if data == nil {
-		data = struct{}{}
-	}
-	c.JSON(status, Envelope{Code: 0, Data: data, Msg: "success"})
-}
-func Failure(c *gin.Context, status int, message string) {
-	var data any = struct{}{}
-	if status == http.StatusUnauthorized {
-		data = nil
-	}
-	c.JSON(status, Envelope{Code: 7, Data: data, Msg: message})
-}
-func IsEnvelope(c *gin.Context) bool {
-	migrated, _ := c.Get(envelopeKey)
-	return migrated == true
+const (
+	ERROR   = 7
+	SUCCESS = 0
+)
+
+func Result(code int, data any, msg string, c *gin.Context) {
+	c.JSON(http.StatusOK, Response{Code: code, Data: data, Msg: msg})
 }
 
-func AbortFailure(c *gin.Context, status int, message string) {
-	c.Abort()
-	if IsEnvelope(c) {
-		Failure(c, status, message)
-	} else {
-		c.JSON(status, gin.H{"message": message})
-	}
+func Ok(c *gin.Context) {
+	Result(SUCCESS, map[string]any{}, "操作成功", c)
+}
+
+func OkWithMessage(message string, c *gin.Context) {
+	Result(SUCCESS, map[string]any{}, message, c)
+}
+
+func OkWithData(data any, c *gin.Context) {
+	Result(SUCCESS, data, "成功", c)
+}
+
+func OkWithDetailed(data any, message string, c *gin.Context) {
+	Result(SUCCESS, data, message, c)
+}
+
+func Fail(c *gin.Context) {
+	Result(ERROR, map[string]any{}, "操作失败", c)
+}
+
+func FailWithMessage(message string, c *gin.Context) {
+	Result(ERROR, map[string]any{}, message, c)
+}
+
+func NoAuth(message string, c *gin.Context) {
+	c.JSON(http.StatusUnauthorized, Response{Code: ERROR, Data: nil, Msg: message})
+}
+
+func FailWithDetailed(data any, message string, c *gin.Context) {
+	Result(ERROR, data, message, c)
 }

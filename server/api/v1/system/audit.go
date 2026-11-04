@@ -2,7 +2,6 @@ package system
 
 import (
 	"encoding/csv"
-	"net/http"
 	"optimus/server/global"
 	commonRequest "optimus/server/model/common/request"
 	systemRequest "optimus/server/model/system/request"
@@ -33,28 +32,25 @@ type AuditApi struct{}
 // @Param startTime query string false "Start time in RFC3339"
 // @Param endTime query string false "End time in RFC3339"
 // @Param keyword query string false "Recorded detail keyword"
-// @Success 200 {object} response.Envelope{data=systemResponse.AuditListData}
-// @Failure 401 {object} response.Envelope
-// @Failure 403 {object} response.Envelope
-// @Failure 500 {object} response.Envelope
-// @Failure 503 {object} response.Envelope
+// @Success 200 {object} response.Response{data=systemResponse.AuditListData}
+// @Failure 401 {object} response.Response
 // @Router /system/audit-logs [get]
 func (h *AuditApi) QueryAuditLogs(c *gin.Context) {
 	svc := auditService
 	if global.OPTIMUS_DB == nil {
-		response.Failure(c, http.StatusServiceUnavailable, "audit service is not available")
+		response.FailWithMessage("audit service is not available", c)
 		return
 	}
 	result, err := svc.QueryLogs(c.Request.Context(), parseAuditFilter(c))
 	if err != nil {
-		response.Failure(c, http.StatusInternalServerError, "failed to query audit logs")
+		response.FailWithMessage("failed to query audit logs", c)
 		return
 	}
 	list := result.Items
 	if list == nil {
 		list = make([]systemModel.AuditLogEntry, 0)
 	}
-	response.Success(c, http.StatusOK, systemResponse.AuditListData{List: list, Total: result.Total, Page: result.Page, PageSize: result.PageSize})
+	response.OkWithData(systemResponse.AuditListData{List: list, Total: result.Total, Page: result.Page, PageSize: result.PageSize}, c)
 }
 
 // ExportAuditLogs retains CSV success and uses migrated JSON failures.
@@ -70,20 +66,17 @@ func (h *AuditApi) QueryAuditLogs(c *gin.Context) {
 // @Param endTime query string false "End time in RFC3339"
 // @Param keyword query string false "Recorded detail keyword"
 // @Success 200 {string} string "CSV attachment"
-// @Failure 401 {object} response.Envelope
-// @Failure 403 {object} response.Envelope
-// @Failure 500 {object} response.Envelope
-// @Failure 503 {object} response.Envelope
+// @Failure 401 {object} response.Response
 // @Router /system/audit-logs/export [get]
 func (h *AuditApi) ExportAuditLogs(c *gin.Context) {
 	svc := auditService
 	if global.OPTIMUS_DB == nil {
-		response.Failure(c, http.StatusServiceUnavailable, "audit service is not available")
+		response.FailWithMessage("audit service is not available", c)
 		return
 	}
 	entries, err := svc.ExportLogs(c.Request.Context(), parseAuditFilter(c))
 	if err != nil {
-		response.Failure(c, http.StatusInternalServerError, "failed to export audit logs")
+		response.FailWithMessage("failed to export audit logs", c)
 		return
 	}
 

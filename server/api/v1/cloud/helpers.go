@@ -2,11 +2,11 @@ package cloud
 
 import (
 	"errors"
-	"net/http"
 	"strconv"
 
 	"optimus/server/global"
 	cloudRequest "optimus/server/model/cloud/request"
+	"optimus/server/model/common/response"
 	cloudService "optimus/server/service/cloud"
 	"optimus/server/utils"
 
@@ -24,22 +24,22 @@ func cloudReady() bool {
 }
 
 func writeCloudServiceUnavailable(c *gin.Context, message string) {
-	c.JSON(http.StatusServiceUnavailable, gin.H{"message": message})
+	response.FailWithMessage(message, c)
 }
 
 func writeCloudError(c *gin.Context, err error, fallback string) {
 	switch {
 	case errors.Is(err, cloudService.ErrAccountNotFound):
-		c.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
+		response.FailWithMessage(err.Error(), c)
 	case errors.Is(err, cloudService.ErrProviderNotRegistered):
-		c.JSON(http.StatusUnprocessableEntity, gin.H{"message": err.Error()})
+		response.FailWithMessage(err.Error(), c)
 	case errors.Is(err, cloudService.ErrInvalidTagKey),
 		errors.Is(err, cloudService.ErrInvalidTagValue),
 		errors.Is(err, cloudService.ErrTooManyTags),
 		errors.Is(err, cloudService.ErrInvalidTagFilter):
-		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		response.FailWithMessage(err.Error(), c)
 	default:
-		c.JSON(http.StatusInternalServerError, gin.H{"message": fallback})
+		response.FailWithMessage(fallback, c)
 	}
 }
 
@@ -69,7 +69,7 @@ func parseTagFilterTokens(tokens []string) ([]cloudService.TagFilter, error) {
 func parseCloudUintParam(c *gin.Context, name string) (uint, bool) {
 	n, err := strconv.ParseUint(c.Param(name), 10, 64)
 	if err != nil || n == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid " + name})
+		response.FailWithMessage("invalid "+name, c)
 		return 0, false
 	}
 	return uint(n), true

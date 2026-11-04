@@ -31,9 +31,9 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     setError(null);
     try {
       const result = await listProjects();
-      setProjects(result.items);
+	  setProjects(result.list);
       const stored = getStoredProjectCode();
-      const next = result.items.find((project) => project.code === stored) ?? result.items[0] ?? null;
+	  const next = result.list.find((project) => project.code === stored) ?? result.list[0] ?? null;
       const nextCode = next?.code ?? null;
       setCurrentCode(nextCode);
       setStoredProjectCode(nextCode);

@@ -22,13 +22,15 @@ func TestDatabaseBackedSystemAPIsAreUnavailableWithoutDatabase(t *testing.T) {
 		c.Request = httptest.NewRequest(http.MethodPost, "/system/auth/login", strings.NewReader(`{"username":"admin","password":"secret"}`))
 		c.Request.Header.Set("Content-Type", "application/json")
 		require.NotPanics(t, func() { (&AuthApi{}).Login(c) })
-		require.Equal(t, http.StatusServiceUnavailable, w.Code)
+		require.Equal(t, http.StatusOK, w.Code)
+		require.Contains(t, w.Body.String(), `"code":7`)
 	})
 	t.Run("ldap", func(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodGet, "/system/ldap/config", nil)
 		require.NotPanics(t, func() { (&LDAPApi{}).LDAPConfig(c) })
-		require.Equal(t, http.StatusServiceUnavailable, w.Code)
+		require.Equal(t, http.StatusOK, w.Code)
+		require.Contains(t, w.Body.String(), `"code":7`)
 	})
 }

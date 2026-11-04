@@ -1,7 +1,6 @@
 package initialize
 
 import (
-	"optimus/server/model/common/response"
 	"strings"
 
 	"optimus/server/global"
@@ -20,19 +19,9 @@ func Routers() *gin.Engine {
 	engine.Use(middleware.Logger(), middleware.Recovery())
 	// 公共路由
 	publicGroup := engine.Group(routerPrefix())
-	publicGroup.Use(response.EnvelopeForRoutes(publicGroup.BasePath(), []response.Route{{Method: "POST", Path: "/system/auth/login"}}))
 	// 私有路由
 	privateGroup := engine.Group(routerPrefix())
-	privateGroup.Use(response.EnvelopeForRoutes(privateGroup.BasePath(), []response.Route{
-		{Method: "GET", Path: "/system/users"},
-		{Method: "PUT", Path: "/system/users/:id"},
-		{Method: "PATCH", Path: "/system/users/:id/status"},
-		{Method: "PUT", Path: "/system/users/:id/roles"},
-		{Method: "GET", Path: "/system/auth/me"},
-		{Method: "POST", Path: "/system/auth/logout"},
-		{Method: "GET", Path: "/system/audit-logs"},
-		{Method: "GET", Path: "/system/audit-logs/export"},
-	}), middleware.JWTAuth(), middleware.CasbinHandlerWithPrefix(
+	privateGroup.Use(middleware.JWTAuth(), middleware.CasbinHandlerWithPrefix(
 		&service.ServiceGroupApp.SystemServiceGroup.RBACService, privateGroup.BasePath(), defaultRouterPrefix,
 	))
 	cloudGroup := privateGroup.Group("")

@@ -6,7 +6,8 @@ import type {
   CreateCloudAccountPayload,
   UpdateCloudAccountTagsPayload,
 } from '../types/cloud';
-import type { ListResponse } from '../types/system';
+
+type CloudList<T> = { list: T[] };
 
 function buildTagQuery(tags: string[]): string {
   if (tags.length === 0) {
@@ -35,7 +36,7 @@ function buildAssetQuery(filters: CloudAssetFilters): string {
 }
 
 export function listCloudAccounts(tagFilters: string[] = []) {
-  return apiRequest<ListResponse<CloudAccount>>(`/cloud/accounts${buildTagQuery(tagFilters)}`);
+  return apiRequest<CloudList<CloudAccount>>(`/cloud/accounts${buildTagQuery(tagFilters)}`);
 }
 
 export function createCloudAccount(payload: CreateCloudAccountPayload) {
@@ -46,7 +47,7 @@ export function createCloudAccount(payload: CreateCloudAccountPayload) {
 }
 
 export function deleteCloudAccount(id: number) {
-  return apiRequest<{ message: string }>(`/cloud/accounts/${id}`, { method: 'DELETE' });
+  return apiRequest<Record<string, never>>(`/cloud/accounts/${id}`, { method: 'DELETE' });
 }
 
 export function syncCloudAccount(id: number) {

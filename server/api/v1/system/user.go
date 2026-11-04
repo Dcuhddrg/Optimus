@@ -2,7 +2,6 @@ package system
 
 import (
 	"errors"
-	"net/http"
 	"optimus/server/global"
 	systemRequest "optimus/server/model/system/request"
 	systemResponse "optimus/server/model/system/response"
@@ -20,21 +19,21 @@ type UserApi struct{}
 func (h *UserApi) Users(c *gin.Context) {
 	svc := userService
 	if global.OPTIMUS_DB == nil {
-		response.Failure(c, http.StatusServiceUnavailable, "user service is not available")
+		response.FailWithMessage("user service is not available", c)
 		return
 	}
 	result, err := svc.ListUsers(c.Request.Context())
 	if err != nil {
-		response.Failure(c, http.StatusInternalServerError, "failed to list users")
+		response.FailWithMessage("failed to list users", c)
 		return
 	}
-	response.Success(c, http.StatusOK, gin.H{"list": result.Items, "total": result.Total})
+	response.OkWithData(gin.H{"list": result.Items, "total": result.Total}, c)
 }
 
 func (h *UserApi) UpdateUser(c *gin.Context) {
 	svc := userService
 	if global.OPTIMUS_DB == nil {
-		response.Failure(c, http.StatusServiceUnavailable, "user service is not available")
+		response.FailWithMessage("user service is not available", c)
 		return
 	}
 	id, ok := parseUintParam(c, "id")
@@ -43,7 +42,7 @@ func (h *UserApi) UpdateUser(c *gin.Context) {
 	}
 	var req systemRequest.UpdateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.Failure(c, http.StatusBadRequest, "invalid user request")
+		response.FailWithMessage("invalid user request", c)
 		return
 	}
 	user, err := svc.UpdateUser(c.Request.Context(), actorID(c), id, req, auditMeta(c))
@@ -53,7 +52,7 @@ func (h *UserApi) UpdateUser(c *gin.Context) {
 func (h *UserApi) UpdateUserStatus(c *gin.Context) {
 	svc := userService
 	if global.OPTIMUS_DB == nil {
-		response.Failure(c, http.StatusServiceUnavailable, "user service is not available")
+		response.FailWithMessage("user service is not available", c)
 		return
 	}
 	id, ok := parseUintParam(c, "id")
@@ -62,7 +61,7 @@ func (h *UserApi) UpdateUserStatus(c *gin.Context) {
 	}
 	var req systemRequest.UpdateUserStatusRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.Failure(c, http.StatusBadRequest, "invalid status request")
+		response.FailWithMessage("invalid status request", c)
 		return
 	}
 	user, err := svc.UpdateUserStatus(c.Request.Context(), actorID(c), id, req.Status, auditMeta(c))
@@ -72,7 +71,7 @@ func (h *UserApi) UpdateUserStatus(c *gin.Context) {
 func (h *UserApi) UpdateUserRoles(c *gin.Context) {
 	svc := userService
 	if global.OPTIMUS_DB == nil {
-		response.Failure(c, http.StatusServiceUnavailable, "user service is not available")
+		response.FailWithMessage("user service is not available", c)
 		return
 	}
 	id, ok := parseUintParam(c, "id")
@@ -81,29 +80,25 @@ func (h *UserApi) UpdateUserRoles(c *gin.Context) {
 	}
 	var req systemRequest.UpdateUserRolesRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.Failure(c, http.StatusBadRequest, "invalid role request")
+		response.FailWithMessage("invalid role request", c)
 		return
 	}
 	err := svc.UpdateUserRoles(c.Request.Context(), actorID(c), id, req.RoleIDs, auditMeta(c))
 	if errors.Is(err, systemService.ErrLastAdminCapableUser) {
-		response.Failure(c, http.StatusForbidden, err.Error())
+		response.FailWithMessage(err.Error(), c)
 		return
 	}
 	if err != nil {
-		response.Failure(c, http.StatusInternalServerError, "failed to update user roles")
+		response.FailWithMessage("failed to update user roles", c)
 		return
 	}
-	response.Success(c, http.StatusOK, nil)
+	response.Ok(c)
 }
 
 func parseUintParam(c *gin.Context, name string) (uint, bool) {
 	value, err := strconv.ParseUint(c.Param(name), 10, 64)
 	if err != nil || value == 0 {
-		if response.IsEnvelope(c) {
-			response.Failure(c, http.StatusBadRequest, "invalid id")
-		} else {
-			c.JSON(http.StatusBadRequest, gin.H{"message": "invalid id"})
-		}
+		response.FailWithMessage("invalid id", c)
 		return 0, false
 	}
 	return uint(value), true
@@ -133,16 +128,16 @@ func auditMeta(c *gin.Context) systemService.AuditMeta {
 
 func writeUserServiceResult(c *gin.Context, user systemResponse.SystemUserSummary, err error) {
 	if errors.Is(err, systemService.ErrUserNotFound) {
-		response.Failure(c, http.StatusNotFound, err.Error())
+		response.FailWithMessage(err.Error(), c)
 		return
 	}
 	if errors.Is(err, systemService.ErrLastAdminCapableUser) {
-		response.Failure(c, http.StatusForbidden, err.Error())
+		response.FailWithMessage(err.Error(), c)
 		return
 	}
 	if err != nil {
-		response.Failure(c, http.StatusInternalServerError, "failed to update user")
+		response.FailWithMessage("failed to update user", c)
 		return
 	}
-	response.Success(c, http.StatusOK, user)
+	response.OkWithData(user, c)
 }

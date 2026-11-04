@@ -1,11 +1,11 @@
 package system
 
 import (
-	"net/http"
+	"optimus/server/model/common/response"
 
 	"github.com/gin-gonic/gin"
 )
 
 func writeServiceUnavailable(c *gin.Context, message string) {
-	c.JSON(http.StatusServiceUnavailable, gin.H{"message": message})
+	response.FailWithMessage(message, c)
 }

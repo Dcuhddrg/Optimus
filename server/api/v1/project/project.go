@@ -1,8 +1,8 @@
 package project
 
 import (
-	"net/http"
 	"optimus/server/global"
+	"optimus/server/model/common/response"
 	projectRequest "optimus/server/model/project/request"
 
 	"github.com/gin-gonic/gin"
@@ -21,7 +21,7 @@ func (h *ProjectApi) ListProjects(c *gin.Context) {
 		writeProjectError(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"items": views})
+	response.OkWithData(gin.H{"list": views}, c)
 }
 
 func (h *ProjectApi) CreateProject(c *gin.Context) {
@@ -32,7 +32,7 @@ func (h *ProjectApi) CreateProject(c *gin.Context) {
 	}
 	var req projectRequest.CreateProjectRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid project payload"})
+		response.FailWithMessage("invalid project payload", c)
 		return
 	}
 	view, err := svc.Create(c.Request.Context(), projectActorID(c), req)
@@ -40,7 +40,7 @@ func (h *ProjectApi) CreateProject(c *gin.Context) {
 		writeProjectError(c, err)
 		return
 	}
-	c.JSON(http.StatusCreated, view)
+	response.OkWithData(view, c)
 }
 
 func (h *ProjectApi) GetProject(c *gin.Context) {
@@ -54,7 +54,7 @@ func (h *ProjectApi) GetProject(c *gin.Context) {
 		writeProjectError(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, view)
+	response.OkWithData(view, c)
 }
 
 func (h *ProjectApi) UpdateProject(c *gin.Context) {
@@ -65,7 +65,7 @@ func (h *ProjectApi) UpdateProject(c *gin.Context) {
 	}
 	var req projectRequest.UpdateProjectRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid project payload"})
+		response.FailWithMessage("invalid project payload", c)
 		return
 	}
 	view, err := svc.Update(c.Request.Context(), projectActorID(c), c.Param("code"), req)
@@ -73,7 +73,7 @@ func (h *ProjectApi) UpdateProject(c *gin.Context) {
 		writeProjectError(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, view)
+	response.OkWithData(view, c)
 }
 
 func (h *ProjectApi) DeleteProject(c *gin.Context) {
@@ -86,5 +86,5 @@ func (h *ProjectApi) DeleteProject(c *gin.Context) {
 		writeProjectError(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "project deleted"})
+	response.Ok(c)
 }

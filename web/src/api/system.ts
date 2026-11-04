@@ -1,10 +1,9 @@
-import { ApiError, apiDownloadCSV, apiRequest, apiRequestEnvelope } from './client';
+import { ApiError, apiDownloadCSV, apiRequest } from './client';
 import type {
   AuditLogFilter,
   AuditLogPage,
   CurrentUserResponse,
   LDAPConfig,
-  ListResponse,
   LoginResponse,
   SystemPermission,
   SystemRole,
@@ -12,7 +11,7 @@ import type {
 } from '../types/system';
 
 export function login(username: string, password: string) {
-  return apiRequestEnvelope<LoginResponse>('/system/auth/login', {
+  return apiRequest<LoginResponse>('/system/auth/login', {
     auth: 'none',
     method: 'POST',
     body: JSON.stringify({ username, password }),
@@ -20,34 +19,34 @@ export function login(username: string, password: string) {
 }
 
 export function logout() {
-  return apiRequestEnvelope<Record<string, never>>('/system/auth/logout', { method: 'POST' });
+  return apiRequest<Record<string, never>>('/system/auth/logout', { method: 'POST' });
 }
 
 export function currentUser(signal?: AbortSignal) {
-  return apiRequestEnvelope<CurrentUserResponse>('/system/auth/me', { signal });
+  return apiRequest<CurrentUserResponse>('/system/auth/me', { signal });
 }
 
 export function listUsers() {
-  return apiRequestEnvelope<{ list: SystemUser[]; total: number }>('/system/users');
+  return apiRequest<{ list: SystemUser[]; total: number }>('/system/users');
 }
 
 export function updateUserStatus(id: number, status: string) {
-  return apiRequestEnvelope<SystemUser>(`/system/users/${id}/status`, {
+  return apiRequest<SystemUser>(`/system/users/${id}/status`, {
     method: 'PATCH',
     body: JSON.stringify({ status }),
   });
 }
 
 export function listRoles() {
-  return apiRequest<ListResponse<SystemRole>>('/system/roles');
+  return apiRequest<{ list: SystemRole[]; total: number }>('/system/roles');
 }
 
 export function permissionTree() {
-  return apiRequest<ListResponse<SystemPermission>>('/system/permissions/tree');
+  return apiRequest<{ list: SystemPermission[] }>('/system/permissions/tree');
 }
 
 export function saveRolePermissions(id: number, permissionCodes: string[]) {
-  return apiRequest<{ message: string }>(`/system/roles/${id}/permissions`, {
+  return apiRequest<Record<string, never>>(`/system/roles/${id}/permissions`, {
     method: 'PUT',
     body: JSON.stringify({ permissionCodes }),
   });
@@ -96,7 +95,7 @@ function validAuditPage(value: unknown): value is AuditLogPage {
 }
 
 export async function listAuditLogs(filters: AuditLogFilter = {}, signal?: AbortSignal) {
-  const data = await apiRequestEnvelope<unknown>(`/system/audit-logs${auditQuery(filters, true)}`, { signal });
+  const data = await apiRequest<unknown>(`/system/audit-logs${auditQuery(filters, true)}`, { signal });
   if (!validAuditPage(data)) throw new ApiError('Invalid audit page data', 200, 'protocol');
   return data;
 }

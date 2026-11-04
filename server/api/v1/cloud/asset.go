@@ -1,9 +1,10 @@
 package cloud
 
 import (
-	"net/http"
 	cloudRequest "optimus/server/model/cloud/request"
+	cloudResponse "optimus/server/model/cloud/response"
 	commonRequest "optimus/server/model/common/request"
+	"optimus/server/model/common/response"
 	"strconv"
 
 	cloudService "optimus/server/service/cloud"
@@ -29,10 +30,12 @@ func (h *AssetApi) ListAssets(c *gin.Context) {
 	f.AccessibleProjectIDs = scope.AccessibleProjectIDs
 	page, err := svc.QueryAssets(c.Request.Context(), f)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to query assets"})
+		response.FailWithMessage("failed to query assets", c)
 		return
 	}
-	c.JSON(http.StatusOK, page)
+	response.OkWithData(response.PageResult[cloudResponse.AssetView]{
+		List: page.Items, Total: page.Total, Page: page.Page, PageSize: page.PageSize,
+	}, c)
 }
 
 func parseAssetFilter(c *gin.Context) (cloudService.AssetFilter, error) {

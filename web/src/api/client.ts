@@ -43,6 +43,14 @@ export class ApiError extends Error {
   }
 }
 
+// Mirrors the message of the server's Casbin middleware: under GVA a permission
+// denial is a business failure (HTTP 200, code 7), not HTTP 403.
+const PERMISSION_DENIED_MESSAGE = 'permission denied';
+
+export function isPermissionDenied(error: unknown): boolean {
+  return error instanceof ApiError && error.kind === 'business' && error.message === PERMISSION_DENIED_MESSAGE;
+}
+
 type RequestOptions = RequestInit & { auth?: 'required' | 'none' };
 
 async function requestResponse(path: string, options: RequestOptions, accept: string): Promise<Response> {
@@ -91,11 +99,6 @@ async function requestResponse(path: string, options: RequestOptions, accept: st
   return response;
 }
 
-export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const response = await requestResponse(path, options, 'application/json');
-  return await parseJSONResponse(response) as T;
-}
-
 async function parseJSONResponse(response: Response): Promise<unknown> {
   let data;
   try {
@@ -108,9 +111,14 @@ async function parseJSONResponse(response: Response): Promise<unknown> {
   return data;
 }
 
-// Only migrated module functions select this adapter; legacy payloads stay raw.
-export async function apiRequestEnvelope<T>(path: string, options: RequestOptions = {}): Promise<T> {
+// Every JSON API answers with GVA's {code,data,msg}: HTTP 200 carries the business
+// result (code 0 succeeds, otherwise a business error); HTTP 401 means the session is invalid.
+export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const response = await requestResponse(path, options, 'application/json');
+  return parseEnvelope<T>(response);
+}
+
+async function parseEnvelope<T>(response: Response): Promise<T> {
   const value = await parseJSONResponse(response);
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
     throw new ApiError('Invalid response envelope', response.status, 'protocol');
@@ -128,6 +136,9 @@ export async function apiRequestEnvelope<T>(path: string, options: RequestOption
 export async function apiDownloadCSV(path: string, options: RequestOptions = {}): Promise<Blob> {
   const response = await requestResponse(path, options, 'text/csv');
   if (!/^text\/csv(?:\s*;|$)/i.test(response.headers.get('Content-Type') ?? '')) {
+    if (/^application\/json(?:\s*;|$)/i.test(response.headers.get('Content-Type') ?? '')) {
+      await parseEnvelope<unknown>(response);
+    }
     throw new ApiError('Expected a CSV response', response.status, 'protocol');
   }
   try {

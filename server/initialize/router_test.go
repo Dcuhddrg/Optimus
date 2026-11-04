@@ -36,8 +36,9 @@ func TestRoutersUseGroupedAuthService(t *testing.T) {
 
 	engine.ServeHTTP(recorder, req)
 
-	require.Equal(t, http.StatusUnauthorized, recorder.Code)
-	require.JSONEq(t, `{"code":7,"data":null,"msg":"username or password is incorrect"}`, recorder.Body.String())
+	// GVA: a failed login is a business failure, not an unauthenticated request.
+	require.Equal(t, http.StatusOK, recorder.Code)
+	require.JSONEq(t, `{"code":7,"data":{},"msg":"username or password is incorrect"}`, recorder.Body.String())
 }
 
 func TestRouterLoginUsesInitializedAuthDependencies(t *testing.T) {

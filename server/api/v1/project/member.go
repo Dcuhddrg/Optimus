@@ -1,8 +1,8 @@
 package project
 
 import (
-	"net/http"
 	"optimus/server/global"
+	"optimus/server/model/common/response"
 	projectRequest "optimus/server/model/project/request"
 
 	"github.com/gin-gonic/gin"
@@ -21,7 +21,7 @@ func (h *MemberApi) ListMembers(c *gin.Context) {
 		writeProjectError(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"items": members})
+	response.OkWithData(gin.H{"list": members}, c)
 }
 
 func (h *MemberApi) AddMember(c *gin.Context) {
@@ -32,18 +32,18 @@ func (h *MemberApi) AddMember(c *gin.Context) {
 	}
 	var req projectRequest.AddMemberRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid member payload"})
+		response.FailWithMessage("invalid member payload", c)
 		return
 	}
 	if req.UserID == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "userId is required"})
+		response.FailWithMessage("userId is required", c)
 		return
 	}
 	if err := svc.AddMember(c.Request.Context(), projectActorID(c), c.Param("code"), req.UserID, req.ProjectRole); err != nil {
 		writeProjectError(c, err)
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"message": "member added"})
+	response.Ok(c)
 }
 
 func (h *MemberApi) UpdateMemberRole(c *gin.Context) {
@@ -58,14 +58,14 @@ func (h *MemberApi) UpdateMemberRole(c *gin.Context) {
 	}
 	var req projectRequest.UpdateMemberRoleRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid member payload"})
+		response.FailWithMessage("invalid member payload", c)
 		return
 	}
 	if err := svc.UpdateMemberRole(c.Request.Context(), projectActorID(c), c.Param("code"), userID, req.ProjectRole); err != nil {
 		writeProjectError(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "member role updated"})
+	response.Ok(c)
 }
 
 func (h *MemberApi) RemoveMember(c *gin.Context) {
@@ -82,5 +82,5 @@ func (h *MemberApi) RemoveMember(c *gin.Context) {
 		writeProjectError(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "member removed"})
+	response.Ok(c)
 }

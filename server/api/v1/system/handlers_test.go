@@ -28,7 +28,8 @@ func TestAuthHandlerLoginReturnsServiceUnavailableWhenServiceMissing(t *testing.
 	handler := &AuthApi{}
 	handler.Login(ctx)
 
-	require.Equal(t, http.StatusServiceUnavailable, recorder.Code)
+	require.Equal(t, http.StatusOK, recorder.Code)
+	require.Contains(t, recorder.Body.String(), `"code":7`)
 	require.JSONEq(t, `{"code":7,"data":{},"msg":"auth service is not available"}`, recorder.Body.String())
 }
 
@@ -46,7 +47,8 @@ func TestAuditHandlerQueryAuditLogsReturnsServiceUnavailableWhenServiceMissing(t
 	handler := &AuditApi{}
 	handler.QueryAuditLogs(ctx)
 
-	require.Equal(t, http.StatusServiceUnavailable, recorder.Code)
+	require.Equal(t, http.StatusOK, recorder.Code)
+	require.Contains(t, recorder.Body.String(), `"code":7`)
 	require.JSONEq(t, `{"code":7,"data":{},"msg":"audit service is not available"}`, recorder.Body.String())
 }
 
@@ -64,7 +66,8 @@ func TestAuditHandlerExportAuditLogsReturnsServiceUnavailableWhenServiceMissing(
 	handler := &AuditApi{}
 	handler.ExportAuditLogs(ctx)
 
-	require.Equal(t, http.StatusServiceUnavailable, recorder.Code)
+	require.Equal(t, http.StatusOK, recorder.Code)
+	require.Contains(t, recorder.Body.String(), `"code":7`)
 }
 
 func TestParseAuditFilterParsesResultAndActionQueryParams(t *testing.T) {

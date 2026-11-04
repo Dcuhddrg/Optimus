@@ -1,71 +1,42 @@
 package response
 
 import (
-	"github.com/gin-gonic/gin"
-	"github.com/stretchr/testify/require"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/require"
 )
 
-func TestSuccessKeepsValidFalsyData(t *testing.T) {
+func TestGVAHelpersUseBusinessCodeWithHTTP200(t *testing.T) {
 	for _, tt := range []struct {
 		name string
-		data any
+		call func(*gin.Context)
 		want string
-	}{{"empty", nil, `{"code":0,"data":{},"msg":"success"}`}, {"false", false, `{"code":0,"data":false,"msg":"success"}`}, {"zero", 0, `{"code":0,"data":0,"msg":"success"}`}} {
+	}{
+		{"Ok", Ok, `{"code":0,"data":{},"msg":"操作成功"}`},
+		{"OkWithMessage", func(c *gin.Context) { OkWithMessage("done", c) }, `{"code":0,"data":{},"msg":"done"}`},
+		{"OkWithData falsy", func(c *gin.Context) { OkWithData(false, c) }, `{"code":0,"data":false,"msg":"成功"}`},
+		{"OkWithDetailed", func(c *gin.Context) { OkWithDetailed(0, "done", c) }, `{"code":0,"data":0,"msg":"done"}`},
+		{"Fail", Fail, `{"code":7,"data":{},"msg":"操作失败"}`},
+		{"FailWithMessage", func(c *gin.Context) { FailWithMessage("permission denied", c) }, `{"code":7,"data":{},"msg":"permission denied"}`},
+		{"FailWithDetailed", func(c *gin.Context) { FailWithDetailed(map[string]any{"id": 1}, "bad", c) }, `{"code":7,"data":{"id":1},"msg":"bad"}`},
+	} {
 		t.Run(tt.name, func(t *testing.T) {
 			w := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(w)
-			Success(c, http.StatusOK, tt.data)
-			require.Equal(t, 200, w.Code)
+			tt.call(c)
+			require.Equal(t, http.StatusOK, w.Code)
 			require.JSONEq(t, tt.want, w.Body.String())
 		})
 	}
 }
-func TestFailuresKeepHTTPAndDataRules(t *testing.T) {
-	for _, status := range []int{401, 403, 422, 500, 503} {
-		t.Run(http.StatusText(status), func(t *testing.T) {
-			w := httptest.NewRecorder()
-			c, _ := gin.CreateTestContext(w)
-			Failure(c, status, "rejected")
-			require.Equal(t, status, w.Code)
-			data := "{}"
-			if status == 401 {
-				data = "null"
-			}
-			require.JSONEq(t, `{"code":7,"data":`+data+`,"msg":"rejected"}`, w.Body.String())
-		})
-	}
-}
-func TestProtocolSelectorIsExactAndPrefixAware(t *testing.T) {
-	for _, prefix := range []string{"/api/v1", "/custom/v2", "/"} {
-		t.Run(prefix, func(t *testing.T) {
-			gin.SetMode(gin.TestMode)
-			r := gin.New()
-			g := r.Group(prefix)
-			g.Use(EnvelopeForRoutes(g.BasePath(), []Route{{Method: "GET", Path: "/system/audit-logs"}}))
-			fail := func(c *gin.Context) { AbortFailure(c, 403, "denied") }
-			g.GET("/system/audit-logs", fail)
-			g.POST("/system/audit-logs", fail)
-			g.GET("/system/audit-logs-extra", fail)
-			base := prefix
-			if base == "/" {
-				base = ""
-			}
-			for _, test := range []struct {
-				method, path string
-				envelope     bool
-			}{{"GET", "/system/audit-logs", true}, {"POST", "/system/audit-logs", false}, {"GET", "/system/audit-logs-extra", false}} {
-				w := httptest.NewRecorder()
-				r.ServeHTTP(w, httptest.NewRequest(test.method, base+test.path, nil))
-				require.Equal(t, 403, w.Code)
-				if test.envelope {
-					require.JSONEq(t, `{"code":7,"data":{},"msg":"denied"}`, w.Body.String())
-				} else {
-					require.JSONEq(t, `{"message":"denied"}`, w.Body.String())
-				}
-			}
-		})
-	}
+
+func TestGVANoAuthReturnsHTTP401(t *testing.T) {
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	NoAuth("expired", c)
+	require.Equal(t, http.StatusUnauthorized, w.Code)
+	require.JSONEq(t, `{"code":7,"data":null,"msg":"expired"}`, w.Body.String())
 }

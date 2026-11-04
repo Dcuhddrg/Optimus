@@ -2,8 +2,8 @@ package system
 
 import (
 	"errors"
-	"net/http"
 	"optimus/server/global"
+	"optimus/server/model/common/response"
 	systemRequest "optimus/server/model/system/request"
 
 	systemService "optimus/server/service/system"
@@ -21,10 +21,10 @@ func (h *LDAPApi) LDAPConfig(c *gin.Context) {
 	}
 	cfg, err := svc.GetConfig(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to load ldap config"})
+		response.FailWithMessage("failed to load ldap config", c)
 		return
 	}
-	c.JSON(http.StatusOK, cfg)
+	response.OkWithData(cfg, c)
 }
 
 func (h *LDAPApi) UpdateLDAPConfig(c *gin.Context) {
@@ -35,15 +35,15 @@ func (h *LDAPApi) UpdateLDAPConfig(c *gin.Context) {
 	}
 	var req systemRequest.LDAPConfigRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid ldap config request"})
+		response.FailWithMessage("invalid ldap config request", c)
 		return
 	}
 	cfg, err := svc.SaveConfig(c.Request.Context(), actorID(c), req, auditMeta(c))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to save ldap config"})
+		response.FailWithMessage("failed to save ldap config", c)
 		return
 	}
-	c.JSON(http.StatusOK, cfg)
+	response.OkWithData(cfg, c)
 }
 
 func (h *LDAPApi) TestLDAPConfig(c *gin.Context) {
@@ -54,17 +54,17 @@ func (h *LDAPApi) TestLDAPConfig(c *gin.Context) {
 	}
 	var req systemRequest.LDAPTestRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid ldap test request"})
+		response.FailWithMessage("invalid ldap test request", c)
 		return
 	}
 	result, err := svc.TestConfig(c.Request.Context(), actorID(c), req, auditMeta(c))
 	if errors.Is(err, systemService.ErrInvalidLDAPConfig) {
-		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		response.FailWithMessage(err.Error(), c)
 		return
 	}
 	if err != nil {
-		c.JSON(http.StatusBadGateway, gin.H{"message": "ldap connection test failed"})
+		response.FailWithMessage("ldap connection test failed", c)
 		return
 	}
-	c.JSON(http.StatusOK, result)
+	response.OkWithData(result, c)
 }

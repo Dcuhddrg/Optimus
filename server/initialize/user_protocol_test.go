@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestUserRoutesUnauthorizedUseEnvelope(t *testing.T) {
+func TestUserRoutesUnauthorizedUseNoAuth(t *testing.T) {
 	for _, tc := range []struct{ method, path string }{
 		{"GET", "/system/users"},
 		{"PUT", "/system/users/1"},

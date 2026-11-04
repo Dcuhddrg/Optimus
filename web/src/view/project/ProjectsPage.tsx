@@ -35,7 +35,7 @@ export function ProjectsPage() {
 
   async function load() {
     const result = await listProjects();
-    setProjects(result.items);
+    setProjects(result.list);
   }
 
   useEffect(() => {

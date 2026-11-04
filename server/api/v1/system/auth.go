@@ -2,7 +2,6 @@ package system
 
 import (
 	"errors"
-	"net/http"
 	"optimus/server/global"
 	systemRequest "optimus/server/model/system/request"
 
@@ -19,53 +18,51 @@ func (h *AuthApi) Login(c *gin.Context) {
 	svc := authService
 	var req systemRequest.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.Failure(c, http.StatusBadRequest, "invalid login request")
+		response.FailWithMessage("invalid login request", c)
 		return
 	}
 	if global.OPTIMUS_DB == nil {
-		response.Failure(c, http.StatusServiceUnavailable, "auth service is not available")
+		response.FailWithMessage("auth service is not available", c)
 		return
 	}
 
 	result, err := svc.Login(c.Request.Context(), req, auditMeta(c))
 	if err != nil {
-		status := http.StatusUnauthorized
 		message := "username or password is incorrect"
 		if errors.Is(err, systemService.ErrUserDisabled) {
-			status = http.StatusForbidden
 			message = "account is disabled"
 		}
-		response.Failure(c, status, message)
+		response.FailWithMessage(message, c)
 		return
 	}
 
-	response.Success(c, http.StatusOK, result)
+	response.OkWithData(result, c)
 }
 
 func (h *AuthApi) CurrentUser(c *gin.Context) {
 	svc := authService
 	claims, ok := c.Get(utils.ClaimsContextKey)
 	if !ok {
-		response.Failure(c, http.StatusUnauthorized, "claims are required")
+		response.NoAuth("claims are required", c)
 		return
 	}
 	customClaims, ok := claims.(*utils.CustomClaims)
 	if !ok {
-		response.Failure(c, http.StatusUnauthorized, "invalid claims")
+		response.NoAuth("invalid claims", c)
 		return
 	}
 	if global.OPTIMUS_DB == nil {
-		response.Failure(c, http.StatusServiceUnavailable, "auth service is not available")
+		response.FailWithMessage("auth service is not available", c)
 		return
 	}
 
 	result, err := svc.CurrentUser(c.Request.Context(), customClaims.BaseClaims.ID)
 	if err != nil {
-		response.Failure(c, http.StatusInternalServerError, "failed to load current user")
+		response.FailWithMessage("failed to load current user", c)
 		return
 	}
 
-	response.Success(c, http.StatusOK, result)
+	response.OkWithData(result, c)
 }
 
 func (h *AuthApi) Logout(c *gin.Context) {
@@ -76,5 +73,5 @@ func (h *AuthApi) Logout(c *gin.Context) {
 			_ = svc.Logout(c.Request.Context(), customClaims.BaseClaims.ID, auditMeta(c))
 		}
 	}
-	response.Success(c, http.StatusOK, nil)
+	response.Ok(c)
 }
