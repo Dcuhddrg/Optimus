@@ -14,20 +14,19 @@ import (
 
 const envPrefix = "OPTIMUS"
 
-func Viper() error {
+func Viper() *viper.Viper {
 	configPath, err := resolveDefaultConfigPath()
 	if err != nil {
-		return err
+		panic(err)
 	}
 
 	cfg, vp, err := loadConfig(configPath)
 	if err != nil {
-		return err
+		panic(err)
 	}
 
 	global.OPTIMUS_CONFIG = cfg
-	global.OPTIMUS_VP = vp
-	return nil
+	return vp
 }
 
 func LoadConfigForTest(configPath string) (config.Config, error) {

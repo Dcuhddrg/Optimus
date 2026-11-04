@@ -10,7 +10,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-func Zap() error {
+func Zap() *zap.Logger {
 	encoderConfig := zap.NewProductionEncoderConfig()
 	encoderConfig.TimeKey = "time"
 	encoderConfig.MessageKey = "message"
@@ -35,10 +35,7 @@ func Zap() error {
 		options = append(options, zap.Fields(zap.String("service", prefix)))
 	}
 
-	logger := zap.New(core, options...)
-	global.OPTIMUS_LOG = logger
-	zap.ReplaceGlobals(logger)
-	return nil
+	return zap.New(core, options...)
 }
 
 func Logger() *zap.Logger {

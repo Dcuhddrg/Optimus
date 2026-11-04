@@ -11,6 +11,7 @@ import (
 	"go.uber.org/zap/zaptest/observer"
 
 	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
 )
 
 func TestBuildMySQLDSN(t *testing.T) {
@@ -54,12 +55,13 @@ func TestGormLogsUnsupportedDBType(t *testing.T) {
 		System: config.System{DBType: "postgres"},
 	}
 	global.OPTIMUS_LOG = logger
-	global.OPTIMUS_DB = nil
+	previousConnection := &gorm.DB{}
+	global.OPTIMUS_DB = previousConnection
 
 	db := Gorm()
 
 	require.Nil(t, db)
-	require.Nil(t, global.OPTIMUS_DB)
+	require.Same(t, previousConnection, global.OPTIMUS_DB)
 	entries := logs.All()
 	require.Len(t, entries, 1)
 	require.Equal(t, "unsupported db type", entries[0].Message)

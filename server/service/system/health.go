@@ -1,9 +1,12 @@
 package system
 
+import "optimus/server/global"
+
 type Service struct{}
 
 type HealthPayload struct {
-	Status string
+	Status  string
+	Healthy bool
 }
 
 type PingPayload struct {
@@ -11,7 +14,10 @@ type PingPayload struct {
 }
 
 func (s *Service) Health() HealthPayload {
-	return HealthPayload{Status: "ok"}
+	if global.OPTIMUS_STARTUP_ERR != nil {
+		return HealthPayload{Status: "unhealthy"}
+	}
+	return HealthPayload{Status: "ok", Healthy: true}
 }
 
 func (s *Service) Ping() PingPayload {

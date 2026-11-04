@@ -19,7 +19,6 @@ func Gorm() *gorm.DB {
 		logUnsupportedDBType(global.OPTIMUS_CONFIG.System.DBType)
 	}
 
-	global.OPTIMUS_DB = db
 	return db
 }
 

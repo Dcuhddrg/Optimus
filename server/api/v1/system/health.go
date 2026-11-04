@@ -15,7 +15,11 @@ func (h *HealthApi) Health(c *gin.Context) {
 	service := statusService
 
 	payload := service.Health()
-	utils.JSON(c, http.StatusOK, commonResponse.HealthResponse{
+	code := http.StatusOK
+	if !payload.Healthy {
+		code = http.StatusServiceUnavailable
+	}
+	utils.JSON(c, code, commonResponse.HealthResponse{
 		Status: payload.Status,
 	})
 }

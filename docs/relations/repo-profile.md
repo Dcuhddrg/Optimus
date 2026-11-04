@@ -21,7 +21,7 @@ Optimus 以治理、云资源、运维和成本能力为长期方向；当前实
 
 - 前后端响应、分页、错误和兼容边界见 [接口契约](../frontend-backend/boundary.md)。
 - 统一前缀 `/api/v1/<module>/...`
-- 健康检查：`/api/v1/health`、`/api/v1/ping`（公开）
+- 健康检查：`/api/v1/health`、`/api/v1/ping`（公开）；数据库不可用或启动迁移/种子失败时服务仍启动，但 `/health` 返回 503 `{"status":"unhealthy"}`（错误详情只写日志），`/ping` 始终 200 作存活探针
 - 鉴权：登录 `/api/v1/<module>/auth/login`（公开），其它路径走 JWT + Casbin RBAC（私有）
 - 路由必须按 public / private 分组注册（参考 `router/system/`）
 - 端点发现方式见 [工程操作参考](engineering-workflow.md)。

@@ -58,9 +58,7 @@ func TestViperLoadsDefaultConfigFromServerDirAndRepoRoot(t *testing.T) {
 				t.Fatalf("Chdir(%q) returned error: %v", workingDir, err)
 			}
 
-			if err := Viper(); err != nil {
-				t.Fatalf("Viper returned error from %q: %v", workingDir, err)
-			}
+			global.OPTIMUS_VP = Viper()
 
 			if global.OPTIMUS_VP == nil {
 				t.Fatalf("expected OPTIMUS_VP to be initialized from %q", workingDir)

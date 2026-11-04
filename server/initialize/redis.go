@@ -44,5 +44,5 @@ func logDependencyInitFailure(component, action string, err error) {
 		return
 	}
 
-	logger.Error(component+" init failed", zap.String("action", action), zap.Error(err))
+	logger.WithOptions(zap.AddCallerSkip(1)).Error(component+" init failed", zap.String("action", action), zap.Error(err))
 }
