@@ -16,4 +16,7 @@ var (
 	OPTIMUS_DB       *gorm.DB
 	OPTIMUS_REDIS    *redis.Client
 	OPTIMUS_ENFORCER *casbin.Enforcer
+	// OPTIMUS_STARTUP_ERR is set once before the HTTP server starts when the
+	// database or data initialization failed; /health then reports unhealthy.
+	OPTIMUS_STARTUP_ERR error
 )

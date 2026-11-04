@@ -8,15 +8,20 @@ import (
 	"time"
 
 	"optimus/server/global"
+	"optimus/server/initialize"
 
 	"go.uber.org/zap"
 )
 
-func RunServer(handler http.Handler) {
+func RunServer() {
+	if global.OPTIMUS_CONFIG.System.UseRedis {
+		initialize.Redis()
+	}
+
 	addr := fmt.Sprintf(":%d", global.OPTIMUS_CONFIG.System.Addr)
 	server := &http.Server{
 		Addr:              addr,
-		Handler:           handler,
+		Handler:           initialize.Routers(),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 

@@ -3,7 +3,7 @@ package middleware
 import (
 	"time"
 
-	"optimus/server/core"
+	"optimus/server/global"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -14,7 +14,7 @@ func Logger() gin.HandlerFunc {
 		start := time.Now()
 		c.Next()
 
-		core.Logger().Info(
+		logger().Info(
 			"http request",
 			zap.String("method", c.Request.Method),
 			zap.String("path", c.Request.URL.Path),
@@ -22,4 +22,11 @@ func Logger() gin.HandlerFunc {
 			zap.Duration("latency", time.Since(start)),
 		)
 	}
+}
+
+func logger() *zap.Logger {
+	if logger, ok := global.OPTIMUS_LOG.(*zap.Logger); ok && logger != nil {
+		return logger
+	}
+	return zap.L()
 }

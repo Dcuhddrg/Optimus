@@ -5,7 +5,6 @@ import (
 	cloudAPI "optimus/server/api/v1/cloud"
 	systemAPI "optimus/server/api/v1/system"
 	"optimus/server/config"
-	"optimus/server/global"
 	cloudInit "optimus/server/initialize/cloud"
 	projectInit "optimus/server/initialize/project"
 	"optimus/server/service"
@@ -15,7 +14,6 @@ import (
 // or background workers start. Publish value aliases after all module services
 // have been assembled so they contain their initialized dependencies.
 func InitializeServices(db *gorm.DB, cfg config.Config) {
-	global.OPTIMUS_DB = db
 	service.ServiceGroupApp.SystemServiceGroup = newSystemServiceGroup(db, cfg)
 	service.ServiceGroupApp.CloudServiceGroup = cloudInit.NewServiceGroup(db, cfg)
 	service.ServiceGroupApp.ProjectServiceGroup = projectInit.NewServiceGroup(db, cfg)

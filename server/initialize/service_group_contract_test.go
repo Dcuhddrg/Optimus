@@ -94,5 +94,6 @@ func initializeTestServices(t *testing.T, db *gorm.DB, cfg config.Config) {
 		systemAPI.RefreshServiceAliases()
 		cloudAPI.RefreshServiceAliases()
 	})
+	global.OPTIMUS_DB = db
 	InitializeServices(db, cfg)
 }
