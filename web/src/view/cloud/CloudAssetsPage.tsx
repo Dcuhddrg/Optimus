@@ -59,11 +59,11 @@ export function CloudAssetsPage() {
         }),
         listCloudAccounts(),
       ]);
-      setAssets(assetsResult.items);
+      setAssets(assetsResult.list);
       setTotal(assetsResult.total);
-      setAccountsList(accountsResult.items);
+      setAccountsList(accountsResult.list);
       const indexed: Record<number, CloudAccount> = {};
-      for (const account of accountsResult.items) {
+      for (const account of accountsResult.list) {
         indexed[account.id] = account;
       }
       setAccountsById(indexed);

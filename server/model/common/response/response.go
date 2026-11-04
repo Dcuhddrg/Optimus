@@ -9,11 +9,40 @@ import (
 
 const envelopeKey = "optimus.response.envelope"
 
-type Envelope struct {
+type Response struct {
 	Code int    `json:"code"`
 	Data any    `json:"data"`
 	Msg  string `json:"msg"`
 }
+
+// Envelope is retained while existing migrated handlers switch to Response.
+type Envelope = Response
+
+const (
+	ERROR   = 7
+	SUCCESS = 0
+)
+
+func Result(code int, data any, msg string, c *gin.Context) {
+	c.JSON(http.StatusOK, Response{Code: code, Data: data, Msg: msg})
+}
+
+func Ok(c *gin.Context) {
+	Result(SUCCESS, gin.H{}, "操作成功", c)
+}
+
+func OkWithData(data any, c *gin.Context) {
+	Result(SUCCESS, data, "成功", c)
+}
+
+func FailWithMessage(message string, c *gin.Context) {
+	Result(ERROR, gin.H{}, message, c)
+}
+
+func NoAuth(message string, c *gin.Context) {
+	c.JSON(http.StatusUnauthorized, Response{Code: ERROR, Data: nil, Msg: message})
+}
+
 type Route struct{ Method, Path string }
 
 // EnvelopeForRoutes marks only the registered method+FullPath pairs, before authentication.

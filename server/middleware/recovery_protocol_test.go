@@ -5,11 +5,10 @@ import (
 	"github.com/stretchr/testify/require"
 	"io"
 	"net/http/httptest"
-	"optimus/server/model/common/response"
 	"testing"
 )
 
-func TestRecoveryPreservesLegacyAndFormatsMigratedFailures(t *testing.T) {
+func TestRecoveryReturnsHTTP500WithoutLeakingPanic(t *testing.T) {
 	previousWriter := gin.DefaultErrorWriter
 	gin.DefaultErrorWriter = io.Discard
 	t.Cleanup(func() { gin.DefaultErrorWriter = previousWriter })
@@ -17,7 +16,6 @@ func TestRecoveryPreservesLegacyAndFormatsMigratedFailures(t *testing.T) {
 	engine := gin.New()
 	engine.Use(Recovery())
 	group := engine.Group("/api/v1")
-	group.Use(response.EnvelopeForRoutes(group.BasePath(), []response.Route{{Method: "GET", Path: "/system/audit-logs"}, {Method: "GET", Path: "/system/audit-logs/export"}}))
 	panicHandler := func(*gin.Context) { panic("private panic details") }
 	group.GET("/system/audit-logs", panicHandler)
 	group.GET("/legacy", panicHandler)
@@ -35,11 +33,6 @@ func TestRecoveryPreservesLegacyAndFormatsMigratedFailures(t *testing.T) {
 			continue
 		}
 		require.Equal(t, 500, w.Code)
-		if path == "/legacy" {
-			require.Empty(t, w.Body.String())
-		} else {
-			require.JSONEq(t, `{"code":7,"data":{},"msg":"internal server error"}`, w.Body.String())
-			require.NotContains(t, w.Body.String(), "private panic")
-		}
+		require.Empty(t, w.Body.String())
 	}
 }

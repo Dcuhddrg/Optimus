@@ -42,7 +42,8 @@ func TestAccountHandlerListReturnsServiceUnavailableWhenNil(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/cloud/accounts", nil)
 	engine.ServeHTTP(recorder, req)
 
-	require.Equal(t, http.StatusServiceUnavailable, recorder.Code)
+	require.Equal(t, http.StatusOK, recorder.Code)
+	require.Contains(t, recorder.Body.String(), `"code":7`)
 }
 
 func TestAccountHandlerListReturnsServiceUnavailableWithInvalidKey(t *testing.T) {
@@ -55,7 +56,8 @@ func TestAccountHandlerListReturnsServiceUnavailableWithInvalidKey(t *testing.T)
 	recorder := httptest.NewRecorder()
 	engine.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/cloud/accounts", nil))
 
-	require.Equal(t, http.StatusServiceUnavailable, recorder.Code)
+	require.Equal(t, http.StatusOK, recorder.Code)
+	require.Contains(t, recorder.Body.String(), `"code":7`)
 }
 
 func TestAssetHandlerListReturnsServiceUnavailableWhenNil(t *testing.T) {
@@ -69,7 +71,8 @@ func TestAssetHandlerListReturnsServiceUnavailableWhenNil(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/cloud/assets", nil)
 	engine.ServeHTTP(recorder, req)
 
-	require.Equal(t, http.StatusServiceUnavailable, recorder.Code)
+	require.Equal(t, http.StatusOK, recorder.Code)
+	require.Contains(t, recorder.Body.String(), `"code":7`)
 }
 
 func TestAccountHandlerCreateRequiresCurrentProject(t *testing.T) {
@@ -84,7 +87,8 @@ func TestAccountHandlerCreateRequiresCurrentProject(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	engine.ServeHTTP(recorder, req)
 
-	require.Equal(t, http.StatusBadRequest, recorder.Code)
+	require.Equal(t, http.StatusOK, recorder.Code)
+	require.Contains(t, recorder.Body.String(), `"code":7`)
 }
 
 func TestAccountHandlerCreateUsesCurrentProject(t *testing.T) {
@@ -119,6 +123,7 @@ func TestAccountHandlerCreateUsesCurrentProject(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	engine.ServeHTTP(recorder, req)
 
-	require.Equal(t, http.StatusCreated, recorder.Code)
+	require.Equal(t, http.StatusOK, recorder.Code)
+	require.Contains(t, recorder.Body.String(), `"code":0`)
 	require.Equal(t, uint(7), projectID)
 }

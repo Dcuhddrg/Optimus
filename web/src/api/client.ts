@@ -111,6 +111,10 @@ async function parseJSONResponse(response: Response): Promise<unknown> {
 // Only migrated module functions select this adapter; legacy payloads stay raw.
 export async function apiRequestEnvelope<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const response = await requestResponse(path, options, 'application/json');
+  return parseEnvelope<T>(response);
+}
+
+async function parseEnvelope<T>(response: Response): Promise<T> {
   const value = await parseJSONResponse(response);
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
     throw new ApiError('Invalid response envelope', response.status, 'protocol');
@@ -128,6 +132,9 @@ export async function apiRequestEnvelope<T>(path: string, options: RequestOption
 export async function apiDownloadCSV(path: string, options: RequestOptions = {}): Promise<Blob> {
   const response = await requestResponse(path, options, 'text/csv');
   if (!/^text\/csv(?:\s*;|$)/i.test(response.headers.get('Content-Type') ?? '')) {
+    if (/^application\/json(?:\s*;|$)/i.test(response.headers.get('Content-Type') ?? '')) {
+      await parseEnvelope<unknown>(response);
+    }
     throw new ApiError('Expected a CSV response', response.status, 'protocol');
   }
   try {

@@ -31,7 +31,7 @@ export function ProjectMembersPage() {
       return;
     }
     const result = await listProjectMembers(code);
-    setMembers(result.items);
+    setMembers(result.list);
   }
 
   async function loadUsers() {

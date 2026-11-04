@@ -41,7 +41,7 @@ export interface CloudAsset {
 }
 
 export interface CloudAssetPage {
-  items: CloudAsset[];
+  list: CloudAsset[];
   total: number;
   page: number;
   pageSize: number;

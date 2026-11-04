@@ -36,20 +36,19 @@ func TestModuleRouterGroupsEmbedResponsibilityRouters(t *testing.T) {
 }
 
 func TestRegisteredRoutesAndUnauthenticatedContracts(t *testing.T) {
-	// Flags: public endpoints bypass authentication; envelope routes opt into the
-	// already-migrated response protocol before JWT. Other routes remain legacy.
+	// Public endpoints bypass authentication; private endpoints use one response contract.
 	routes := []struct {
-		method, path     string
-		public, envelope bool
+		method, path string
+		public       bool
 	}{
-		{"GET", "/health", true, false}, {"GET", "/ping", true, false}, {"GET", "/base/ping", true, false},
-		{"POST", "/system/auth/login", true, true}, {"GET", "/system/auth/me", false, true}, {"POST", "/system/auth/logout", false, true},
-		{"GET", "/system/users", false, true}, {"PUT", "/system/users/:id", false, true}, {"PATCH", "/system/users/:id/status", false, true}, {"PUT", "/system/users/:id/roles", false, true},
-		{"GET", "/system/roles", false, false}, {"POST", "/system/roles", false, false}, {"PUT", "/system/roles/:id", false, false}, {"PATCH", "/system/roles/:id/status", false, false}, {"PUT", "/system/roles/:id/permissions", false, false}, {"GET", "/system/permissions/tree", false, false},
-		{"GET", "/system/ldap/config", false, false}, {"PUT", "/system/ldap/config", false, false}, {"POST", "/system/ldap/test", false, false}, {"GET", "/system/audit-logs", false, true}, {"GET", "/system/audit-logs/export", false, true},
-		{"GET", "/projects", false, false}, {"POST", "/projects", false, false}, {"GET", "/projects/:code", false, false}, {"PUT", "/projects/:code", false, false}, {"DELETE", "/projects/:code", false, false},
-		{"GET", "/projects/:code/members", false, false}, {"POST", "/projects/:code/members", false, false}, {"PATCH", "/projects/:code/members/:userId", false, false}, {"DELETE", "/projects/:code/members/:userId", false, false},
-		{"GET", "/cloud/accounts", false, false}, {"GET", "/cloud/accounts/:id", false, false}, {"POST", "/cloud/accounts", false, false}, {"PUT", "/cloud/accounts/:id", false, false}, {"PUT", "/cloud/accounts/:id/tags", false, false}, {"DELETE", "/cloud/accounts/:id", false, false}, {"POST", "/cloud/accounts/:id/sync", false, false}, {"GET", "/cloud/assets", false, false},
+		{"GET", "/health", true}, {"GET", "/ping", true}, {"GET", "/base/ping", true},
+		{"POST", "/system/auth/login", true}, {"GET", "/system/auth/me", false}, {"POST", "/system/auth/logout", false},
+		{"GET", "/system/users", false}, {"PUT", "/system/users/:id", false}, {"PATCH", "/system/users/:id/status", false}, {"PUT", "/system/users/:id/roles", false},
+		{"GET", "/system/roles", false}, {"POST", "/system/roles", false}, {"PUT", "/system/roles/:id", false}, {"PATCH", "/system/roles/:id/status", false}, {"PUT", "/system/roles/:id/permissions", false}, {"GET", "/system/permissions/tree", false},
+		{"GET", "/system/ldap/config", false}, {"PUT", "/system/ldap/config", false}, {"POST", "/system/ldap/test", false}, {"GET", "/system/audit-logs", false}, {"GET", "/system/audit-logs/export", false},
+		{"GET", "/projects", false}, {"POST", "/projects", false}, {"GET", "/projects/:code", false}, {"PUT", "/projects/:code", false}, {"DELETE", "/projects/:code", false},
+		{"GET", "/projects/:code/members", false}, {"POST", "/projects/:code/members", false}, {"PATCH", "/projects/:code/members/:userId", false}, {"DELETE", "/projects/:code/members/:userId", false},
+		{"GET", "/cloud/accounts", false}, {"GET", "/cloud/accounts/:id", false}, {"POST", "/cloud/accounts", false}, {"PUT", "/cloud/accounts/:id", false}, {"PUT", "/cloud/accounts/:id/tags", false}, {"DELETE", "/cloud/accounts/:id", false}, {"POST", "/cloud/accounts/:id/sync", false}, {"GET", "/cloud/assets", false},
 	}
 	saved := global.OPTIMUS_CONFIG
 	t.Cleanup(func() { global.OPTIMUS_CONFIG = saved })
@@ -74,18 +73,14 @@ func TestRegisteredRoutesAndUnauthenticatedContracts(t *testing.T) {
 					engine.ServeHTTP(w, httptest.NewRequest(route.method, base+path, nil))
 					if route.public {
 						if route.method == "POST" {
-							require.Equal(t, 400, w.Code)
+							require.Equal(t, 200, w.Code)
 						} else {
 							require.Equal(t, 200, w.Code)
 						}
 						return
 					}
 					require.Equal(t, 401, w.Code)
-					if route.envelope {
-						require.JSONEq(t, `{"code":7,"data":null,"msg":"authorization header is required"}`, w.Body.String())
-					} else {
-						require.JSONEq(t, `{"message":"authorization header is required"}`, w.Body.String())
-					}
+					require.JSONEq(t, `{"code":7,"data":null,"msg":"authorization header is required"}`, w.Body.String())
 				})
 			}
 		})

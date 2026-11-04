@@ -8,6 +8,22 @@ import (
 	"testing"
 )
 
+func TestGVAResultUsesBusinessCodeWithHTTP200(t *testing.T) {
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	Result(7, map[string]any{}, "permission denied", c)
+	require.Equal(t, http.StatusOK, w.Code)
+	require.JSONEq(t, `{"code":7,"data":{},"msg":"permission denied"}`, w.Body.String())
+}
+
+func TestGVANoAuthReturnsHTTP401(t *testing.T) {
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	NoAuth("expired", c)
+	require.Equal(t, http.StatusUnauthorized, w.Code)
+	require.JSONEq(t, `{"code":7,"data":null,"msg":"expired"}`, w.Body.String())
+}
+
 func TestSuccessKeepsValidFalsyData(t *testing.T) {
 	for _, tt := range []struct {
 		name string

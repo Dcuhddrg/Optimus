@@ -1,4 +1,4 @@
-import { apiRequest } from './client';
+import { apiRequestEnvelope } from './client';
 import type {
   AddProjectMemberPayload,
   CreateProjectPayload,
@@ -7,36 +7,37 @@ import type {
   UpdateProjectMemberRolePayload,
   UpdateProjectPayload,
 } from '../types/project';
-import type { ListResponse } from '../types/system';
+
+type ProjectList<T> = { list: T[] };
 
 export function listProjects() {
-  return apiRequest<ListResponse<Project>>('/projects');
+  return apiRequestEnvelope<ProjectList<Project>>('/projects');
 }
 
 export function createProject(payload: CreateProjectPayload) {
-  return apiRequest<Project>('/projects', {
+  return apiRequestEnvelope<Project>('/projects', {
     method: 'POST',
     body: JSON.stringify(payload),
   });
 }
 
 export function updateProject(code: string, payload: UpdateProjectPayload) {
-  return apiRequest<Project>(`/projects/${code}`, {
+  return apiRequestEnvelope<Project>(`/projects/${code}`, {
     method: 'PUT',
     body: JSON.stringify(payload),
   });
 }
 
 export function deleteProject(code: string) {
-  return apiRequest<{ message: string }>(`/projects/${code}`, { method: 'DELETE' });
+  return apiRequestEnvelope<Record<string, never>>(`/projects/${code}`, { method: 'DELETE' });
 }
 
 export function listProjectMembers(code: string) {
-  return apiRequest<ListResponse<ProjectMember>>(`/projects/${code}/members`);
+  return apiRequestEnvelope<ProjectList<ProjectMember>>(`/projects/${code}/members`);
 }
 
 export function addProjectMember(code: string, payload: AddProjectMemberPayload) {
-  return apiRequest<{ message: string }>(`/projects/${code}/members`, {
+  return apiRequestEnvelope<Record<string, never>>(`/projects/${code}/members`, {
     method: 'POST',
     body: JSON.stringify(payload),
   });
@@ -47,14 +48,14 @@ export function updateProjectMemberRole(
   userId: number,
   payload: UpdateProjectMemberRolePayload,
 ) {
-  return apiRequest<{ message: string }>(`/projects/${code}/members/${userId}`, {
+  return apiRequestEnvelope<Record<string, never>>(`/projects/${code}/members/${userId}`, {
     method: 'PATCH',
     body: JSON.stringify(payload),
   });
 }
 
 export function removeProjectMember(code: string, userId: number) {
-  return apiRequest<{ message: string }>(`/projects/${code}/members/${userId}`, {
+  return apiRequestEnvelope<Record<string, never>>(`/projects/${code}/members/${userId}`, {
     method: 'DELETE',
   });
 }

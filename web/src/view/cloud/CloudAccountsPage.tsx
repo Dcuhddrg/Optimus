@@ -35,7 +35,7 @@ export function CloudAccountsPage() {
   async function load() {
     try {
       const result = await listCloudAccounts(tagFilters);
-      setAccounts(result.items);
+    setAccounts(result.list);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : t('cloud.accounts.loadFailed'));
