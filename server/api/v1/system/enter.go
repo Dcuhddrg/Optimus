@@ -12,7 +12,7 @@ type ApiGroup struct {
 	HealthApi
 }
 
-// Service aliases are refreshed after startup assembles their dependencies.
+// Service aliases copy stateless service values, as in GVA.
 var (
 	authService   = service.ServiceGroupApp.SystemServiceGroup.AuthService
 	userService   = service.ServiceGroupApp.SystemServiceGroup.UserService

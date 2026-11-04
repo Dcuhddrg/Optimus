@@ -40,9 +40,9 @@ Router -> API -> Service -> Model
 
 HTTP 输入包括完整表单、局部状态/角色/权限操作和查询条件，均使用模块 request 包中的命名类型。审计、资产等分页查询 DTO 内嵌公共 PageInfo；API 负责按既有协议解析并映射到内部 Service 过滤器。Service 条件可保留项目范围等业务字段，但不能用它代替 HTTP request DTO，也不接受客户端伪造的已授权项目列表。
 
-`main` 与 `initialize` 负责启动、配置和基础设施准备，再装配唯一的 ServiceGroup，将已装配的服务值同步到 API 别名，最后注册路由。依赖只在启动期初始化；请求处理不得重新装配全局依赖或刷新别名，测试须隔离并恢复共享状态。数据库与外部客户端按生命周期由 initialize 传入或从现有 global 入口取得，构造函数可以用于组内部依赖创建，不再作为 Router 逐次注入 handlers 的并行生产入口。
+按 GVA，Service 是无状态值：结构体不含字段，不提供 `NewXxxService` 构造函数，也不在启动期装配。数据库、配置和外部客户端在调用时从 `global` 读取，或像 GVA 的 `utils.NewJWT()`、`upload.NewOss()` 一样按配置即时构建（如 `utils/ldap.NewLDAP()`）；服务间调用使用 `XxxServiceApp` 包级变量。API 别名在包初始化时复制 ServiceGroupApp 中的值，不再刷新。`main` 与 `initialize` 只负责配置、日志、数据库、数据初始化及 provider 注册（如 `initialize.Cloud()`），随后由 `core.RunServer()` 注册路由。测试替换依赖时修改 `global` 或包内测试钩子并在 Cleanup 中恢复；`initialize` 的契约测试会拒绝带字段的 Service。
 
-当前生产装配链为 `initialize.InitializeServices → ServiceGroupApp → ApiGroupApp → RouterGroupApp`。审计清理任务和 HTTP API 使用同一审计职责及数据库；插件注册框架另行设计。迁移与验证记录见 [#45](https://github.com/Dcuhddrg/Optimus/issues/45) 和 [#48](https://github.com/Dcuhddrg/Optimus/pull/48)。
+当前链路为 `ServiceGroupApp → ApiGroupApp → RouterGroupApp`，见 [#52](https://github.com/Dcuhddrg/Optimus/issues/52)。审计清理任务和 HTTP API 使用同一审计职责及数据库；插件注册框架另行设计。迁移与验证记录见 [#45](https://github.com/Dcuhddrg/Optimus/issues/45) 和 [#48](https://github.com/Dcuhddrg/Optimus/pull/48)。
 
 ### Router 组织约定
 

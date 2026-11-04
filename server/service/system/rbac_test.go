@@ -1,4 +1,4 @@
-package system_test
+package system
 
 import (
 	"context"
@@ -6,17 +6,16 @@ import (
 
 	"optimus/server/global"
 	systemModel "optimus/server/model/system"
-	systemService "optimus/server/service/system"
 
 	"github.com/stretchr/testify/require"
 )
 
 func TestRBACServiceAllowsRoleWithPermission(t *testing.T) {
-	db := openExternalPersistenceDB(t)
+	db := openTestDB(t)
 	permission := systemModel.SystemPermission{OPTIMUS_MODEL: global.OPTIMUS_MODEL{ID: 10}, Code: "system.users.view", Name: "View users", Type: "api", Method: "GET", Path: "/api/v1/system/users"}
 	require.NoError(t, db.Create(&permission).Error)
 	require.NoError(t, db.Create(&systemModel.SystemRolePermission{RoleID: 1, PermissionID: 10}).Error)
-	service := &systemService.RBACService{}
+	service := &RBACService{}
 
 	allowed, err := service.AuthorizeAPI(context.Background(), "GET", "/api/v1/system/users", []uint{1})
 
@@ -24,16 +23,32 @@ func TestRBACServiceAllowsRoleWithPermission(t *testing.T) {
 	require.True(t, allowed)
 }
 
-type fakeRBACStore struct {
-	permissions map[string]systemService.SystemPermissionSummary
-	allowed     map[uint]bool
+func TestRBACServiceDatabaseFindAPIPermissionNotFound(t *testing.T) {
+	openTestDB(t)
+
+	store := (&RBACService{})
+	_, found, err := store.findAPIPermission(context.Background(), "GET", "/nonexistent")
+
+	require.NoError(t, err)
+	require.False(t, found)
 }
 
-func (s *fakeRBACStore) FindAPIPermission(_ context.Context, method, path string) (systemService.SystemPermissionSummary, bool, error) {
-	p, ok := s.permissions[method+" "+path]
-	return p, ok, nil
-}
+func TestRBACServiceDatabaseFindAPIPermissionFound(t *testing.T) {
+	db := openTestDB(t)
 
-func (s *fakeRBACStore) RoleHasPermission(_ context.Context, roleID, _ uint) (bool, error) {
-	return s.allowed[roleID], nil
+	perm := systemModel.SystemPermission{
+		Code:   "users.list",
+		Name:   "List Users",
+		Type:   "api",
+		Method: "GET",
+		Path:   "/api/v1/system/users",
+	}
+	require.NoError(t, db.Create(&perm).Error)
+
+	store := (&RBACService{})
+	summary, found, err := store.findAPIPermission(context.Background(), "GET", "/api/v1/system/users")
+
+	require.NoError(t, err)
+	require.True(t, found)
+	require.Equal(t, "users.list", summary.Code)
 }

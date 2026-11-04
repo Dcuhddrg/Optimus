@@ -8,24 +8,14 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
-	"gorm.io/gorm"
 	"optimus/server/global"
-	"optimus/server/service"
-	systemService "optimus/server/service/system"
 )
 
-func TestStatefulServicesRequireInitializationEvenWhenDatabaseExists(t *testing.T) {
+func TestDatabaseBackedSystemAPIsAreUnavailableWithoutDatabase(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	previousDB, previousGroup := global.OPTIMUS_DB, service.ServiceGroupApp.SystemServiceGroup
-	t.Cleanup(func() {
-		global.OPTIMUS_DB = previousDB
-		service.ServiceGroupApp.SystemServiceGroup = previousGroup
-		RefreshServiceAliases()
-	})
-	global.OPTIMUS_DB = &gorm.DB{}
-	service.ServiceGroupApp.SystemServiceGroup.AuthService = systemService.AuthService{}
-	service.ServiceGroupApp.SystemServiceGroup.LDAPService = systemService.LDAPService{}
-	RefreshServiceAliases()
+	previousDB := global.OPTIMUS_DB
+	t.Cleanup(func() { global.OPTIMUS_DB = previousDB })
+	global.OPTIMUS_DB = nil
 	t.Run("auth", func(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
@@ -41,9 +31,4 @@ func TestStatefulServicesRequireInitializationEvenWhenDatabaseExists(t *testing.
 		require.NotPanics(t, func() { (&LDAPApi{}).LDAPConfig(c) })
 		require.Equal(t, http.StatusServiceUnavailable, w.Code)
 	})
-}
-
-func TestConstructedServicesPreserveNilDependencySemantics(t *testing.T) {
-	require.True(t, systemService.NewAuthService(nil, nil).Ready())
-	require.True(t, systemService.NewLDAPService(nil).Ready())
 }

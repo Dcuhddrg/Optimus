@@ -7,7 +7,7 @@ import (
 )
 
 func TestAccountServiceWithoutAccessibleProjectsDoesNotQueryDB(t *testing.T) {
-	service, err := NewCloudAccountService(make([]byte, 32))
+	service, err := newCloudAccountServiceForTest(t)
 	if err != nil {
 		t.Fatal(err)
 	}

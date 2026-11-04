@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	systemModel "optimus/server/model/system"
+	"optimus/server/utils"
 
 	"gorm.io/gorm"
 )
@@ -117,7 +118,7 @@ func seedAdminUser(db *gorm.DB, initialAdminPassword string) error {
 		return err
 	}
 
-	hash, err := HashPassword(initialAdminPassword)
+	hash, err := utils.BcryptHash(initialAdminPassword)
 	if err != nil {
 		return err
 	}

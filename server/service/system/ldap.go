@@ -9,50 +9,22 @@ import (
 	systemModel "optimus/server/model/system"
 	systemRequest "optimus/server/model/system/request"
 	systemResponse "optimus/server/model/system/response"
+	ldapUtil "optimus/server/utils/ldap"
 
 	"gorm.io/gorm"
 )
 
 var ErrInvalidLDAPConfig = errors.New("invalid ldap config")
 
-type LDAPTester interface {
-	Test(ctx context.Context, cfg LDAPConnectionConfig) error
-}
+type LDAPService struct{}
 
-type LDAPAuthenticator interface {
-	Authenticate(ctx context.Context, cfg LDAPConnectionConfig, username, password string) (LDAPUser, error)
-}
+type (
+	LDAPConnectionConfig = ldapUtil.Config
+	LDAPUser             = ldapUtil.User
+)
 
-type LDAPService struct {
-	client      LDAPTester
-	initialized bool
-}
-
-// Ready reports whether the service was constructed.
-func (s *LDAPService) Ready() bool {
-	return s != nil && s.initialized
-}
-
-type LDAPConnectionConfig struct {
-	URL             string
-	BaseDN          string
-	BindDN          string
-	BindPassword    string
-	UserFilter      string
-	UsernameAttr    string
-	DisplayNameAttr string
-	EmailAttr       string
-}
-
-type LDAPUser struct {
-	Username    string
-	DisplayName string
-	Email       string
-}
-
-func NewLDAPService(client LDAPTester) *LDAPService {
-	return &LDAPService{client: client, initialized: true}
-}
+// newLDAPClient builds the directory client per call; tests replace it.
+var newLDAPClient = ldapUtil.NewLDAP
 
 func (s *LDAPService) GetConfig(ctx context.Context) (systemResponse.LDAPConfigResult, error) {
 	cfg, err := s.getLDAPConfig(ctx)
@@ -109,7 +81,7 @@ func (s *LDAPService) TestConfig(ctx context.Context, actorID uint, req systemRe
 		recordAudit(ctx, event)
 		return systemResponse.LDAPTestResult{}, err
 	}
-	if err := s.client.Test(ctx, cfg); err != nil {
+	if err := newLDAPClient().Test(ctx, cfg); err != nil {
 		event := failedAudit(actorID, meta, "ldap.test.failure", "ldap", 0)
 		event.Detail = auditDetails("connection_test_failed", nil)
 		recordAudit(ctx, event)

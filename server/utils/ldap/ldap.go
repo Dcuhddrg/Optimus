@@ -1,25 +1,53 @@
-package directory
+package ldap
 
 import (
 	"context"
+	"errors"
 	"net"
 	"strings"
 	"time"
 
-	systemService "optimus/server/service/system"
-
 	ldap "github.com/go-ldap/ldap/v3"
 )
+
+// ErrUserNotFound is returned when the user filter does not match exactly one entry.
+var ErrUserNotFound = errors.New("ldap user not found")
+
+// Config is the connection and attribute mapping used for one LDAP call.
+type Config struct {
+	URL             string
+	BaseDN          string
+	BindDN          string
+	BindPassword    string
+	UserFilter      string
+	UsernameAttr    string
+	DisplayNameAttr string
+	EmailAttr       string
+}
+
+// User is the directory identity returned by a successful authentication.
+type User struct {
+	Username    string
+	DisplayName string
+	Email       string
+}
+
+// Client is the LDAP capability used by services.
+type Client interface {
+	Test(ctx context.Context, cfg Config) error
+	Authenticate(ctx context.Context, cfg Config, username, password string) (User, error)
+}
+
+// NewLDAP builds a client per call, like GVA's upload.NewOss.
+func NewLDAP() Client {
+	return &GoLDAPClient{Timeout: 5 * time.Second}
+}
 
 type GoLDAPClient struct {
 	Timeout time.Duration
 }
 
-func NewGoLDAPClient() *GoLDAPClient {
-	return &GoLDAPClient{Timeout: 5 * time.Second}
-}
-
-func (c *GoLDAPClient) Test(_ context.Context, cfg systemService.LDAPConnectionConfig) error {
+func (c *GoLDAPClient) Test(_ context.Context, cfg Config) error {
 	conn, err := ldap.DialURL(cfg.URL, ldap.DialWithDialer(&net.Dialer{Timeout: c.timeout()}))
 	if err != nil {
 		return err
@@ -45,15 +73,15 @@ func (c *GoLDAPClient) Test(_ context.Context, cfg systemService.LDAPConnectionC
 	return err
 }
 
-func (c *GoLDAPClient) Authenticate(_ context.Context, cfg systemService.LDAPConnectionConfig, username string, password string) (systemService.LDAPUser, error) {
+func (c *GoLDAPClient) Authenticate(_ context.Context, cfg Config, username string, password string) (User, error) {
 	conn, err := ldap.DialURL(cfg.URL, ldap.DialWithDialer(&net.Dialer{Timeout: c.timeout()}))
 	if err != nil {
-		return systemService.LDAPUser{}, err
+		return User{}, err
 	}
 	defer conn.Close()
 
 	if err := conn.Bind(cfg.BindDN, cfg.BindPassword); err != nil {
-		return systemService.LDAPUser{}, err
+		return User{}, err
 	}
 
 	attrs := []string{cfg.UsernameAttr, cfg.DisplayNameAttr, cfg.EmailAttr}
@@ -70,18 +98,18 @@ func (c *GoLDAPClient) Authenticate(_ context.Context, cfg systemService.LDAPCon
 	)
 	result, err := conn.Search(request)
 	if err != nil {
-		return systemService.LDAPUser{}, err
+		return User{}, err
 	}
 	if len(result.Entries) != 1 {
-		return systemService.LDAPUser{}, systemService.ErrInvalidCredentials
+		return User{}, ErrUserNotFound
 	}
 
 	entry := result.Entries[0]
 	if err := conn.Bind(entry.DN, password); err != nil {
-		return systemService.LDAPUser{}, err
+		return User{}, err
 	}
 
-	return systemService.LDAPUser{
+	return User{
 		Username:    firstLDAPAttr(entry, cfg.UsernameAttr, username),
 		DisplayName: firstLDAPAttr(entry, cfg.DisplayNameAttr, username),
 		Email:       firstLDAPAttr(entry, cfg.EmailAttr, ""),

@@ -8,6 +8,7 @@ import (
 	"log"
 	"reflect"
 	"slices"
+	"strconv"
 	"unicode"
 
 	"optimus/server/global"
@@ -121,4 +122,8 @@ func writeAuditEvent(ctx context.Context, event AuditEvent) error {
 		Detail:        event.Detail,
 	}
 	return global.OPTIMUS_DB.WithContext(ctx).Create(&log).Error
+}
+
+func resourceID(id uint) string {
+	return strconv.FormatUint(uint64(id), 10)
 }

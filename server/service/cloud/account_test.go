@@ -2,6 +2,7 @@ package cloud
 
 import (
 	"context"
+	"optimus/server/global"
 	cloudRequest "optimus/server/model/cloud/request"
 	"testing"
 
@@ -11,7 +12,7 @@ import (
 func newTestAccountService(t *testing.T) *CloudAccountService {
 	t.Helper()
 	openCloudTestDB(t)
-	svc, err := NewCloudAccountService(make([]byte, 32))
+	svc, err := newCloudAccountServiceForTest(t)
 	require.NoError(t, err)
 	return svc
 }
@@ -26,9 +27,16 @@ func sampleCreateAccountRequest() cloudRequest.CreateAccountRequest {
 	}
 }
 
-func TestNewCloudAccountServiceRejectsInvalidKey(t *testing.T) {
-	_, err := NewCloudAccountService([]byte("tooshort"))
-	require.ErrorIs(t, err, ErrInvalidEncryptionKey)
+func TestCloudAccountServiceRejectsInvalidConfiguredKey(t *testing.T) {
+	for _, key := range []string{"", "tooshort", string(make([]byte, 33))} {
+		saved := global.OPTIMUS_CONFIG.Cloud.CredentialEncryptionKey
+		global.OPTIMUS_CONFIG.Cloud.CredentialEncryptionKey = key
+		_, err := CredentialKey()
+		require.ErrorIs(t, err, ErrInvalidEncryptionKey)
+		_, err = (&CloudAccountService{}).Create(context.Background(), 7, sampleCreateAccountRequest())
+		require.ErrorIs(t, err, ErrInvalidEncryptionKey, "no credential may be encrypted with an invalid key")
+		global.OPTIMUS_CONFIG.Cloud.CredentialEncryptionKey = saved
+	}
 }
 
 func TestCloudAccountServiceCreateMasksCredential(t *testing.T) {
@@ -125,7 +133,7 @@ func TestCreateAcceptsTags(t *testing.T) {
 }
 
 func TestCreateRejectsInvalidTagKey(t *testing.T) {
-	svc, err := NewCloudAccountService(make([]byte, 32))
+	svc, err := newCloudAccountServiceForTest(t)
 	require.NoError(t, err)
 
 	req := sampleCreateAccountRequest()

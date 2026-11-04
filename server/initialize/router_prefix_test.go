@@ -4,13 +4,12 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"optimus/server/config"
 	"optimus/server/global"
 	model "optimus/server/model/system"
 	"optimus/server/service"
-	systemService "optimus/server/service/system"
+	"optimus/server/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
@@ -43,7 +42,7 @@ func TestRoutersAuthorizeCanonicalPermissionWithConfiguredPrefix(t *testing.T) {
 			db, _ := projectScopeRouterDB(t, "", false)
 			global.OPTIMUS_CONFIG.System.RouterPrefix = tt.prefix
 			global.OPTIMUS_CONFIG.JWT = config.JWT{SigningKey: "prefix-test-key", ExpiresTime: 3600, Issuer: "prefix-test"}
-			initializeTestServices(t, db, global.OPTIMUS_CONFIG)
+			setTestDatabase(t, db)
 			var permission model.SystemPermission
 			err := db.Where("method = ? AND path = ?", tt.method, tt.permissionPath).First(&permission).Error
 			if err == gorm.ErrRecordNotFound {
@@ -62,7 +61,7 @@ func TestRoutersAuthorizeCanonicalPermissionWithConfiguredPrefix(t *testing.T) {
 					global.OPTIMUS_DB = nil
 				}
 			}))
-			token, err := systemService.IssueJWT(systemService.TokenSubject{ID: 1, RoleIDs: []uint{7}}, global.OPTIMUS_CONFIG.JWT, time.Now())
+			token, err := utils.NewJWT().CreateToken(utils.NewJWT().CreateClaims(utils.BaseClaims{ID: 1, RoleIDs: []uint{7}}))
 			require.NoError(t, err)
 			request := httptest.NewRequest(tt.method, tt.requestPath, nil)
 			request.Header.Set("Authorization", "Bearer "+token)

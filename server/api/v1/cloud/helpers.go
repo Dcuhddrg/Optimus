@@ -5,12 +5,23 @@ import (
 	"net/http"
 	"strconv"
 
+	"optimus/server/global"
 	cloudRequest "optimus/server/model/cloud/request"
 	cloudService "optimus/server/service/cloud"
 	"optimus/server/utils"
 
 	"github.com/gin-gonic/gin"
 )
+
+// cloudReady reports whether cloud APIs can serve: the database is up and the
+// credential encryption key is valid (#54 keeps cloud unavailable otherwise).
+func cloudReady() bool {
+	if global.OPTIMUS_DB == nil {
+		return false
+	}
+	_, err := cloudService.CredentialKey()
+	return err == nil
+}
 
 func writeCloudServiceUnavailable(c *gin.Context, message string) {
 	c.JSON(http.StatusServiceUnavailable, gin.H{"message": message})

@@ -12,7 +12,7 @@ type AccountApi struct{}
 
 func (h *AccountApi) ListAccounts(c *gin.Context) {
 	svc := accountService
-	if !svc.Ready() {
+	if !cloudReady() {
 		writeCloudServiceUnavailable(c, "cloud account service is not available")
 		return
 	}
@@ -32,7 +32,7 @@ func (h *AccountApi) ListAccounts(c *gin.Context) {
 
 func (h *AccountApi) GetAccount(c *gin.Context) {
 	svc := accountService
-	if !svc.Ready() {
+	if !cloudReady() {
 		writeCloudServiceUnavailable(c, "cloud account service is not available")
 		return
 	}
@@ -51,7 +51,7 @@ func (h *AccountApi) GetAccount(c *gin.Context) {
 
 func (h *AccountApi) CreateAccount(c *gin.Context) {
 	svc := accountService
-	if !svc.Ready() {
+	if !cloudReady() {
 		writeCloudServiceUnavailable(c, "cloud account service is not available")
 		return
 	}
@@ -75,7 +75,7 @@ func (h *AccountApi) CreateAccount(c *gin.Context) {
 
 func (h *AccountApi) UpdateAccount(c *gin.Context) {
 	svc := accountService
-	if !svc.Ready() {
+	if !cloudReady() {
 		writeCloudServiceUnavailable(c, "cloud account service is not available")
 		return
 	}
@@ -99,7 +99,7 @@ func (h *AccountApi) UpdateAccount(c *gin.Context) {
 
 func (h *AccountApi) UpdateAccountTags(c *gin.Context) {
 	svc := accountService
-	if !svc.Ready() {
+	if !cloudReady() {
 		writeCloudServiceUnavailable(c, "cloud account service is not available")
 		return
 	}
@@ -123,7 +123,7 @@ func (h *AccountApi) UpdateAccountTags(c *gin.Context) {
 
 func (h *AccountApi) DeleteAccount(c *gin.Context) {
 	svc := accountService
-	if !svc.Ready() {
+	if !cloudReady() {
 		writeCloudServiceUnavailable(c, "cloud account service is not available")
 		return
 	}
@@ -141,7 +141,7 @@ func (h *AccountApi) DeleteAccount(c *gin.Context) {
 
 func (h *AccountApi) SyncAccount(c *gin.Context) {
 	svc := assetService
-	if !svc.Ready() {
+	if !cloudReady() {
 		writeCloudServiceUnavailable(c, "asset registry service is not available")
 		return
 	}

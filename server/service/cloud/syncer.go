@@ -39,6 +39,10 @@ type SyncerRegistry struct {
 	syncers map[string]AssetSyncer
 }
 
+// Syncers is the process-wide provider registry; initialize registers providers
+// before routes are served.
+var Syncers = NewSyncerRegistry()
+
 func NewSyncerRegistry() *SyncerRegistry {
 	return &SyncerRegistry{syncers: make(map[string]AssetSyncer)}
 }

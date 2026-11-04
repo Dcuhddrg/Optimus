@@ -2,39 +2,34 @@ package initialize
 
 import (
 	"net/http/httptest"
+	"reflect"
 	"testing"
-	"time"
 
-	api "optimus/server/api/v1"
-	cloudAPI "optimus/server/api/v1/cloud"
-	systemAPI "optimus/server/api/v1/system"
 	"optimus/server/config"
 	"optimus/server/global"
 	systemModel "optimus/server/model/system"
 	"optimus/server/service"
+	cloudService "optimus/server/service/cloud"
+	projectService "optimus/server/service/project"
 	systemService "optimus/server/service/system"
+	"optimus/server/utils"
 
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 )
 
-func TestServiceGroupInitializationKeepsAliasAddressesStable(t *testing.T) {
-	saved := *service.ServiceGroupApp
-	t.Cleanup(func() { *service.ServiceGroupApp = saved })
-	root, system := service.ServiceGroupApp, &service.ServiceGroupApp.SystemServiceGroup
-	authAPI := &api.ApiGroupApp.SystemApiGroup.AuthApi
-	auth := &system.AuthService
-	initializeTestServices(t, nil, config.Config{})
-	require.Same(t, root, service.ServiceGroupApp)
-	require.Same(t, system, &service.ServiceGroupApp.SystemServiceGroup)
-	require.Equal(t, systemService.AuthService{}, system.AuthService)
-	db := &gorm.DB{}
-	initializeTestServices(t, db, config.Config{})
-	require.Same(t, db, global.OPTIMUS_DB)
-	require.Same(t, system, &service.ServiceGroupApp.SystemServiceGroup)
-	require.Same(t, authAPI, &api.ApiGroupApp.SystemApiGroup.AuthApi)
-	require.Same(t, auth, &system.AuthService)
-	require.NotEqual(t, systemService.AuthService{}, system.AuthService)
+// GVA services are stateless values: shared dependencies (DB, config, clients)
+// are read from global at call time, so API aliases copied at package init stay
+// valid. A field here would reintroduce startup assembly.
+func TestGroupedServicesAreStateless(t *testing.T) {
+	for _, group := range []any{systemService.ServiceGroup{}, cloudService.ServiceGroup{}, projectService.ServiceGroup{}} {
+		typ := reflect.TypeOf(group)
+		for i := 0; i < typ.NumField(); i++ {
+			f := typ.Field(i)
+			require.True(t, f.Anonymous, "%s.%s", typ, f.Name)
+			require.Zero(t, f.Type.NumField(), "%s.%s must not hold state; read dependencies from global at call time", typ, f.Name)
+		}
+	}
 }
 
 func TestRealRouterReadsCurrentGroupAuthorizer(t *testing.T) {
@@ -43,10 +38,10 @@ func TestRealRouterReadsCurrentGroupAuthorizer(t *testing.T) {
 	global.OPTIMUS_CONFIG.System.RouterPrefix = "/api/v1"
 	global.OPTIMUS_CONFIG.JWT = config.JWT{SigningKey: "group-contract-key", ExpiresTime: 3600, Issuer: "group-contract"}
 	db, _ := projectScopeRouterDB(t, "", true)
-	initializeTestServices(t, db, global.OPTIMUS_CONFIG)
+	setTestDatabase(t, db)
 	var permission systemModel.SystemPermission
 	require.NoError(t, db.Where("method = ? AND path = ?", "GET", "/api/v1/system/permissions/tree").First(&permission).Error)
-	token, err := systemService.IssueJWT(systemService.TokenSubject{ID: 1, RoleIDs: []uint{1}}, global.OPTIMUS_CONFIG.JWT, time.Now())
+	token, err := utils.NewJWT().CreateToken(utils.NewJWT().CreateClaims(utils.BaseClaims{ID: 1, RoleIDs: []uint{1}}))
 	require.NoError(t, err)
 	for _, allowed := range []bool{false, true} {
 		if allowed {
@@ -73,8 +68,8 @@ func TestMissingDatabaseAuthorizerPreservesRecoveryStatus(t *testing.T) {
 	t.Cleanup(func() { *service.ServiceGroupApp = saved; global.OPTIMUS_CONFIG = cfg })
 	global.OPTIMUS_CONFIG.System.RouterPrefix = "/api/v1"
 	global.OPTIMUS_CONFIG.JWT = config.JWT{SigningKey: "missing-db-contract", ExpiresTime: 3600, Issuer: "missing-db-contract"}
-	initializeTestServices(t, nil, global.OPTIMUS_CONFIG)
-	token, err := systemService.IssueJWT(systemService.TokenSubject{ID: 1, RoleIDs: []uint{1}}, global.OPTIMUS_CONFIG.JWT, time.Now())
+	setTestDatabase(t, nil)
+	token, err := utils.NewJWT().CreateToken(utils.NewJWT().CreateClaims(utils.BaseClaims{ID: 1, RoleIDs: []uint{1}}))
 	require.NoError(t, err)
 	req := httptest.NewRequest("GET", "/api/v1/system/permissions/tree", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -84,16 +79,9 @@ func TestMissingDatabaseAuthorizerPreservesRecoveryStatus(t *testing.T) {
 	require.Empty(t, w.Body.String())
 }
 
-func initializeTestServices(t *testing.T, db *gorm.DB, cfg config.Config) {
+func setTestDatabase(t *testing.T, db *gorm.DB) {
 	t.Helper()
 	previousDB := global.OPTIMUS_DB
-	previousServices := *service.ServiceGroupApp
-	t.Cleanup(func() {
-		global.OPTIMUS_DB = previousDB
-		*service.ServiceGroupApp = previousServices
-		systemAPI.RefreshServiceAliases()
-		cloudAPI.RefreshServiceAliases()
-	})
+	t.Cleanup(func() { global.OPTIMUS_DB = previousDB })
 	global.OPTIMUS_DB = db
-	InitializeServices(db, cfg)
 }

@@ -9,6 +9,7 @@ import (
 	systemModel "optimus/server/model/system"
 	systemRequest "optimus/server/model/system/request"
 	systemResponse "optimus/server/model/system/response"
+	"optimus/server/utils"
 
 	"gorm.io/gorm"
 )
@@ -18,38 +19,7 @@ var (
 	ErrUserDisabled       = errors.New("user disabled")
 )
 
-type TokenSubject struct {
-	ID        uint
-	UUID      string
-	Username  string
-	RoleIDs   []uint
-	RoleCodes []string
-}
-
-type TokenIssuer interface {
-	IssueToken(subject TokenSubject) (string, error)
-}
-
-type AuthService struct {
-	tokenIssuer TokenIssuer
-	ldap        LDAPAuthenticator
-	now         func() time.Time
-	initialized bool
-}
-
-// Ready reports whether the service was constructed.
-func (s *AuthService) Ready() bool {
-	return s != nil && s.initialized
-}
-
-func NewAuthService(tokenIssuer TokenIssuer, ldap LDAPAuthenticator) *AuthService {
-	return &AuthService{
-		initialized: true,
-		tokenIssuer: tokenIssuer,
-		ldap:        ldap,
-		now:         time.Now,
-	}
-}
+type AuthService struct{}
 
 func (s *AuthService) Login(ctx context.Context, req systemRequest.LoginRequest, meta AuditMeta) (systemResponse.LoginResult, error) {
 	user, err := s.findUserByUsername(ctx, req.Username)
@@ -66,7 +36,7 @@ func (s *AuthService) Login(ctx context.Context, req systemRequest.LoginRequest,
 		return systemResponse.LoginResult{}, ErrUserDisabled
 	}
 
-	if user.Source != "local" || user.Username != defaultAdminUsername || !ComparePassword(user.PasswordHash, req.Password) {
+	if user.Source != "local" || user.Username != defaultAdminUsername || !utils.BcryptCheck(req.Password, user.PasswordHash) {
 		if user.Username != defaultAdminUsername {
 			return s.loginLDAP(ctx, req, meta)
 		}
@@ -82,16 +52,12 @@ func (s *AuthService) Login(ctx context.Context, req systemRequest.LoginRequest,
 }
 
 func (s *AuthService) loginLDAP(ctx context.Context, req systemRequest.LoginRequest, meta AuditMeta) (systemResponse.LoginResult, error) {
-	if s.ldap == nil {
-		s.writeAudit(ctx, loginFailure(req.Username, meta, 0, "ldap_unavailable"))
-		return systemResponse.LoginResult{}, ErrInvalidCredentials
-	}
 	cfg, err := s.getLDAPConfig(ctx)
 	if err != nil || !cfg.Enabled {
 		s.writeAudit(ctx, loginFailure(req.Username, meta, 0, "ldap_config_unavailable"))
 		return systemResponse.LoginResult{}, ErrInvalidCredentials
 	}
-	ldapUser, err := s.ldap.Authenticate(ctx, ldapConnectionConfig(cfg), req.Username, req.Password)
+	ldapUser, err := newLDAPClient().Authenticate(ctx, ldapConnectionConfig(cfg), req.Username, req.Password)
 	if err != nil {
 		s.writeAudit(ctx, loginFailure(req.Username, meta, 0, "ldap_authentication_failed"))
 		return systemResponse.LoginResult{}, ErrInvalidCredentials
@@ -123,14 +89,15 @@ func (s *AuthService) issueLoginResult(ctx context.Context, user systemModel.Sys
 		return systemResponse.LoginResult{}, err
 	}
 
-	now := s.now()
-	token, err := s.tokenIssuer.IssueToken(TokenSubject{
+	now := time.Now()
+	j := utils.NewJWT()
+	token, err := j.CreateToken(j.CreateClaims(utils.BaseClaims{
 		ID:        user.ID,
 		UUID:      user.UUID,
 		Username:  user.Username,
 		RoleIDs:   roleIDs,
 		RoleCodes: roleCodes,
-	})
+	}))
 	if err != nil {
 		return systemResponse.LoginResult{}, err
 	}

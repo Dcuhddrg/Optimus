@@ -29,49 +29,36 @@ type AssetFilter struct {
 }
 
 // AssetRegistryService orchestrates sync and querying of cloud assets.
-type AssetRegistryService struct {
-	accounts *CloudAccountService
-	registry *SyncerRegistry
-	now      func() time.Time
-}
-
-// Ready reports whether the service was constructed.
-func (s *AssetRegistryService) Ready() bool {
-	return s != nil && s.now != nil
-}
-
-func NewAssetRegistryService(accounts *CloudAccountService, registry *SyncerRegistry) *AssetRegistryService {
-	return &AssetRegistryService{accounts: accounts, registry: registry, now: time.Now}
-}
+type AssetRegistryService struct{}
 
 // SyncAccount fetches all assets for the given account and upserts them into the registry.
 func (s *AssetRegistryService) SyncAccount(ctx context.Context, accessibleProjectIDs []uint, accountID uint) (cloudResponse.SyncResult, error) {
-	if _, err := s.accounts.Get(ctx, accessibleProjectIDs, accountID); err != nil {
+	if _, err := CloudAccountServiceApp.Get(ctx, accessibleProjectIDs, accountID); err != nil {
 		return cloudResponse.SyncResult{}, err
 	}
 
-	syncAcc, err := s.accounts.GetForSync(ctx, accountID)
+	syncAcc, err := CloudAccountServiceApp.GetForSync(ctx, accountID)
 	if err != nil {
-		statusErr := s.accounts.UpdateSyncStatus(ctx, accountID, nil, "error")
+		statusErr := CloudAccountServiceApp.UpdateSyncStatus(ctx, accountID, nil, "error")
 		return cloudResponse.SyncResult{}, errors.Join(err, statusErr)
 	}
-	syncer, err := s.registry.Get(syncAcc.Provider)
+	syncer, err := Syncers.Get(syncAcc.Provider)
 	if err != nil {
-		statusErr := s.accounts.UpdateSyncStatus(ctx, accountID, nil, "error")
+		statusErr := CloudAccountServiceApp.UpdateSyncStatus(ctx, accountID, nil, "error")
 		return cloudResponse.SyncResult{}, errors.Join(err, statusErr)
 	}
 	raw, err := syncer.Sync(ctx, syncAcc)
 	if err != nil {
-		statusErr := s.accounts.UpdateSyncStatus(ctx, accountID, nil, "error")
+		statusErr := CloudAccountServiceApp.UpdateSyncStatus(ctx, accountID, nil, "error")
 		return cloudResponse.SyncResult{}, errors.Join(err, statusErr)
 	}
 	result, err := s.upsertAssets(ctx, accountID, syncAcc.Provider, raw)
 	if err != nil {
-		statusErr := s.accounts.UpdateSyncStatus(ctx, accountID, nil, "error")
+		statusErr := CloudAccountServiceApp.UpdateSyncStatus(ctx, accountID, nil, "error")
 		return cloudResponse.SyncResult{}, errors.Join(err, statusErr)
 	}
-	now := s.now()
-	if statusErr := s.accounts.UpdateSyncStatus(ctx, accountID, &now, "active"); statusErr != nil {
+	now := time.Now()
+	if statusErr := CloudAccountServiceApp.UpdateSyncStatus(ctx, accountID, &now, "active"); statusErr != nil {
 		return result, statusErr
 	}
 	return result, nil

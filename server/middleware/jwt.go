@@ -4,9 +4,7 @@ import (
 	"net/http"
 	"strings"
 
-	"optimus/server/global"
 	"optimus/server/model/common/response"
-	systemService "optimus/server/service/system"
 	"optimus/server/utils"
 
 	"github.com/gin-gonic/gin"
@@ -26,7 +24,7 @@ func JWTAuth() gin.HandlerFunc {
 			return
 		}
 
-		claims, err := systemService.ParseJWT(strings.TrimSpace(tokenString), global.OPTIMUS_CONFIG.JWT)
+		claims, err := utils.NewJWT().ParseToken(strings.TrimSpace(tokenString))
 		if err != nil {
 			response.AbortFailure(c, http.StatusUnauthorized, "invalid or expired token")
 			return
