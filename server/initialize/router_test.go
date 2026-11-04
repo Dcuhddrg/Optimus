@@ -1,22 +1,17 @@
 package initialize
 
 import (
-	"context"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"net/http/httptest"
-	"optimus/server/service"
 	"strings"
 	"testing"
-	"time"
 
 	"optimus/server/config"
 	"optimus/server/global"
 	systemModel "optimus/server/model/system"
-	systemRequest "optimus/server/model/system/request"
-	systemResponse "optimus/server/model/system/response"
-	systemService "optimus/server/service/system"
+	"optimus/server/service"
+	"optimus/server/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
@@ -52,7 +47,7 @@ func TestRouterLoginUsesInitializedAuthDependencies(t *testing.T) {
 	global.OPTIMUS_CONFIG.System.RouterPrefix = "/api/v1"
 	global.OPTIMUS_CONFIG.JWT = config.JWT{SigningKey: "router-login-test", ExpiresTime: 3600, Issuer: "router-login-test"}
 	db, _ := projectScopeRouterDB(t, "", true)
-	hash, err := systemService.HashPassword("admin-secret")
+	hash, err := utils.BcryptHash("admin-secret")
 	require.NoError(t, err)
 	user := systemModel.SystemUser{UUID: "router-admin", Username: "admin", DisplayName: "Admin", Source: "local", Status: "enabled", PasswordHash: hash}
 	require.NoError(t, db.Create(&user).Error)
@@ -93,13 +88,13 @@ func TestRoutersUseGroupedRBACCapability(t *testing.T) {
 	setTestDatabase(t, db)
 
 	engine := Routers()
-	token, err := systemService.IssueJWT(systemService.TokenSubject{
+	token, err := utils.NewJWT().CreateToken(utils.NewJWT().CreateClaims(utils.BaseClaims{
 		ID:        1,
 		UUID:      "router-test-user",
 		Username:  "admin",
 		RoleIDs:   []uint{1},
 		RoleCodes: []string{"admin"},
-	}, global.OPTIMUS_CONFIG.JWT, time.Now())
+	}))
 	require.NoError(t, err)
 
 	recorder := httptest.NewRecorder()
@@ -110,62 +105,4 @@ func TestRoutersUseGroupedRBACCapability(t *testing.T) {
 
 	require.Equal(t, http.StatusOK, recorder.Code)
 	require.Contains(t, recorder.Body.String(), "\"code\":\"system.permissions.view\"")
-}
-
-type fakeRouterAuthStore struct{}
-
-type fakeRouterAuthService struct{}
-
-func (fakeRouterAuthService) Login(context.Context, systemRequest.LoginRequest, systemService.AuditMeta) (systemResponse.LoginResult, error) {
-	return systemResponse.LoginResult{}, systemService.ErrInvalidCredentials
-}
-func (fakeRouterAuthService) CurrentUser(context.Context, uint) (systemResponse.CurrentUserResult, error) {
-	return systemResponse.CurrentUserResult{}, errors.New("not implemented")
-}
-func (fakeRouterAuthService) Logout(context.Context, uint, systemService.AuditMeta) error { return nil }
-
-type fakeRouterTokenIssuer struct{}
-
-type fakeRouterRBAC struct {
-	allowed bool
-}
-
-func (f fakeRouterRBAC) AuthorizeAPI(_ context.Context, method string, path string, roleIDs []uint) (bool, error) {
-	return f.allowed && method == http.MethodGet && path == "/api/v1/system/permissions/tree" && len(roleIDs) == 1 && roleIDs[0] == 1, nil
-}
-
-func (fakeRouterTokenIssuer) IssueToken(systemService.TokenSubject) (string, error) {
-	return "", nil
-}
-
-func (fakeRouterAuthStore) FindUserByUsername(context.Context, string) (systemModel.SystemUser, error) {
-	return systemModel.SystemUser{}, errors.New("not found")
-}
-
-func (fakeRouterAuthStore) FindUserByID(context.Context, uint) (systemModel.SystemUser, error) {
-	return systemModel.SystemUser{}, errors.New("not implemented")
-}
-
-func (fakeRouterAuthStore) GetLDAPConfig(context.Context) (systemModel.SystemLDAPConfig, error) {
-	return systemModel.SystemLDAPConfig{}, nil
-}
-
-func (fakeRouterAuthStore) SyncLDAPUser(context.Context, systemService.LDAPUser) (systemModel.SystemUser, error) {
-	return systemModel.SystemUser{}, errors.New("not implemented")
-}
-
-func (fakeRouterAuthStore) RolesForUser(context.Context, uint) ([]systemModel.SystemRoleSummary, error) {
-	return nil, errors.New("not implemented")
-}
-
-func (fakeRouterAuthStore) MenuPermissionCodesForRoles(context.Context, []uint) ([]string, error) {
-	return nil, errors.New("not implemented")
-}
-
-func (fakeRouterAuthStore) UpdateLastLogin(context.Context, uint, time.Time) error {
-	return nil
-}
-
-func (fakeRouterAuthStore) WriteAudit(context.Context, systemService.AuditEvent) error {
-	return nil
 }

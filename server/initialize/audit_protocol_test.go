@@ -6,13 +6,12 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"time"
 
 	"optimus/server/config"
 	"optimus/server/global"
 	model "optimus/server/model/system"
 	rootService "optimus/server/service"
-	service "optimus/server/service/system"
+	"optimus/server/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
@@ -53,7 +52,7 @@ func TestAuditProtocolThroughRealRouter(t *testing.T) {
 					global.OPTIMUS_DB = nil
 				}
 			}))
-			token, err := service.IssueJWT(service.TokenSubject{ID: 1, Username: "admin", RoleIDs: []uint{1}, RoleCodes: []string{"admin"}}, global.OPTIMUS_CONFIG.JWT, time.Now())
+			token, err := utils.NewJWT().CreateToken(utils.NewJWT().CreateClaims(utils.BaseClaims{ID: 1, Username: "admin", RoleIDs: []uint{1}, RoleCodes: []string{"admin"}}))
 			require.NoError(t, err)
 			base := strings.TrimRight(prefix, "/")
 			require.Len(t, Routers().Routes(), 38)

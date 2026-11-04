@@ -2,14 +2,15 @@ package system_test
 
 import (
 	"context"
-	"optimus/server/global"
-	systemRequest "optimus/server/model/system/request"
 	"testing"
 	"time"
 
 	"optimus/server/config"
+	"optimus/server/global"
 	systemModel "optimus/server/model/system"
+	systemRequest "optimus/server/model/system/request"
 	systemService "optimus/server/service/system"
+	"optimus/server/utils"
 
 	"github.com/stretchr/testify/require"
 )
@@ -102,7 +103,7 @@ func (s *fakeAuthStore) SyncLDAPUser(_ context.Context, user systemService.LDAPU
 }
 
 func hashTestPassword(password string) (string, error) {
-	return systemService.HashPassword(password)
+	return utils.BcryptHash(password)
 }
 
 func testAuthJWTConfig() config.JWT {

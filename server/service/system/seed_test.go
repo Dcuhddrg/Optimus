@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	systemModel "optimus/server/model/system"
+	"optimus/server/utils"
 
 	"github.com/stretchr/testify/require"
 	gormmysql "gorm.io/driver/mysql"
@@ -23,14 +24,6 @@ func TestDefaultSystemRolesAndPermissions(t *testing.T) {
 	require.Contains(t, permissionCodes(permissions), "system.audit.view")
 }
 
-func TestHashPasswordAndComparePassword(t *testing.T) {
-	hash, err := HashPassword("admin-secret")
-	require.NoError(t, err)
-	require.NotEqual(t, "admin-secret", hash)
-	require.True(t, ComparePassword(hash, "admin-secret"))
-	require.False(t, ComparePassword(hash, "wrong-secret"))
-}
-
 func TestSeedSystemDataCreatesAdminRolePermissionsAndUserMySQL(t *testing.T) {
 	db := openSeedTestDB(t)
 
@@ -40,7 +33,7 @@ func TestSeedSystemDataCreatesAdminRolePermissionsAndUserMySQL(t *testing.T) {
 	var admin systemModel.SystemUser
 	require.NoError(t, db.Where("username = ?", "admin").First(&admin).Error)
 	require.Equal(t, "local", admin.Source)
-	require.True(t, ComparePassword(admin.PasswordHash, "admin-secret"))
+	require.True(t, utils.BcryptCheck("admin-secret", admin.PasswordHash))
 
 	var adminRole systemModel.SystemRole
 	require.NoError(t, db.Where("code = ?", "admin").First(&adminRole).Error)
@@ -67,8 +60,8 @@ func TestSeedSystemDataIsIdempotentMySQL(t *testing.T) {
 
 	var admin systemModel.SystemUser
 	require.NoError(t, db.Where("username = ?", "admin").First(&admin).Error)
-	require.True(t, ComparePassword(admin.PasswordHash, "admin-secret"))
-	require.False(t, ComparePassword(admin.PasswordHash, "changed-secret"))
+	require.True(t, utils.BcryptCheck("admin-secret", admin.PasswordHash))
+	require.False(t, utils.BcryptCheck("changed-secret", admin.PasswordHash))
 }
 
 func TestSeedSystemDataDoesNotOverwriteRolePermissionEditsMySQL(t *testing.T) {

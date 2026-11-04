@@ -6,7 +6,6 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
-	"time"
 
 	"optimus/server/config"
 	"optimus/server/global"
@@ -15,6 +14,7 @@ import (
 	"optimus/server/service"
 	projectService "optimus/server/service/project"
 	systemService "optimus/server/service/system"
+	"optimus/server/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
@@ -83,7 +83,7 @@ func newScopeTestRouter(t *testing.T, scenario string, allowed bool) (*gin.Engin
 	global.OPTIMUS_CONFIG.System.RouterPrefix = "/api/v1"
 	global.OPTIMUS_CONFIG.JWT = config.JWT{SigningKey: "project-scope-router-test", ExpiresTime: 3600, BufferTime: 300, Issuer: "project-scope-router-test"}
 	setTestDatabase(t, db)
-	token, err := systemService.IssueJWT(systemService.TokenSubject{ID: 1, UUID: "scope-user", Username: "admin", RoleIDs: []uint{1}, RoleCodes: []string{"admin"}}, global.OPTIMUS_CONFIG.JWT, time.Now())
+	token, err := utils.NewJWT().CreateToken(utils.NewJWT().CreateClaims(utils.BaseClaims{ID: 1, UUID: "scope-user", Username: "admin", RoleIDs: []uint{1}, RoleCodes: []string{"admin"}}))
 	require.NoError(t, err)
 	return Routers(), token, calls
 }

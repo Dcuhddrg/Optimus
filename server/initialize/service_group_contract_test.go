@@ -4,7 +4,6 @@ import (
 	"net/http/httptest"
 	"reflect"
 	"testing"
-	"time"
 
 	"optimus/server/config"
 	"optimus/server/global"
@@ -13,6 +12,7 @@ import (
 	cloudService "optimus/server/service/cloud"
 	projectService "optimus/server/service/project"
 	systemService "optimus/server/service/system"
+	"optimus/server/utils"
 
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
@@ -41,7 +41,7 @@ func TestRealRouterReadsCurrentGroupAuthorizer(t *testing.T) {
 	setTestDatabase(t, db)
 	var permission systemModel.SystemPermission
 	require.NoError(t, db.Where("method = ? AND path = ?", "GET", "/api/v1/system/permissions/tree").First(&permission).Error)
-	token, err := systemService.IssueJWT(systemService.TokenSubject{ID: 1, RoleIDs: []uint{1}}, global.OPTIMUS_CONFIG.JWT, time.Now())
+	token, err := utils.NewJWT().CreateToken(utils.NewJWT().CreateClaims(utils.BaseClaims{ID: 1, RoleIDs: []uint{1}}))
 	require.NoError(t, err)
 	for _, allowed := range []bool{false, true} {
 		if allowed {
@@ -69,7 +69,7 @@ func TestMissingDatabaseAuthorizerPreservesRecoveryStatus(t *testing.T) {
 	global.OPTIMUS_CONFIG.System.RouterPrefix = "/api/v1"
 	global.OPTIMUS_CONFIG.JWT = config.JWT{SigningKey: "missing-db-contract", ExpiresTime: 3600, Issuer: "missing-db-contract"}
 	setTestDatabase(t, nil)
-	token, err := systemService.IssueJWT(systemService.TokenSubject{ID: 1, RoleIDs: []uint{1}}, global.OPTIMUS_CONFIG.JWT, time.Now())
+	token, err := utils.NewJWT().CreateToken(utils.NewJWT().CreateClaims(utils.BaseClaims{ID: 1, RoleIDs: []uint{1}}))
 	require.NoError(t, err)
 	req := httptest.NewRequest("GET", "/api/v1/system/permissions/tree", nil)
 	req.Header.Set("Authorization", "Bearer "+token)

@@ -9,6 +9,7 @@ import (
 	systemModel "optimus/server/model/system"
 	systemRequest "optimus/server/model/system/request"
 	systemResponse "optimus/server/model/system/response"
+	"optimus/server/utils"
 
 	"gorm.io/gorm"
 )
@@ -17,14 +18,6 @@ var (
 	ErrInvalidCredentials = errors.New("invalid credentials")
 	ErrUserDisabled       = errors.New("user disabled")
 )
-
-type TokenSubject struct {
-	ID        uint
-	UUID      string
-	Username  string
-	RoleIDs   []uint
-	RoleCodes []string
-}
 
 type AuthService struct{}
 
@@ -43,7 +36,7 @@ func (s *AuthService) Login(ctx context.Context, req systemRequest.LoginRequest,
 		return systemResponse.LoginResult{}, ErrUserDisabled
 	}
 
-	if user.Source != "local" || user.Username != defaultAdminUsername || !ComparePassword(user.PasswordHash, req.Password) {
+	if user.Source != "local" || user.Username != defaultAdminUsername || !utils.BcryptCheck(req.Password, user.PasswordHash) {
 		if user.Username != defaultAdminUsername {
 			return s.loginLDAP(ctx, req, meta)
 		}
@@ -97,13 +90,14 @@ func (s *AuthService) issueLoginResult(ctx context.Context, user systemModel.Sys
 	}
 
 	now := time.Now()
-	token, err := JWTIssuer{Config: global.OPTIMUS_CONFIG.JWT}.IssueToken(TokenSubject{
+	j := utils.NewJWT()
+	token, err := j.CreateToken(j.CreateClaims(utils.BaseClaims{
 		ID:        user.ID,
 		UUID:      user.UUID,
 		Username:  user.Username,
 		RoleIDs:   roleIDs,
 		RoleCodes: roleCodes,
-	})
+	}))
 	if err != nil {
 		return systemResponse.LoginResult{}, err
 	}
