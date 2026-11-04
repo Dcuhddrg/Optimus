@@ -87,22 +87,18 @@ func ParseTagFilter(token string) (TagFilter, error) {
 }
 
 // CloudAccountService manages cloud accounts and credential encryption.
-type CloudAccountService struct {
-	encKey []byte
-}
+type CloudAccountService struct{}
 
-// Ready reports whether the service was constructed with an encryption key.
-func (s *CloudAccountService) Ready() bool {
-	return s != nil && len(s.encKey) == 32
-}
+var CloudAccountServiceApp = new(CloudAccountService)
 
-func NewCloudAccountService(encKey []byte) (*CloudAccountService, error) {
-	if len(encKey) != 32 {
+// CredentialKey returns the configured credential encryption key, read at call
+// time from global config. Any length other than 32 bytes is rejected.
+func CredentialKey() ([]byte, error) {
+	key := []byte(global.OPTIMUS_CONFIG.Cloud.CredentialEncryptionKey)
+	if len(key) != 32 {
 		return nil, ErrInvalidEncryptionKey
 	}
-	keyCopy := make([]byte, 32)
-	copy(keyCopy, encKey)
-	return &CloudAccountService{encKey: keyCopy}, nil
+	return key, nil
 }
 
 func (s *CloudAccountService) Create(ctx context.Context, projectID uint, req cloudRequest.CreateAccountRequest) (cloudResponse.AccountView, error) {
@@ -110,7 +106,11 @@ func (s *CloudAccountService) Create(ctx context.Context, projectID uint, req cl
 	if err != nil {
 		return cloudResponse.AccountView{}, err
 	}
-	encrypted, err := encryptAESGCM(s.encKey, string(credJSON))
+	key, err := CredentialKey()
+	if err != nil {
+		return cloudResponse.AccountView{}, err
+	}
+	encrypted, err := encryptAESGCM(key, string(credJSON))
 	if err != nil {
 		return cloudResponse.AccountView{}, err
 	}
@@ -180,7 +180,11 @@ func (s *CloudAccountService) Update(ctx context.Context, accessibleProjectIDs [
 		if err != nil {
 			return cloudResponse.AccountView{}, err
 		}
-		enc, err := encryptAESGCM(s.encKey, string(credJSON))
+		key, err := CredentialKey()
+		if err != nil {
+			return cloudResponse.AccountView{}, err
+		}
+		enc, err := encryptAESGCM(key, string(credJSON))
 		if err != nil {
 			return cloudResponse.AccountView{}, err
 		}
@@ -272,7 +276,11 @@ func (s *CloudAccountService) GetForSync(ctx context.Context, id uint) (SyncAcco
 	if _, err := unmarshalTags(m.TagsJSON); err != nil {
 		return SyncAccount{}, err
 	}
-	plaintext, err := decryptAESGCM(s.encKey, m.CredentialJSON)
+	key, err := CredentialKey()
+	if err != nil {
+		return SyncAccount{}, err
+	}
+	plaintext, err := decryptAESGCM(key, m.CredentialJSON)
 	if err != nil {
 		return SyncAccount{}, err
 	}

@@ -1,6 +1,6 @@
 package system
 
-// ServiceGroup holds initialized system services and shared capabilities.
+// ServiceGroup embeds the stateless system services.
 type ServiceGroup struct {
 	AuthService
 	UserService

@@ -82,7 +82,7 @@ func newScopeTestRouter(t *testing.T, scenario string, allowed bool) (*gin.Engin
 	t.Cleanup(func() { global.OPTIMUS_CONFIG = oldConfig; *service.ServiceGroupApp = oldServices })
 	global.OPTIMUS_CONFIG.System.RouterPrefix = "/api/v1"
 	global.OPTIMUS_CONFIG.JWT = config.JWT{SigningKey: "project-scope-router-test", ExpiresTime: 3600, BufferTime: 300, Issuer: "project-scope-router-test"}
-	initializeTestServices(t, db, global.OPTIMUS_CONFIG)
+	setTestDatabase(t, db)
 	token, err := systemService.IssueJWT(systemService.TokenSubject{ID: 1, UUID: "scope-user", Username: "admin", RoleIDs: []uint{1}, RoleCodes: []string{"admin"}}, global.OPTIMUS_CONFIG.JWT, time.Now())
 	require.NoError(t, err)
 	return Routers(), token, calls

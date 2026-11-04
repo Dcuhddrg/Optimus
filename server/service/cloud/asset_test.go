@@ -31,7 +31,7 @@ func TestAssetRegistryServiceSyncAccountUpsertsFetchedAssets(t *testing.T) {
 		{ResourceType: "ecs_instance", ResourceID: "i-001", Name: "web-1", Region: "cn-hangzhou", Status: "Running"},
 	}})
 
-	svc := NewAssetRegistryService(accountSvc, registry)
+	svc := newAssetRegistryServiceForTest(t, registry)
 	result, err := svc.SyncAccount(context.Background(), []uint{7}, 1)
 	require.NoError(t, err)
 	require.Equal(t, 1, result.Upserted)
@@ -50,7 +50,7 @@ func TestAssetRegistryServiceSyncAccountReturnsErrForUnknownProvider(t *testing.
 	})
 	require.NoError(t, err)
 
-	svc := NewAssetRegistryService(accountSvc, NewSyncerRegistry())
+	svc := newAssetRegistryServiceForTest(t, NewSyncerRegistry())
 	_, err = svc.SyncAccount(context.Background(), []uint{7}, 1)
 	require.ErrorIs(t, err, ErrProviderNotRegistered)
 }
@@ -68,7 +68,7 @@ func TestAssetRegistryServiceSyncAccountSetsActiveStatusOnSuccess(t *testing.T) 
 	registry := NewSyncerRegistry()
 	registry.Register("aliyun", fixedSyncer{assets: []RawAsset{}})
 
-	svc := NewAssetRegistryService(accountSvc, registry)
+	svc := newAssetRegistryServiceForTest(t, registry)
 	_, err = svc.SyncAccount(context.Background(), []uint{7}, 1)
 	require.NoError(t, err)
 
@@ -90,7 +90,7 @@ func TestAssetRegistryServiceSyncAccountSetsErrorStatusOnFailure(t *testing.T) {
 	require.NoError(t, err)
 
 	// No syncer registered for "aws" → ErrProviderNotRegistered
-	svc := NewAssetRegistryService(accountSvc, NewSyncerRegistry())
+	svc := newAssetRegistryServiceForTest(t, NewSyncerRegistry())
 	_, err = svc.SyncAccount(context.Background(), []uint{7}, 1)
 	require.Error(t, err)
 
@@ -113,7 +113,7 @@ func TestAssetRegistryServiceSyncAccountRejectsInaccessibleProject(t *testing.T)
 	registry := NewSyncerRegistry()
 	registry.Register("aliyun", fixedSyncer{assets: []RawAsset{{ResourceID: "i-001"}}})
 
-	svc := NewAssetRegistryService(accountSvc, registry)
+	svc := newAssetRegistryServiceForTest(t, registry)
 	_, err = svc.SyncAccount(context.Background(), []uint{8}, 1)
 	require.ErrorIs(t, err, ErrAccountNotFound)
 	page, err := svc.QueryAssets(context.Background(), AssetFilter{AccessibleProjectIDs: []uint{7}})
@@ -122,7 +122,7 @@ func TestAssetRegistryServiceSyncAccountRejectsInaccessibleProject(t *testing.T)
 }
 
 func TestAssetRegistryServiceQueryAssetsReturnsEmptyWhenNoAccessibleProjects(t *testing.T) {
-	svc := NewAssetRegistryService(nil, NewSyncerRegistry())
+	svc := newAssetRegistryServiceForTest(t, NewSyncerRegistry())
 
 	page, err := svc.QueryAssets(context.Background(), AssetFilter{})
 	require.NoError(t, err)

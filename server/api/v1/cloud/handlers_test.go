@@ -6,10 +6,8 @@ import (
 	"net/http/httptest"
 	"optimus/server/global"
 	cloudModel "optimus/server/model/cloud"
-	"optimus/server/service"
 	"testing"
 
-	cloudService "optimus/server/service/cloud"
 	"optimus/server/utils"
 
 	"github.com/gin-gonic/gin"
@@ -18,21 +16,24 @@ import (
 	"gorm.io/gorm"
 )
 
-func setCloudServicesForTest(t *testing.T, group cloudService.ServiceGroup) {
+// setCloudReadyForTest sets the inputs cloudReady reads: the database handle
+// (only when db is non-nil) and the configured credential key.
+func setCloudReadyForTest(t *testing.T, db *gorm.DB, key string) {
 	t.Helper()
-	previousGroup := service.ServiceGroupApp.CloudServiceGroup
-	previousAccount, previousAsset := accountService, assetService
+	previousDB, previousKey := global.OPTIMUS_DB, global.OPTIMUS_CONFIG.Cloud.CredentialEncryptionKey
 	t.Cleanup(func() {
-		service.ServiceGroupApp.CloudServiceGroup = previousGroup
-		accountService, assetService = previousAccount, previousAsset
+		global.OPTIMUS_DB = previousDB
+		global.OPTIMUS_CONFIG.Cloud.CredentialEncryptionKey = previousKey
 	})
-	service.ServiceGroupApp.CloudServiceGroup = group
-	RefreshServiceAliases()
+	global.OPTIMUS_DB = db
+	global.OPTIMUS_CONFIG.Cloud.CredentialEncryptionKey = key
 }
+
+var validTestCredentialKey = string(make([]byte, 32))
 
 func TestAccountHandlerListReturnsServiceUnavailableWhenNil(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	setCloudServicesForTest(t, cloudService.ServiceGroup{})
+	setCloudReadyForTest(t, nil, validTestCredentialKey)
 
 	engine := gin.New()
 	engine.GET("/cloud/accounts", (&AccountApi{}).ListAccounts)
@@ -44,9 +45,22 @@ func TestAccountHandlerListReturnsServiceUnavailableWhenNil(t *testing.T) {
 	require.Equal(t, http.StatusServiceUnavailable, recorder.Code)
 }
 
+func TestAccountHandlerListReturnsServiceUnavailableWithInvalidKey(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	setCloudReadyForTest(t, &gorm.DB{}, "tooshort")
+
+	engine := gin.New()
+	engine.GET("/cloud/accounts", (&AccountApi{}).ListAccounts)
+
+	recorder := httptest.NewRecorder()
+	engine.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/cloud/accounts", nil))
+
+	require.Equal(t, http.StatusServiceUnavailable, recorder.Code)
+}
+
 func TestAssetHandlerListReturnsServiceUnavailableWhenNil(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	setCloudServicesForTest(t, cloudService.ServiceGroup{})
+	setCloudReadyForTest(t, nil, validTestCredentialKey)
 
 	engine := gin.New()
 	engine.GET("/cloud/assets", (&AssetApi{}).ListAssets)
@@ -60,9 +74,7 @@ func TestAssetHandlerListReturnsServiceUnavailableWhenNil(t *testing.T) {
 
 func TestAccountHandlerCreateRequiresCurrentProject(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	accountSvc, err := cloudService.NewCloudAccountService(make([]byte, 32))
-	require.NoError(t, err)
-	setCloudServicesForTest(t, cloudService.ServiceGroup{CloudAccountService: *accountSvc})
+	setCloudReadyForTest(t, &gorm.DB{}, validTestCredentialKey)
 
 	engine := gin.New()
 	engine.POST("/cloud/accounts", (&AccountApi{}).CreateAccount)
@@ -93,10 +105,7 @@ func TestAccountHandlerCreateUsesCurrentProject(t *testing.T) {
 	require.NoError(t, db.Callback().Create().Before("gorm:create").Register("test:capture_project_id", func(tx *gorm.DB) {
 		projectID = tx.Statement.Dest.(*cloudModel.CloudAccount).ProjectID
 	}))
-	global.OPTIMUS_DB = db
-	accountSvc, err := cloudService.NewCloudAccountService(make([]byte, 32))
-	require.NoError(t, err)
-	setCloudServicesForTest(t, cloudService.ServiceGroup{CloudAccountService: *accountSvc})
+	setCloudReadyForTest(t, db, validTestCredentialKey)
 
 	engine := gin.New()
 	engine.Use(func(c *gin.Context) {

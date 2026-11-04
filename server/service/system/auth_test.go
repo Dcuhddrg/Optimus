@@ -28,7 +28,7 @@ func TestAuthServiceLoginAdminSuccess(t *testing.T) {
 		PasswordHash:  passwordHash,
 	}
 	require.NoError(t, db.Create(&user).Error)
-	service := systemService.NewAuthService(fakeTokenIssuer{}, nil)
+	service := systemService.NewAuthServiceForTest(t)
 
 	result, err := service.Login(context.Background(), systemRequest.LoginRequest{
 		Username: "admin",
@@ -99,12 +99,6 @@ func (s *fakeAuthStore) GetLDAPConfig(_ context.Context) (systemModel.SystemLDAP
 
 func (s *fakeAuthStore) SyncLDAPUser(_ context.Context, user systemService.LDAPUser) (systemModel.SystemUser, error) {
 	return systemModel.SystemUser{}, nil
-}
-
-type fakeTokenIssuer struct{}
-
-func (f fakeTokenIssuer) IssueToken(subject systemService.TokenSubject) (string, error) {
-	return "fake-token-" + subject.Username, nil
 }
 
 func hashTestPassword(password string) (string, error) {

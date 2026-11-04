@@ -31,7 +31,7 @@ func TestRoutersUseGroupedAuthService(t *testing.T) {
 	})
 
 	db, _ := projectScopeRouterDB(t, "", true)
-	initializeTestServices(t, db, global.OPTIMUS_CONFIG)
+	setTestDatabase(t, db)
 
 	engine := Routers()
 
@@ -56,7 +56,7 @@ func TestRouterLoginUsesInitializedAuthDependencies(t *testing.T) {
 	require.NoError(t, err)
 	user := systemModel.SystemUser{UUID: "router-admin", Username: "admin", DisplayName: "Admin", Source: "local", Status: "enabled", PasswordHash: hash}
 	require.NoError(t, db.Create(&user).Error)
-	initializeTestServices(t, db, global.OPTIMUS_CONFIG)
+	setTestDatabase(t, db)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/system/auth/login", strings.NewReader(`{"username":"admin","password":"admin-secret"}`))
 	req.Header.Set("Content-Type", "application/json")
@@ -90,7 +90,7 @@ func TestRoutersUseGroupedRBACCapability(t *testing.T) {
 		Issuer:      "optimus-router-test",
 	}
 	db, _ := projectScopeRouterDB(t, "", true)
-	initializeTestServices(t, db, global.OPTIMUS_CONFIG)
+	setTestDatabase(t, db)
 
 	engine := Routers()
 	token, err := systemService.IssueJWT(systemService.TokenSubject{

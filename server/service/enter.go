@@ -6,8 +6,8 @@ import (
 	"optimus/server/service/system"
 )
 
-// ServiceGroupApp keeps stable module addresses for API aliases and workers.
-// Dependencies are assembled once by initialize before routes are registered.
+// ServiceGroupApp aggregates stateless module services, as in GVA. Services read
+// shared dependencies (DB, config, clients) from global at call time.
 var ServiceGroupApp = new(ServiceGroup)
 
 type ServiceGroup struct {

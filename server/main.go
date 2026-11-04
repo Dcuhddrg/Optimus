@@ -20,7 +20,7 @@ func initializeSystem() {
 	global.OPTIMUS_LOG = logger
 	zap.ReplaceGlobals(logger)
 	global.OPTIMUS_DB = initialize.Gorm()
-	initialize.InitializeServices(global.OPTIMUS_DB, global.OPTIMUS_CONFIG)
+	initialize.Cloud()
 	if err := initialize.InitializeData(global.OPTIMUS_DB); err != nil {
 		global.OPTIMUS_STARTUP_ERR = err
 		logger.Error("startup degraded: serving with /health unhealthy", zap.Error(err))

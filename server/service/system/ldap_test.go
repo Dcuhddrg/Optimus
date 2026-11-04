@@ -27,7 +27,7 @@ func TestLDAPServiceConfigMasksBindPassword(t *testing.T) {
 		EmailAttr:       "mail",
 	}
 	require.NoError(t, db.Create(&cfg).Error)
-	service := systemService.NewLDAPService(&fakeLDAPClientUC{})
+	service := systemService.NewLDAPServiceForTest(t, &fakeLDAPClientUC{})
 
 	config, err := service.GetConfig(context.Background())
 
@@ -42,6 +42,10 @@ func (failingLDAPClient) Test(context.Context, systemService.LDAPConnectionConfi
 	return errors.New("DO_NOT_LOG_THIS")
 }
 
+func (failingLDAPClient) Authenticate(context.Context, systemService.LDAPConnectionConfig, string, string) (systemService.LDAPUser, error) {
+	return systemService.LDAPUser{}, errors.New("DO_NOT_LOG_THIS")
+}
+
 func TestLDAPSnapshotFailureStillSavesConfig(t *testing.T) {
 	db := openExternalPersistenceDB(t)
 	require.NoError(t, db.Callback().Query().Before("gorm:query").Register("test:fail_ldap_read", func(tx *gorm.DB) {
@@ -49,7 +53,7 @@ func TestLDAPSnapshotFailureStillSavesConfig(t *testing.T) {
 			tx.AddError(errors.New("snapshot read failed"))
 		}
 	}))
-	svc := systemService.NewLDAPService(&fakeLDAPClientUC{})
+	svc := systemService.NewLDAPServiceForTest(t, &fakeLDAPClientUC{})
 	_, err := svc.SaveConfig(context.Background(), 1, systemRequest.LDAPConfigRequest{Enabled: true, BindPassword: "SECRET"}, systemService.AuditMeta{})
 	require.NoError(t, err)
 	var audit systemModel.SystemAuditLog
@@ -61,7 +65,7 @@ func TestLDAPSnapshotFailureStillSavesConfig(t *testing.T) {
 
 func TestLDAPConnectionFailureAuditOmitsSecrets(t *testing.T) {
 	db := openExternalPersistenceDB(t)
-	svc := systemService.NewLDAPService(failingLDAPClient{})
+	svc := systemService.NewLDAPServiceForTest(t, failingLDAPClient{})
 	_, err := svc.TestConfig(context.Background(), 1, systemRequest.LDAPTestRequest{
 		URL: "ldap://test", BindPassword: "PASSWORD_SECRET", UserFilter: "(uid={username})",
 	}, systemService.AuditMeta{})
@@ -77,7 +81,7 @@ func TestLDAPConnectionFailureAuditOmitsSecrets(t *testing.T) {
 func TestLDAPConfigAuditOmitsSecrets(t *testing.T) {
 	db := openExternalPersistenceDB(t)
 	require.NoError(t, db.Create(&systemModel.SystemLDAPConfig{BindPassword: "OLD_SECRET", URL: "ldap://old.test"}).Error)
-	svc := systemService.NewLDAPService(&fakeLDAPClientUC{})
+	svc := systemService.NewLDAPServiceForTest(t, &fakeLDAPClientUC{})
 	_, err := svc.SaveConfig(context.Background(), 1, systemRequest.LDAPConfigRequest{
 		Enabled: true, URL: "ldap://user:URL_SECRET@new.test", BindPassword: "NEW_SECRET",
 	}, systemService.AuditMeta{})
@@ -115,4 +119,8 @@ type fakeLDAPClientUC struct{}
 
 func (c *fakeLDAPClientUC) Test(_ context.Context, cfg systemService.LDAPConnectionConfig) error {
 	return nil
+}
+
+func (c *fakeLDAPClientUC) Authenticate(context.Context, systemService.LDAPConnectionConfig, string, string) (systemService.LDAPUser, error) {
+	return systemService.LDAPUser{}, errors.New("not used")
 }

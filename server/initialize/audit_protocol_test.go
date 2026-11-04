@@ -30,7 +30,7 @@ func TestAuditProtocolThroughRealRouter(t *testing.T) {
 			db, _ := projectScopeRouterDB(t, "", true)
 			global.OPTIMUS_CONFIG.System.RouterPrefix = prefix
 			global.OPTIMUS_CONFIG.JWT = config.JWT{SigningKey: "protocol-test-key", ExpiresTime: 3600, Issuer: "protocol-test"}
-			initializeTestServices(t, db, global.OPTIMUS_CONFIG)
+			setTestDatabase(t, db)
 			for _, path := range []string{"/api/v1/system/audit-logs", "/api/v1/system/audit-logs/export"} {
 				permission := model.SystemPermission{Code: path, Name: path, Type: "api", Method: "GET", Path: path}
 				require.NoError(t, db.Create(&permission).Error)

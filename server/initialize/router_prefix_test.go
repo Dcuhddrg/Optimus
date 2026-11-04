@@ -43,7 +43,7 @@ func TestRoutersAuthorizeCanonicalPermissionWithConfiguredPrefix(t *testing.T) {
 			db, _ := projectScopeRouterDB(t, "", false)
 			global.OPTIMUS_CONFIG.System.RouterPrefix = tt.prefix
 			global.OPTIMUS_CONFIG.JWT = config.JWT{SigningKey: "prefix-test-key", ExpiresTime: 3600, Issuer: "prefix-test"}
-			initializeTestServices(t, db, global.OPTIMUS_CONFIG)
+			setTestDatabase(t, db)
 			var permission model.SystemPermission
 			err := db.Where("method = ? AND path = ?", tt.method, tt.permissionPath).First(&permission).Error
 			if err == gorm.ErrRecordNotFound {

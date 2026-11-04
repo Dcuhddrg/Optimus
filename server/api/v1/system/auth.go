@@ -22,7 +22,7 @@ func (h *AuthApi) Login(c *gin.Context) {
 		response.Failure(c, http.StatusBadRequest, "invalid login request")
 		return
 	}
-	if global.OPTIMUS_DB == nil || !svc.Ready() {
+	if global.OPTIMUS_DB == nil {
 		response.Failure(c, http.StatusServiceUnavailable, "auth service is not available")
 		return
 	}
@@ -54,7 +54,7 @@ func (h *AuthApi) CurrentUser(c *gin.Context) {
 		response.Failure(c, http.StatusUnauthorized, "invalid claims")
 		return
 	}
-	if global.OPTIMUS_DB == nil || !svc.Ready() {
+	if global.OPTIMUS_DB == nil {
 		response.Failure(c, http.StatusServiceUnavailable, "auth service is not available")
 		return
 	}
@@ -71,7 +71,7 @@ func (h *AuthApi) CurrentUser(c *gin.Context) {
 func (h *AuthApi) Logout(c *gin.Context) {
 	svc := authService
 	claims, ok := c.Get(utils.ClaimsContextKey)
-	if ok && global.OPTIMUS_DB != nil && svc.Ready() {
+	if ok && global.OPTIMUS_DB != nil {
 		if customClaims, ok := claims.(*utils.CustomClaims); ok {
 			_ = svc.Logout(c.Request.Context(), customClaims.BaseClaims.ID, auditMeta(c))
 		}

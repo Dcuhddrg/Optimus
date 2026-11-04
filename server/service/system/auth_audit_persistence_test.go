@@ -15,7 +15,7 @@ import (
 
 func TestFailedLoginAuditUsesUnverifiedAttempt(t *testing.T) {
 	db := openExternalPersistenceDB(t)
-	svc := service.NewAuthService(nil, nil)
+	svc := (&service.AuthService{})
 	_, err := svc.Login(context.Background(), request.LoginRequest{Username: "unknown\naccount", Password: "PASSWORD_SECRET"}, service.AuditMeta{})
 	require.ErrorIs(t, err, service.ErrInvalidCredentials)
 	var audit model.SystemAuditLog
@@ -33,7 +33,7 @@ func TestFailedLoginAuditUsesUnverifiedAttempt(t *testing.T) {
 func TestDisabledLoginAuditDoesNotClaimActor(t *testing.T) {
 	db := openExternalPersistenceDB(t)
 	require.NoError(t, db.Create(&model.SystemUser{OPTIMUS_MODEL: global.OPTIMUS_MODEL{ID: 7}, UUID: "test-user", Username: "admin", Source: "local", Status: "disabled"}).Error)
-	_, err := service.NewAuthService(nil, nil).Login(context.Background(), request.LoginRequest{Username: "admin", Password: "PASSWORD_SECRET"}, service.AuditMeta{})
+	_, err := (&service.AuthService{}).Login(context.Background(), request.LoginRequest{Username: "admin", Password: "PASSWORD_SECRET"}, service.AuditMeta{})
 	require.ErrorIs(t, err, service.ErrUserDisabled)
 	var audit model.SystemAuditLog
 	require.NoError(t, db.Last(&audit).Error)
@@ -46,7 +46,7 @@ func TestDisabledLoginAuditDoesNotClaimActor(t *testing.T) {
 
 func TestFailedLoginAuditBoundsAttempt(t *testing.T) {
 	db := openExternalPersistenceDB(t)
-	_, err := service.NewAuthService(nil, nil).Login(context.Background(), request.LoginRequest{Username: strings.Repeat("界", 300)}, service.AuditMeta{})
+	_, err := (&service.AuthService{}).Login(context.Background(), request.LoginRequest{Username: strings.Repeat("界", 300)}, service.AuditMeta{})
 	require.ErrorIs(t, err, service.ErrInvalidCredentials)
 	var audit model.SystemAuditLog
 	require.NoError(t, db.Last(&audit).Error)

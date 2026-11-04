@@ -15,7 +15,7 @@ type LDAPApi struct{}
 
 func (h *LDAPApi) LDAPConfig(c *gin.Context) {
 	svc := ldapService
-	if global.OPTIMUS_DB == nil || !svc.Ready() {
+	if global.OPTIMUS_DB == nil {
 		writeServiceUnavailable(c, "ldap service is not available")
 		return
 	}
@@ -29,7 +29,7 @@ func (h *LDAPApi) LDAPConfig(c *gin.Context) {
 
 func (h *LDAPApi) UpdateLDAPConfig(c *gin.Context) {
 	svc := ldapService
-	if global.OPTIMUS_DB == nil || !svc.Ready() {
+	if global.OPTIMUS_DB == nil {
 		writeServiceUnavailable(c, "ldap service is not available")
 		return
 	}
@@ -48,7 +48,7 @@ func (h *LDAPApi) UpdateLDAPConfig(c *gin.Context) {
 
 func (h *LDAPApi) TestLDAPConfig(c *gin.Context) {
 	svc := ldapService
-	if global.OPTIMUS_DB == nil || !svc.Ready() {
+	if global.OPTIMUS_DB == nil {
 		writeServiceUnavailable(c, "ldap service is not available")
 		return
 	}

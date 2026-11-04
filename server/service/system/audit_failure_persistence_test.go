@@ -30,7 +30,7 @@ func TestLDAPSaveFailureSurvivesAuditWriteFailure(t *testing.T) {
 			tx.AddError(errors.New("DO_NOT_LOG_THIS"))
 		}
 	}))
-	_, err := service.NewLDAPService(&fakeLDAPClientUC{}).SaveConfig(context.Background(), 1, request.LDAPConfigRequest{BindPassword: "SECRET"}, service.AuditMeta{})
+	_, err := service.NewLDAPServiceForTest(t, &fakeLDAPClientUC{}).SaveConfig(context.Background(), 1, request.LDAPConfigRequest{BindPassword: "SECRET"}, service.AuditMeta{})
 	require.ErrorIs(t, err, original)
 	require.Equal(t, 1, logs.Len())
 	require.Equal(t, "audit write failed", logs.All()[0].Message)
@@ -117,7 +117,7 @@ func TestSuccessfulLoginSurvivesAuditWriteFailure(t *testing.T) {
 			tx.AddError(errors.New("DO_NOT_LOG_THIS"))
 		}
 	}))
-	result, err := service.NewAuthService(fakeTokenIssuer{}, nil).Login(context.Background(), request.LoginRequest{Username: "admin", Password: "LOGIN_SECRET"}, service.AuditMeta{})
+	result, err := service.NewAuthServiceForTest(t).Login(context.Background(), request.LoginRequest{Username: "admin", Password: "LOGIN_SECRET"}, service.AuditMeta{})
 	require.NoError(t, err)
 	require.NotEmpty(t, result.Token)
 	require.Equal(t, 1, logs.Len())
