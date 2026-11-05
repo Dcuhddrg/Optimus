@@ -41,11 +41,10 @@ type AuditFilter struct {
 	PageSize     int
 }
 
-// AuditOperations is the audit capability shared by HTTP handlers and retention.
+// AuditOperations is the audit capability used by HTTP handlers.
 type AuditOperations interface {
 	QueryLogs(context.Context, AuditFilter) (systemModel.AuditPage, error)
 	ExportLogs(context.Context, AuditFilter) ([]systemModel.AuditLogEntry, error)
-	PurgeBefore(context.Context, time.Time) error
 }
 
 type AuditService struct{}
@@ -86,20 +85,6 @@ func (s *AuditService) ExportLogs(ctx context.Context, f AuditFilter) ([]systemM
 		return nil, err
 	}
 	return toAuditLogEntries(rows), nil
-}
-
-func (s *AuditService) PurgeBefore(ctx context.Context, before time.Time) error {
-	tableName := systemModel.SystemAuditLog{}.TableName()
-	for {
-		result := global.OPTIMUS_DB.WithContext(ctx).
-			Exec("DELETE FROM `"+tableName+"` WHERE created_at < ? LIMIT 1000", before)
-		if result.Error != nil {
-			return result.Error
-		}
-		if result.RowsAffected == 0 {
-			return nil
-		}
-	}
 }
 
 func (s *AuditService) buildQuery(ctx context.Context, f AuditFilter) *gorm.DB {

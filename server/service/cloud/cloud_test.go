@@ -13,7 +13,3 @@ func TestCloudAccountCarriesProjectID(t *testing.T) {
 
 	require.Equal(t, uint(7), account.ProjectID)
 }
-
-func TestBackfillCloudProjectScopeRejectsNilDB(t *testing.T) {
-	require.Error(t, BackfillCloudProjectScope(nil))
-}

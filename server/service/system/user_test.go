@@ -26,10 +26,10 @@ func TestUserServiceListUsersOmitsPasswordHash(t *testing.T) {
 func TestUserServiceDatabaseWouldHaveAdminCapableUserAfterStatus(t *testing.T) {
 	db := openTestDB(t)
 
-	adminRole := systemModel.SystemRole{Code: "admin", Name: "Administrator", Status: defaultRoleStatus}
+	adminRole := systemModel.SystemRole{Code: "admin", Name: "Administrator", Status: DefaultRoleStatus}
 	require.NoError(t, db.Create(&adminRole).Error)
 
-	user := systemModel.SystemUser{UUID: "u1", Username: "alice", Status: defaultUserStatus}
+	user := systemModel.SystemUser{UUID: "u1", Username: "alice", Status: DefaultUserStatus}
 	require.NoError(t, db.Create(&user).Error)
 	require.NoError(t, db.Create(&systemModel.SystemUserRole{UserID: user.ID, RoleID: adminRole.ID}).Error)
 
@@ -41,7 +41,7 @@ func TestUserServiceDatabaseWouldHaveAdminCapableUserAfterStatus(t *testing.T) {
 	require.False(t, ok)
 
 	// Another enabled admin exists so disabling user is safe
-	other := systemModel.SystemUser{UUID: "u2", Username: "bob", Status: defaultUserStatus}
+	other := systemModel.SystemUser{UUID: "u2", Username: "bob", Status: DefaultUserStatus}
 	require.NoError(t, db.Create(&other).Error)
 	require.NoError(t, db.Create(&systemModel.SystemUserRole{UserID: other.ID, RoleID: adminRole.ID}).Error)
 

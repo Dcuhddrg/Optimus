@@ -147,15 +147,15 @@ func (s *UserService) wouldHaveAdminCapableUserAfterStatus(ctx context.Context, 
 		Table("sys_users AS users").
 		Joins("JOIN sys_user_roles user_roles ON user_roles.user_id = users.id").
 		Joins("JOIN sys_roles roles ON roles.id = user_roles.role_id").
-		Where("roles.code = ? AND roles.status = ?", "admin", defaultRoleStatus).
-		Where("(users.id <> ? AND users.status = ?) OR (users.id = ? AND ? = ?)", userID, defaultUserStatus, userID, status, defaultUserStatus).
+		Where("roles.code = ? AND roles.status = ?", "admin", DefaultRoleStatus).
+		Where("(users.id <> ? AND users.status = ?) OR (users.id = ? AND ? = ?)", userID, DefaultUserStatus, userID, status, DefaultUserStatus).
 		Count(&count).Error
 	return count > 0, err
 }
 
 func (s *UserService) wouldHaveAdminCapableUserAfterRoles(ctx context.Context, userID uint, roleIDs []uint) (bool, error) {
 	var adminRole systemModel.SystemRole
-	if err := global.OPTIMUS_DB.WithContext(ctx).Where("code = ? AND status = ?", "admin", defaultRoleStatus).First(&adminRole).Error; err != nil {
+	if err := global.OPTIMUS_DB.WithContext(ctx).Where("code = ? AND status = ?", "admin", DefaultRoleStatus).First(&adminRole).Error; err != nil {
 		return false, err
 	}
 
@@ -172,7 +172,7 @@ func (s *UserService) wouldHaveAdminCapableUserAfterRoles(ctx context.Context, u
 		Table("sys_users AS users").
 		Joins("JOIN sys_user_roles user_roles ON user_roles.user_id = users.id").
 		Joins("JOIN sys_roles roles ON roles.id = user_roles.role_id").
-		Where("users.id <> ? AND users.status = ? AND roles.code = ? AND roles.status = ?", userID, defaultUserStatus, "admin", defaultRoleStatus).
+		Where("users.id <> ? AND users.status = ? AND roles.code = ? AND roles.status = ?", userID, DefaultUserStatus, "admin", DefaultRoleStatus).
 		Count(&count).Error
 	if err != nil {
 		return false, err
@@ -185,7 +185,7 @@ func (s *UserService) wouldHaveAdminCapableUserAfterRoles(ctx context.Context, u
 	if err := global.OPTIMUS_DB.WithContext(ctx).Where("id = ?", userID).First(&user).Error; err != nil {
 		return false, err
 	}
-	return user.Status == defaultUserStatus && hasAdminRole, nil
+	return user.Status == DefaultUserStatus && hasAdminRole, nil
 }
 
 func (s *UserService) replaceUserRoles(ctx context.Context, userID uint, roleIDs []uint) error {

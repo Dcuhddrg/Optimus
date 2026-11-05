@@ -2,7 +2,6 @@ package system
 
 import (
 	"strconv"
-	"strings"
 
 	systemModel "optimus/server/model/system"
 	"optimus/server/utils"
@@ -78,45 +77,6 @@ func GrantPermissions(db *gorm.DB, roleID uint, permissions []systemModel.System
 		}
 	}
 	return CasbinServiceApp.AddPolicies(db, roleID, APIPolicies(permissions))
-}
-
-// migrateAPIGrantsToCasbin upgrades databases written before #56: API catalog
-// paths lose the /api/v1 prefix, and API grants move from sys_role_permissions
-// to casbin_rule. Safe to run on every start.
-func migrateAPIGrantsToCasbin(db *gorm.DB) error {
-	return db.Transaction(func(tx *gorm.DB) error {
-		var prefixed []systemModel.SystemPermission
-		if err := tx.Where("type = ? AND path LIKE ?", "api", utils.DefaultRouterPrefix+"/%").Find(&prefixed).Error; err != nil {
-			return err
-		}
-		for _, permission := range prefixed {
-			path := strings.TrimPrefix(permission.Path, utils.DefaultRouterPrefix)
-			if err := tx.Model(&systemModel.SystemPermission{}).Where("id = ?", permission.ID).Update("path", path).Error; err != nil {
-				return err
-			}
-		}
-		var grants []struct {
-			RoleID uint
-			ID     uint
-			Path   string
-			Method string
-		}
-		if err := tx.Table("sys_role_permissions AS rp").
-			Select("rp.role_id, rp.id, p.path, p.method").
-			Joins("JOIN sys_permissions AS p ON p.id = rp.permission_id").
-			Where("p.type = ?", "api").Scan(&grants).Error; err != nil {
-			return err
-		}
-		for _, grant := range grants {
-			if err := CasbinServiceApp.AddPolicies(tx, grant.RoleID, []CasbinInfo{{Path: grant.Path, Method: grant.Method}}); err != nil {
-				return err
-			}
-			if err := tx.Delete(&systemModel.SystemRolePermission{}, grant.ID).Error; err != nil {
-				return err
-			}
-		}
-		return nil
-	})
 }
 
 // apiPermissionCodesForRole lists catalog codes of the API policies held by roleID.

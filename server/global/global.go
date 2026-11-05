@@ -2,6 +2,7 @@ package global
 
 import (
 	"optimus/server/config"
+	"optimus/server/utils/timer"
 
 	"github.com/songzhibin97/gkit/cache/local_cache"
 	"github.com/spf13/viper"
@@ -23,4 +24,6 @@ var (
 	// BlackCache holds revoked tokens until they expire, as GVA. OtherInit
 	// replaces this default with one expiring after the token lifetime.
 	BlackCache = local_cache.NewCache()
+	// OPTIMUS_Timer runs scheduled jobs registered by initialize.Timer, as GVA.
+	OPTIMUS_Timer timer.Timer = timer.NewTimerTask()
 )

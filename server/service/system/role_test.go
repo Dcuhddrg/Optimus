@@ -37,7 +37,7 @@ func TestRoleServiceCreateRoleWritesAudit(t *testing.T) {
 func TestRoleServiceDatabaseReplaceRolePermissions(t *testing.T) {
 	db := openTestDB(t)
 
-	role := systemModel.SystemRole{Code: "editor", Name: "Editor", Status: defaultRoleStatus}
+	role := systemModel.SystemRole{Code: "editor", Name: "Editor", Status: DefaultRoleStatus}
 	require.NoError(t, db.Create(&role).Error)
 
 	p1 := systemModel.SystemPermission{Code: "content.create", Name: "Create Content", Type: "api", Method: "POST", Path: "/content"}

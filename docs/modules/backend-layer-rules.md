@@ -42,6 +42,8 @@ HTTP 输入包括完整表单、局部状态/角色/权限操作和查询条件�
 
 按 GVA，Service 是无状态值：结构体不含字段，不提供 `NewXxxService` 构造函数，也不在启动期装配。数据库、配置和外部客户端在调用时从 `global` 读取，或像 GVA 的 `utils.NewJWT()`、`upload.NewOss()` 一样按配置即时构建（如 `utils/ldap.NewLDAP()`）；服务间调用使用 `XxxServiceApp` 包级变量。API 别名在包初始化时复制 ServiceGroupApp 中的值，不再刷新。`main` 与 `initialize` 只负责配置、日志、数据库、数据初始化及 provider 注册（如 `initialize.Cloud()`），随后由 `core.RunServer()` 注册路由。测试替换依赖时修改 `global` 或包内测试钩子并在 Cleanup 中恢复；`initialize` 的契约测试会拒绝带字段的 Service。
 
+种子数据按 GVA 放在 `source/<模块>`，用 `RegisterInit(order, initializer)` 注册，由 `initialize.InitializeData` 在启动时按序迁移并幂等写入；定时任务实现放在 `task/`，在 `initialize.Timer` 用 `global.OPTIMUS_Timer` 注册；GORM 配置与日志放在 `initialize/internal`。
+
 当前链路为 `ServiceGroupApp → ApiGroupApp → RouterGroupApp`，见 [#52](https://github.com/Dcuhddrg/Optimus/issues/52)。审计清理任务和 HTTP API 使用同一审计职责及数据库；插件注册框架另行设计。迁移与验证记录见 [#45](https://github.com/Dcuhddrg/Optimus/issues/45) 和 [#48](https://github.com/Dcuhddrg/Optimus/pull/48)。
 
 ### Router 组织约定
