@@ -9,13 +9,14 @@ import (
 
 	"optimus/server/global"
 	"optimus/server/initialize"
+	"optimus/server/service/system"
 
 	"go.uber.org/zap"
 )
 
 func RunServer() {
-	if global.OPTIMUS_CONFIG.System.UseRedis {
-		initialize.Redis()
+	if global.OPTIMUS_DB != nil {
+		system.LoadAll()
 	}
 
 	addr := fmt.Sprintf(":%d", global.OPTIMUS_CONFIG.System.Addr)

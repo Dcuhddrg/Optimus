@@ -33,16 +33,17 @@ func projectScopeRouterDB(t *testing.T, scenario string, allowed bool) (*gorm.DB
 	}
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
 	require.NoError(t, err)
-	for _, table := range []string{"user_projects", "projects", "sys_role_permissions", "sys_user_roles", "sys_permissions", "sys_roles", "sys_users", "sys_ldap_config", "sys_audit_logs"} {
+	for _, table := range []string{"user_projects", "projects", "sys_role_permissions", "sys_user_roles", "sys_permissions", "sys_roles", "sys_users", "sys_ldap_config", "sys_audit_logs", "jwt_blacklists", "casbin_rule"} {
 		require.NoError(t, db.Exec("DROP TABLE IF EXISTS `"+table+"`").Error)
 	}
 	require.NoError(t, projectService.AutoMigrateProject(db))
 	require.NoError(t, systemService.AutoMigrateSystem(db))
-	for _, path := range []string{"/api/v1/system/permissions/tree", "/api/v1/projects", "/api/v1/projects/:code", "/api/v1/cloud/accounts"} {
+	setTestDatabase(t, db)
+	for _, path := range []string{"/system/permissions/tree", "/projects", "/projects/:code", "/cloud/accounts"} {
 		permission := systemModel.SystemPermission{Code: path, Name: path, Type: "api", Method: "GET", Path: path}
 		require.NoError(t, db.Create(&permission).Error)
 		if allowed {
-			require.NoError(t, db.Create(&systemModel.SystemRolePermission{RoleID: 1, PermissionID: permission.ID}).Error)
+			grantAPI(t, db, 1, "GET", path)
 		}
 	}
 	p := projectModel.Project{OPTIMUS_MODEL: global.OPTIMUS_MODEL{ID: 1}, Name: "Accessible", Code: "existing", OwnerID: 1, Status: "active"}
@@ -83,7 +84,7 @@ func newScopeTestRouter(t *testing.T, scenario string, allowed bool) (*gin.Engin
 	oldConfig, oldServices := global.OPTIMUS_CONFIG, *service.ServiceGroupApp
 	t.Cleanup(func() { global.OPTIMUS_CONFIG = oldConfig; *service.ServiceGroupApp = oldServices })
 	global.OPTIMUS_CONFIG.System.RouterPrefix = "/api/v1"
-	global.OPTIMUS_CONFIG.JWT = config.JWT{SigningKey: "project-scope-router-test", ExpiresTime: 3600, BufferTime: 300, Issuer: "project-scope-router-test"}
+	global.OPTIMUS_CONFIG.JWT = config.JWT{SigningKey: "project-scope-router-test", ExpiresTime: "1h", BufferTime: "5m", Issuer: "project-scope-router-test"}
 	setTestDatabase(t, db)
 	token, err := utils.NewJWT().CreateToken(utils.NewJWT().CreateClaims(utils.BaseClaims{ID: 1, UUID: "scope-user", Username: "admin", RoleIDs: []uint{1}, RoleCodes: []string{"admin"}}))
 	require.NoError(t, err)
@@ -116,7 +117,7 @@ func TestRoutersLimitProjectScopeToCloudResources(t *testing.T) {
 				t.Run(route.path, func(t *testing.T) {
 					before := *calls
 					req := httptest.NewRequest(http.MethodGet, route.path, nil)
-					req.Header.Set("Authorization", "Bearer "+token)
+					req.Header.Set("x-token", token)
 					req.Header.Set("X-Project-Code", "stale")
 					recorder := httptest.NewRecorder()
 					engine.ServeHTTP(recorder, req)
@@ -141,7 +142,7 @@ func TestRoutersKeepAuthenticationBeforeProjectScope(t *testing.T) {
 			req.Header.Set("X-Project-Code", "stale")
 			want := http.StatusUnauthorized // GVA NoAuth
 			if !allowed {
-				req.Header.Set("Authorization", "Bearer "+token)
+				req.Header.Set("x-token", token)
 				want = http.StatusOK // GVA permission denial: HTTP 200, code 7
 			}
 			recorder := httptest.NewRecorder()

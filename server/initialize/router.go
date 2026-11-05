@@ -1,17 +1,14 @@
 package initialize
 
 import (
-	"strings"
-
 	"optimus/server/global"
 	"optimus/server/middleware"
 	"optimus/server/router"
 	"optimus/server/service"
+	"optimus/server/utils"
 
 	"github.com/gin-gonic/gin"
 )
-
-const defaultRouterPrefix = "/api/v1"
 
 func Routers() *gin.Engine {
 	engine := gin.New()
@@ -21,9 +18,7 @@ func Routers() *gin.Engine {
 	publicGroup := engine.Group(routerPrefix())
 	// 私有路由
 	privateGroup := engine.Group(routerPrefix())
-	privateGroup.Use(middleware.JWTAuth(), middleware.CasbinHandlerWithPrefix(
-		&service.ServiceGroupApp.SystemServiceGroup.RBACService, privateGroup.BasePath(), defaultRouterPrefix,
-	))
+	privateGroup.Use(middleware.JWTAuth(), middleware.CasbinHandler())
 	cloudGroup := privateGroup.Group("")
 	if global.OPTIMUS_DB != nil {
 		cloudGroup.Use(middleware.ProjectScope(&service.ServiceGroupApp.ProjectServiceGroup.ProjectService))
@@ -50,14 +45,5 @@ func Routers() *gin.Engine {
 }
 
 func routerPrefix() string {
-	prefix := strings.TrimSpace(global.OPTIMUS_CONFIG.System.RouterPrefix)
-	if prefix == "" {
-		return defaultRouterPrefix
-	}
-
-	if strings.HasPrefix(prefix, "/") {
-		return prefix
-	}
-
-	return "/" + prefix
+	return utils.RouterPrefix()
 }

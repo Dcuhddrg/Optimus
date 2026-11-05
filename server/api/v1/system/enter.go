@@ -20,4 +20,5 @@ var (
 	ldapService   = service.ServiceGroupApp.SystemServiceGroup.LDAPService
 	auditService  = service.ServiceGroupApp.SystemServiceGroup.AuditService
 	statusService = service.ServiceGroupApp.SystemServiceGroup.Service
+	jwtService    = service.ServiceGroupApp.SystemServiceGroup.JwtService
 )

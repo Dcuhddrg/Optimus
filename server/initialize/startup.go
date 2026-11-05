@@ -11,6 +11,7 @@ import (
 	projectService "optimus/server/service/project"
 	systemService "optimus/server/service/system"
 
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -57,4 +58,13 @@ func InitializeData(db *gorm.DB) error {
 
 	startAuditRetentionWorker(context.Background(), &service.ServiceGroupApp.SystemServiceGroup.AuditService, global.OPTIMUS_CONFIG.System.AuditLogRetentionDays)
 	return errors.Join(errs...)
+}
+
+func logDependencyInitFailure(component, action string, err error) {
+	logger, ok := global.OPTIMUS_LOG.(*zap.Logger)
+	if !ok || logger == nil {
+		return
+	}
+
+	logger.WithOptions(zap.AddCallerSkip(1)).Error(component+" init failed", zap.String("action", action), zap.Error(err))
 }

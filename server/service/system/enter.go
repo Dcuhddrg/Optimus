@@ -7,6 +7,7 @@ type ServiceGroup struct {
 	RoleService
 	LDAPService
 	AuditService
-	RBACService
+	CasbinService
+	JwtService
 	Service
 }

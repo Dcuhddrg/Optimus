@@ -18,7 +18,7 @@ func TestUserRoutesUnauthorizedUseNoAuth(t *testing.T) {
 			w := httptest.NewRecorder()
 			Routers().ServeHTTP(w, httptest.NewRequest(tc.method, "/api/v1"+tc.path, nil))
 			require.Equal(t, 401, w.Code)
-			require.JSONEq(t, `{"code":7,"data":null,"msg":"authorization header is required"}`, w.Body.String())
+			require.JSONEq(t, `{"code":7,"data":null,"msg":"not logged in or invalid access"}`, w.Body.String())
 		})
 	}
 }

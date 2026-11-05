@@ -41,14 +41,13 @@ Optimus 以治理、云资源、运维和成本能力为长期方向；当前实
 
 | 层 | 选型 | 备注 |
 |----|------|------|
-| 语言 | Go 1.23 | 后端 |
+| 语言 | Go 1.24 | 后端 |
 | HTTP | Gin 1.10 | |
-| ORM | GORM 1.25 | |
+| ORM | GORM 1.31 | |
 | DB | MySQL | |
 | 配置 | Viper 1.19 | |
 | 日志 | Zap 1.27 | |
-| 缓存 | go-redis/v9 | |
-| 权限 | Casbin v2 | |
+| 权限 | Casbin v3 + gorm-adapter（casbin_rule） | |
 | JWT | golang-jwt/jwt v5 | |
 | 测试 | Go test + testify | |
 | 前端 | React 18 + TypeScript + Vite | |

@@ -14,7 +14,7 @@ func TestServiceGroupsEmbedConcreteValues(t *testing.T) {
 		path  string
 		names []string
 	}{
-		{"../service/system/enter.go", []string{"AuthService", "UserService", "RoleService", "LDAPService", "AuditService", "RBACService", "Service"}},
+		{"../service/system/enter.go", []string{"AuthService", "UserService", "RoleService", "LDAPService", "AuditService", "JwtService", "CasbinService", "Service"}},
 		{"../service/project/enter.go", []string{"ProjectService"}},
 		{"../service/cloud/enter.go", []string{"CloudAccountService", "AssetRegistryService"}},
 	}

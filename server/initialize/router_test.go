@@ -46,7 +46,7 @@ func TestRouterLoginUsesInitializedAuthDependencies(t *testing.T) {
 	previousServices, previousConfig := *service.ServiceGroupApp, global.OPTIMUS_CONFIG
 	t.Cleanup(func() { *service.ServiceGroupApp = previousServices; global.OPTIMUS_CONFIG = previousConfig })
 	global.OPTIMUS_CONFIG.System.RouterPrefix = "/api/v1"
-	global.OPTIMUS_CONFIG.JWT = config.JWT{SigningKey: "router-login-test", ExpiresTime: 3600, Issuer: "router-login-test"}
+	global.OPTIMUS_CONFIG.JWT = config.JWT{SigningKey: "router-login-test", ExpiresTime: "1h", Issuer: "router-login-test"}
 	db, _ := projectScopeRouterDB(t, "", true)
 	hash, err := utils.BcryptHash("admin-secret")
 	require.NoError(t, err)
@@ -81,8 +81,8 @@ func TestRoutersUseGroupedRBACCapability(t *testing.T) {
 
 	global.OPTIMUS_CONFIG.JWT = config.JWT{
 		SigningKey:  "router-test-signing-key",
-		ExpiresTime: 3600,
-		BufferTime:  300,
+		ExpiresTime: "1h",
+		BufferTime:  "5m",
 		Issuer:      "optimus-router-test",
 	}
 	db, _ := projectScopeRouterDB(t, "", true)
@@ -100,7 +100,7 @@ func TestRoutersUseGroupedRBACCapability(t *testing.T) {
 
 	recorder := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/system/permissions/tree", nil)
-	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("x-token", token)
 
 	engine.ServeHTTP(recorder, req)
 

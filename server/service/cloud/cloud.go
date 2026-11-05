@@ -8,6 +8,7 @@ import (
 	projectModel "optimus/server/model/project"
 	systemModel "optimus/server/model/system"
 	projectService "optimus/server/service/project"
+	systemService "optimus/server/service/system"
 
 	"gorm.io/gorm"
 )
@@ -91,14 +92,14 @@ func DefaultCloudPermissions() []systemModel.SystemPermission {
 	return []systemModel.SystemPermission{
 		{Code: "cloud.accounts.menu", Name: "Cloud Accounts", Type: "menu", Path: "/cloud/accounts", Sort: 31},
 		{Code: "cloud.assets.menu", Name: "Cloud Assets", Type: "menu", Path: "/cloud/assets", Sort: 32},
-		{Code: "cloud.accounts.view", Name: "View cloud accounts", Type: "api", Method: "GET", Path: "/api/v1/cloud/accounts", Sort: 1000},
-		{Code: "cloud.accounts.detail", Name: "View cloud account detail", Type: "api", Method: "GET", Path: "/api/v1/cloud/accounts/:id", Sort: 1001},
-		{Code: "cloud.accounts.create", Name: "Create cloud accounts", Type: "api", Method: "POST", Path: "/api/v1/cloud/accounts", Sort: 1002},
-		{Code: "cloud.accounts.update", Name: "Update cloud accounts", Type: "api", Method: "PUT", Path: "/api/v1/cloud/accounts/:id", Sort: 1003},
-		{Code: "cloud.accounts.delete", Name: "Delete cloud accounts", Type: "api", Method: "DELETE", Path: "/api/v1/cloud/accounts/:id", Sort: 1004},
-		{Code: "cloud.accounts.sync", Name: "Sync cloud accounts", Type: "api", Method: "POST", Path: "/api/v1/cloud/accounts/:id/sync", Sort: 1005},
-		{Code: "cloud.accounts.tags.update", Name: "Update cloud account tags", Type: "api", Method: "PUT", Path: "/api/v1/cloud/accounts/:id/tags", Sort: 1006},
-		{Code: "cloud.assets.view", Name: "View cloud assets", Type: "api", Method: "GET", Path: "/api/v1/cloud/assets", Sort: 1100},
+		{Code: "cloud.accounts.view", Name: "View cloud accounts", Type: "api", Method: "GET", Path: "/cloud/accounts", Sort: 1000},
+		{Code: "cloud.accounts.detail", Name: "View cloud account detail", Type: "api", Method: "GET", Path: "/cloud/accounts/:id", Sort: 1001},
+		{Code: "cloud.accounts.create", Name: "Create cloud accounts", Type: "api", Method: "POST", Path: "/cloud/accounts", Sort: 1002},
+		{Code: "cloud.accounts.update", Name: "Update cloud accounts", Type: "api", Method: "PUT", Path: "/cloud/accounts/:id", Sort: 1003},
+		{Code: "cloud.accounts.delete", Name: "Delete cloud accounts", Type: "api", Method: "DELETE", Path: "/cloud/accounts/:id", Sort: 1004},
+		{Code: "cloud.accounts.sync", Name: "Sync cloud accounts", Type: "api", Method: "POST", Path: "/cloud/accounts/:id/sync", Sort: 1005},
+		{Code: "cloud.accounts.tags.update", Name: "Update cloud account tags", Type: "api", Method: "PUT", Path: "/cloud/accounts/:id/tags", Sort: 1006},
+		{Code: "cloud.assets.view", Name: "View cloud assets", Type: "api", Method: "GET", Path: "/cloud/assets", Sort: 1100},
 	}
 }
 
@@ -121,8 +122,7 @@ func seedAdminCloudPermissions(db *gorm.DB) error {
 		if err := db.Where("code = ?", p.Code).First(&perm).Error; err != nil {
 			return err
 		}
-		rp := systemModel.SystemRolePermission{RoleID: adminRole.ID, PermissionID: perm.ID}
-		if err := db.Where("role_id = ? AND permission_id = ?", adminRole.ID, perm.ID).FirstOrCreate(&rp).Error; err != nil {
+		if err := systemService.GrantPermissions(db, adminRole.ID, []systemModel.SystemPermission{perm}); err != nil {
 			return err
 		}
 	}

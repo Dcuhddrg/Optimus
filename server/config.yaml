@@ -2,8 +2,6 @@ system:
   env: develop
   addr: 8888
   db-type: mysql
-  use-redis: false
-  use-casbin: false
   router-prefix: /api/v1
   admin-initial-password: admin
 zap:
@@ -20,18 +18,10 @@ mysql:
   max-idle-conns: 10
   max-open-conns: 100
   log-mode: info
-redis:
-  addr: 127.0.0.1:6379
-  password: ""
-  db: 0
 jwt:
   signing-key: optimus
-  expires-time: 86400
-  buffer-time: 3600
+  expires-time: 7d
+  buffer-time: 1d
   issuer: optimus
-casbin:
-  enable: false
-  model-path: config/casbin_model.conf
-  policy-source: mysql
 cloud:
   credential-encryption-key: ""   # Must be exactly 32 ASCII characters in production
