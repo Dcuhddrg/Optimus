@@ -1,5 +1,7 @@
 # 模块与分层
 
+本目录说明模块职责、前后端入口、依赖、对外契约及接入约束。
+
 - [后端分层与迁移规则](backend-layer-rules.md)：职责、依赖方向、注册与存量迁移边界。
 - 业务模块设计见 [文档入口](../README.md#产品与实施)；插件遵循 [AGENT.MD](../../AGENT.MD) 和对应模块设计。
 - 各层组织与写法见[开发示例](../examples/README.md)；模板适用边界及迁移记录见该入口和 [#45](https://github.com/Dcuhddrg/Optimus/issues/45)。

@@ -12,7 +12,7 @@
 
 ### 独立插件示例
 
-[完整插件边界](plugin/full-plugin-example.md) 暂保留原有内容，不属于本次前后端模板替换范围。
+[插件示例与边界](plugin/full-plugin-example.md) 是设计参照，不代表完整插件框架已存在。
 
 ## 使用边界
 
