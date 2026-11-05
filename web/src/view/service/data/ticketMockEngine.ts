@@ -21,7 +21,7 @@ export const ticketMockEngine = {
     ];
     // 空链也安排一次，让 advanceApproval 把工单放行到 processing。
     const steps = Math.max(ticketStore.get(ticketId)?.approvalChain.length ?? 0, 1);
-    ids.push(...scheduleApprovals(ticketId, steps, STEP_SUBMITTED_MS));
+    ids.push(...scheduleApprovals(ticketId, 0, steps, STEP_SUBMITTED_MS));
     timers.set(ticketId, ids);
   },
 
@@ -33,11 +33,12 @@ export const ticketMockEngine = {
       if (ticket.status === 'submitted') {
         ticketMockEngine.schedule(ticket.id);
       } else if (ticket.status === 'approving') {
-        const remaining = ticket.approvalChain.filter((s) => s.status === 'pending').length;
-        if (remaining === 0) {
+        const firstPending = ticket.approvalChain.findIndex((s) => s.status === 'pending');
+        if (firstPending === -1) {
           ticketStore.advanceApproval(ticket.id);
         } else {
-          timers.set(ticket.id, scheduleApprovals(ticket.id, remaining, 0));
+          const remaining = ticket.approvalChain.length - firstPending;
+          timers.set(ticket.id, scheduleApprovals(ticket.id, firstPending, remaining, 0));
         }
       }
     }
@@ -60,12 +61,14 @@ export function useTicketMockEngine(): void {
   }, []);
 }
 
-function scheduleApprovals(ticketId: string, steps: number, offsetMs: number): number[] {
+// 第 i 个定时器只审批 fromLevel+i-1 这一级；多个标签页各自安排时不会连跳多级。
+function scheduleApprovals(ticketId: string, fromLevel: number, steps: number, offsetMs: number): number[] {
   const ids: number[] = [];
   for (let i = 1; i <= steps; i += 1) {
+    const level = fromLevel + i - 1;
     ids.push(
       window.setTimeout(() => {
-        ticketStore.advanceApproval(ticketId);
+        ticketStore.advanceApproval(ticketId, level);
       }, offsetMs + i * STEP_APPROVAL_MS),
     );
   }
