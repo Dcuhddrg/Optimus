@@ -8,6 +8,7 @@ import { PageHeader } from '../../components/page/PageHeader';
 import { TicketStatusBadge } from './components/TicketStatusBadge';
 import { TaskStatusBadge } from './components/TaskStatusBadge';
 import { TicketTimeline } from './components/TicketTimeline';
+import { ApprovalStepper } from './components/ApprovalStepper';
 import { getCatalogById } from './data/serviceCatalog';
 import { useTicketStore } from './data/ticketStore';
 import { useTaskStore } from './data/taskStore';
@@ -60,6 +61,8 @@ export function TicketDetailPage() {
         description={`${ticket.id} · ${formatDateTime(ticket.createdAt, locale)}`}
         actions={<TicketStatusBadge status={ticket.status} />}
       />
+
+      <ApprovalStepper ticket={ticket} />
 
       <section className={styles.summary}>
         <div className={styles.field}>

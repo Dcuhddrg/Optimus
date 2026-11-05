@@ -367,6 +367,20 @@ const en = {
       event: {
         submitted: 'Ticket submitted by {applicant}.',
         autoAdvanced: 'Status auto-advanced to {status}.',
+        approved: '{actor} ({role}) approved.',
+      },
+      approval: {
+        role: {
+          lineManager: 'Line manager',
+          security: 'Security review',
+          deptHead: 'Department head',
+        },
+        stepperLabel: 'Approval progress',
+        stepperApplicant: 'Applicant',
+        stepperCurrent: 'Reviewing',
+        stepperWaiting: 'Pending',
+        stepperRejected: 'Rejected',
+        listProgress: 'Approval {count}/{total} · {name}',
       },
     },
     task: {
@@ -880,6 +894,20 @@ const zhCN: typeof en = {
       event: {
         submitted: '{applicant} 提交了工单。',
         autoAdvanced: '状态自动推进至 {status}。',
+        approved: '{actor}（{role}）已通过。',
+      },
+      approval: {
+        role: {
+          lineManager: '直属主管',
+          security: '安全审批',
+          deptHead: '部门负责人',
+        },
+        stepperLabel: '审批进度',
+        stepperApplicant: '申请人',
+        stepperCurrent: '审批中',
+        stepperWaiting: '待审批',
+        stepperRejected: '已驳回',
+        listProgress: '审批 {count}/{total} · 当前:{name}',
       },
     },
     task: {
