@@ -47,7 +47,7 @@
 ### 示例文档
 
 - [docs/examples/](docs/examples/README.md) 是讲解型示例层。
-- 示例说明项目标准，不代表相关功能已经实现；后端示例保留上游原文，前端示例已按 React/TypeScript 改写。
+- 示例说明项目标准，不代表相关功能已经实现；示例参照 gin-vue-admin 结构，按 Optimus 的 Go/Gin 与 React/TypeScript 写法改写。
 - 新增某层文件前阅读对应示例、模块设计和同类实现。
 
 ### 记忆规则

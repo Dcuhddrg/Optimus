@@ -2,102 +2,99 @@
 
 ## 这个文件负责什么
 
-API 层负责接收 HTTP 请求、从合适的位置提取参数、调用 Service、统一返回响应，并补全 Swagger 注释。
+`server/api/v1/<模块>/` 处理 HTTP：绑定请求、取得当前用户与项目范围、调用 Service、按 GVA 协议输出。
 
 ## 什么时候应该这样写
 
-- 新增对外接口
-- 为某个模块补 CRUD 接口
-- 需要统一响应结构和错误处理
-
-## 核心原则
-
-参数从哪里取，不是由“AI 习惯”决定，而是由下面几件事共同决定：
-
-1. 前端怎么传
-2. 接口协议怎么约定
-3. 当前逻辑到底需要什么数据
-4. 这个数据放在哪个位置更合理、更安全
-
-也就是说，API 层不应该机械地一律使用 `ShouldBindJSON`，而应该先判断参数来源，再选择对应取法。
-
-## 常见参数来源与推荐取法
-
-- JSON body: `ShouldBindJSON`
-- Query string: `ShouldBindQuery`、`c.Query(...)`、`c.DefaultQuery(...)`
-- Path params: `c.Param(...)`
-- `multipart/form-data`: `c.FormFile(...)`、`c.DefaultPostForm(...)`、`c.Request.FormValue(...)`
-- Header: `c.GetHeader(...)`、`c.Request.Header.Get(...)`
-- Cookie: `c.Cookie(...)`
+- 新增 HTTP 接口
+- 调整请求绑定或响应结构
 
 ## 推荐写法示例
 
-下面这个示例演示的是 `POST + JSON body` 场景，所以这里使用 `ShouldBindJSON`。
-
 ```go
-package system
+package order
 
 import (
-	"github.com/flipped-aurora/gin-vue-admin/server/model/common/response"
-	systemReq "github.com/flipped-aurora/gin-vue-admin/server/model/system/request"
+	"errors"
+
+	"optimus/server/global"
+	"optimus/server/model/common/response"
+	orderRequest "optimus/server/model/order/request"
+	orderService "optimus/server/service/order"
+	"optimus/server/utils"
+
 	"github.com/gin-gonic/gin"
 )
 
-// GetOrderList
-// @Tags      Order
-// @Summary   分页获取订单列表
-// @Security  ApiKeyAuth
-// @accept    application/json
-// @Produce   application/json
-// @Param     data  body      systemReq.OrderSearch                                   true  "分页和筛选参数"
-// @Success   200   {object}  response.Response{data=response.PageResult,msg=string}  "返回列表、总数、分页信息"
-// @Router    /order/getOrderList [post]
-func (o *OrderApi) GetOrderList(c *gin.Context) {
-	var pageInfo systemReq.OrderSearch
-	if err := c.ShouldBindJSON(&pageInfo); err != nil {
-		response.FailWithMessage(err.Error(), c)
+type OrderApi struct{}
+
+// ListOrders GET /orders
+func (h *OrderApi) ListOrders(c *gin.Context) {
+	if global.OPTIMUS_DB == nil {
+		response.FailWithMessage("order service is not available", c)
 		return
 	}
-
-	list, total, err := orderService.GetOrderList(pageInfo)
+	var search orderRequest.OrderSearch
+	if err := c.ShouldBindQuery(&search); err != nil {
+		response.FailWithMessage("invalid order filter", c)
+		return
+	}
+	scope := projectScope(c)
+	page, err := orderSvc.List(c.Request.Context(), scope.AccessibleProjectIDs, search)
 	if err != nil {
-		response.FailWithMessage("获取失败", c)
+		response.FailWithMessage("failed to list orders", c)
 		return
 	}
+	response.OkWithData(page, c)
+}
 
-	response.OkWithDetailed(response.PageResult{
-		List:     list,
-		Total:    total,
-		Page:     pageInfo.Page,
-		PageSize: pageInfo.PageSize,
-	}, "获取成功", c)
+// CreateOrder POST /orders
+func (h *OrderApi) CreateOrder(c *gin.Context) {
+	var req orderRequest.CreateOrderRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.FailWithMessage("invalid order payload", c)
+		return
+	}
+	order, err := orderSvc.Create(c.Request.Context(), utils.GetUserID(c), req)
+	if err != nil {
+		if errors.Is(err, orderService.ErrOrderNotFound) {
+			response.FailWithMessage(err.Error(), c)
+			return
+		}
+		response.FailWithMessage("failed to create order", c)
+		return
+	}
+	response.OkWithData(order, c)
+}
+
+// projectScope reads what the ProjectScope middleware stored for this request.
+func projectScope(c *gin.Context) utils.ProjectScope {
+	if raw, ok := c.Get(utils.ProjectScopeContextKey); ok {
+		if scope, ok := raw.(utils.ProjectScope); ok {
+			return scope
+		}
+	}
+	return utils.ProjectScope{}
 }
 ```
 
 ## 为什么这样写
 
-- API 层统一负责“取参数 + 校验 + 调 Service + 回响应”
-- 取参数方式必须与真实数据来源一致，而不是套固定模板
-- 例如：
-  - 登录、创建、更新这类通常来自 JSON body
-  - 列表筛选、分页、导出条件常来自 Query
-  - 上传文件通常来自 `multipart/form-data`
-  - 鉴权 token、特殊网关头、追踪信息常来自 Header 或 Cookie
-- 成功 / 失败统一使用 `response` 包
-- Swagger 注释让接口契约对前端和文档生成都可见
+- GET 用 `ShouldBindQuery`，JSON 请求体用 `ShouldBindJSON`。
+- 只用 `response` 包输出：成功 `OkWithData`/`Ok`，业务失败 `FailWithMessage`（HTTP 200 + code 7）；不直接 `c.JSON`，也不返回 4xx/5xx。未认证由 JWT 中间件返回 401。
+- 当前用户用 `utils.GetUserID(c)`（GVA 同名函数）；项目范围由 `ProjectScope` 中间件写入 `utils.ProjectScopeContextKey`，在 API 包内用 `projectScope(c)` 读取（同 `api/v1/cloud/helpers.go`），只信任其中的 `AccessibleProjectIDs`，不接受客户端传入的项目列表。
+- 数据库不可用时返回业务失败，不让请求 panic。
+- 内部错误不回显细节，已知业务错误才回传 `err.Error()`。
 
 ## 常见错误
 
-- 在 API 层直接操作数据库
-- 直接 `c.JSON(...)`，绕开统一响应
-- 没有 Swagger 注释或注释和实际行为不一致
-- 不看参数真实来源，机械地一律使用 `ShouldBindJSON`
-- 本该从 Header / Cookie / Query / form-data 取的数据，却硬塞进 body
+- 在 API 里写 SQL 或业务规则
+- 返回 HTTP 403/404 等状态码表示业务失败
+- 自己解析 claims 或 `X-Project-Code`
+- 把内部错误原文返回给前端
 
 ## 真实参考文件
 
-- `server/api/v1/system/sys_user.go`
-- `server/api/v1/system/sys_dictionary.go`
-- `server/api/v1/system/auto_code_mcp.go`
-- `server/api/v1/example/exa_file_upload_download.go`
-- `server/utils/claims.go`
+- [server/api/v1/project/project.go](../../../server/api/v1/project/project.go)
+- [server/api/v1/cloud/asset.go](../../../server/api/v1/cloud/asset.go)（分页）、[helpers.go](../../../server/api/v1/cloud/helpers.go)（项目范围）
+- [server/model/common/response/response.go](../../../server/model/common/response/response.go)

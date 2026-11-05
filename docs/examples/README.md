@@ -16,6 +16,6 @@
 
 ## 使用边界
 
-- backend 的 8 份文档保留 gin-vue-admin `cee04b08` 原始模板，包路径、业务与插件 SDK 指向上游，不代表 Optimus 已有实现；frontend 的 5 份文档按用户决定（2026-11-05）改写为 React/TypeScript，写法与真实参考文件对应 Optimus 源码，`order` 仍为占位业务。
+- backend 的 8 份与 frontend 的 5 份文档按用户决定（2026-11-05）参照 gin-vue-admin `cee04b08` 的结构改写为 Optimus 写法（Go/Gin 包路径与 GVA 协议、React/TypeScript），写法与真实参考文件对应 Optimus 源码；`order` 为占位业务，插件示例说明的机制尚未实现。
 - Optimus 使用 Go/Gin 与 React/TypeScript。现行约束见 [AGENT.MD](../../AGENT.MD)、[后端分层](../modules/backend-layer-rules.md)、[接口契约](../frontend-backend/boundary.md) 和[前端规范](../frontend-backend/frontend-rules.md)；使用示例前核对项目实际能力和调用方。
 - 模板核对与迁移记录见 [#45](https://github.com/Dcuhddrg/Optimus/issues/45)；插件适用范围另行设计确认。
