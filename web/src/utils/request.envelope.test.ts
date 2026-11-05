@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { apiRequest, getStoredToken, setStoredToken, setUnauthorizedHandler } from './client';
+import { apiRequest, getStoredToken, setStoredToken, setUnauthorizedHandler } from './request';
 beforeEach(()=>{localStorage.clear();setStoredToken('token');});
 afterEach(()=>vi.unstubAllGlobals());
 const respond=(body:unknown,status=200)=>vi.stubGlobal('fetch',vi.fn().mockResolvedValue(new Response(JSON.stringify(body),{status})));

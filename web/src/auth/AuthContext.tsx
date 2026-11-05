@@ -15,7 +15,7 @@ import {
   getStoredToken,
   setStoredToken,
   setUnauthorizedHandler,
-} from '../api/client';
+} from '../utils/request';
 import * as systemApi from '../api/system';
 import type { CurrentUserResponse } from '../types/system';
 

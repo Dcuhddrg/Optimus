@@ -11,7 +11,7 @@
 
 | 内容 | 可定位依据 |
 | --- | --- |
-| 请求、认证 header、错误解析 | [client.ts](../../web/src/api/client.ts) |
+| 请求、认证 header、错误解析 | [utils/request.ts](../../web/src/utils/request.ts) |
 | 集合类型与项目调用 | [system.ts 类型](../../web/src/types/system.ts)、[project.ts](../../web/src/api/project.ts)、[项目处理](../../server/api/v1/project/project.go)、[成员处理](../../server/api/v1/project/member.go) |
 | 系统接口与审计导出 | [system.ts API](../../web/src/api/system.ts)、[audit.go](../../server/api/v1/system/audit.go) |
 | 云资源分页 | [cloud.ts](../../web/src/api/cloud.ts)、[asset.go](../../server/api/v1/cloud/asset.go) |
@@ -44,7 +44,7 @@
 | 登出、删除等无业务数据操作 | `{}` |
 | CSV 导出、health/ping | 例外，见[第 7 节](#7-csv探活与无正文例外) |
 
-前端只有一个 JSON 请求函数 `apiRequest`（[client.ts](../../web/src/api/client.ts)）：校验 code/data/msg，code 为 0 时返回 data，否则抛出 `kind: 'business'` 的 `ApiError`；HTTP 非 2xx 抛出 `kind: 'http'`。不通过 `body.data ?? body` 猜测协议，data 可能为 null、0 或 false。
+前端只有一个 JSON 请求函数 `apiRequest`（[utils/request.ts](../../web/src/utils/request.ts)）：校验 code/data/msg，code 为 0 时返回 data，否则抛出 `kind: 'business'` 的 `ApiError`；HTTP 非 2xx 抛出 `kind: 'http'`。不通过 `body.data ?? body` 猜测协议，data 可能为 null、0 或 false。
 
 ## 4. 响应协议与 HTTP 语义
 

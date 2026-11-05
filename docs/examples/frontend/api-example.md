@@ -2,7 +2,7 @@
 
 ## 这个文件负责什么
 
-`web/src/api/<模块>.ts` 把后端接口封装成带类型的函数，统一调用 [client.ts](../../../web/src/api/client.ts) 的 `apiRequest`。页面不直接 `fetch`。
+`web/src/api/<模块>.ts` 把后端接口封装成带类型的函数，统一调用 [utils/request.ts](../../../web/src/utils/request.ts) 的 `apiRequest`（对应 GVA 的 `@/utils/request`）。页面不直接 `fetch`。
 
 ## 什么时候应该这样写
 
@@ -13,7 +13,7 @@
 ## 推荐写法示例
 
 ```ts
-import { apiRequest } from './client';
+import { apiRequest } from '../utils/request';
 import type { CreateOrderPayload, Order } from '../types/order';
 
 type OrderList = { list: Order[]; total: number; page: number; pageSize: number };
@@ -53,4 +53,4 @@ export function deleteOrder(id: number) {
 
 - [web/src/api/project.ts](../../../web/src/api/project.ts)
 - [web/src/api/cloud.ts](../../../web/src/api/cloud.ts)
-- [web/src/api/client.ts](../../../web/src/api/client.ts)
+- [web/src/utils/request.ts](../../../web/src/utils/request.ts)

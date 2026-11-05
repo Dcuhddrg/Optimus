@@ -35,7 +35,7 @@
 - 明确请求与响应契约，保持现有接口、权限和项目隔离行为。
 - JSON 响应照 gin-vue-admin：只用 `model/common/response` 的 `Ok*`/`Fail*`/`NoAuth`，业务结果为 HTTP 200 + `{code,data,msg}`（0 成功、7 失败），仅未认证为 HTTP 401；分页放在 data 内。详见[接口契约](docs/frontend-backend/boundary.md)。
 - 前端请求通过 `web/src/api/`，view 不直接 `fetch`。
-- 优先复用 `web/src/api/client.ts`、`web/src/auth/`、`web/src/locale/` 和 `web/src/components/` 的已有能力；跨端变更同步调用方和文档。
+- 优先复用 `web/src/utils/`、`web/src/auth/`、`web/src/locale/` 和 `web/src/components/` 的已有能力；跨端变更同步调用方和文档。
 
 ### 插件与模块
 

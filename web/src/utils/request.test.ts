@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { apiRequest, getStoredToken, setStoredToken, setUnauthorizedHandler } from './client';
-import { login } from './system';
+import { apiRequest, getStoredToken, setStoredToken, setUnauthorizedHandler } from './request';
+import { login } from '../api/system';
 
 beforeEach(() => { localStorage.clear(); setStoredToken('existing'); });
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });

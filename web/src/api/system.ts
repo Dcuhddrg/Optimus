@@ -1,4 +1,4 @@
-import { ApiError, apiDownloadCSV, apiRequest } from './client';
+import { ApiError, apiDownloadCSV, apiRequest } from '../utils/request';
 import type {
   AuditLogFilter,
   AuditLogPage,

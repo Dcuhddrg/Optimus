@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { exportAuditLogs, listAuditLogs } from './system';
-import { setStoredToken, setUnauthorizedHandler } from './client';
+import { setStoredToken, setUnauthorizedHandler } from '../utils/request';
 
 beforeEach(() => { localStorage.clear(); setStoredToken('test-token'); });
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });

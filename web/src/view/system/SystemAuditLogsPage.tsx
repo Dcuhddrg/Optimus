@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { ApiError, isPermissionDenied } from '../../api/client';
+import { ApiError, isPermissionDenied } from '../../utils/request';
 import { exportAuditLogs, listAuditLogs } from '../../api/system';
 import { AUDIT_ACTION_CODES, getAuditActionLabel, getAuditResourceTypeLabel, getAuditResultLabel } from '../../locale/systemLabels';
 import { useI18n } from '../../locale/useI18n';
 import type { AuditLog, AuditLogFilter, AuditLogPage } from '../../types/system';
 import styles from './SystemAuditLogsPage.module.css';
+import { formatDateTime } from '../../utils/format';
 
 const emptyFilters = { actorUserId: '', action: '', resourceType: '', result: '', startTime: '', endTime: '', keyword: '' };
 type FilterFields = typeof emptyFilters;
@@ -87,10 +88,7 @@ export function SystemAuditLogsPage() {
   }
 
   const actorName = (log: AuditLog) => log.actorUsername || (log.actorUserId ? `#${log.actorUserId}` : t('system.audit.unknownActor'));
-  const timestamp = (value: string) => {
-    const date = new Date(value);
-    return Number.isFinite(date.getTime()) ? date.toLocaleString(locale, { hour12: false }) : value || t('system.audit.notRecorded');
-  };
+  const timestamp = (value: string) => formatDateTime(value, locale, t('system.audit.notRecorded'));
   const input = (key: keyof FilterFields, type = 'text') => <input type={type} value={draft[key]}
     min={key === 'actorUserId' ? '1' : undefined} step={key === 'actorUserId' ? '1' : undefined}
     onChange={event => setDraft(value => ({ ...value, [key]: event.target.value }))} />;
