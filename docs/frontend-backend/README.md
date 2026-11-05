@@ -1,7 +1,7 @@
 # 前后端协作
 
-- [接口契约与协作边界](boundary.md)：当前行为、目标契约、迁移边界和已确认决定。
+- [接口契约与协作边界](boundary.md)：职责分工、响应协议、分页、认证与例外。
 - [前端开发与复用规范](frontend-rules.md)：React 页面、状态、样式和工具复用。
 - [前端工具函数约束](frontend-utils.md)：`utils`、`auth`、`locale`、`components` 的现有能力与强制使用场景。
 
-确认范围见 [接口契约第 11 节](boundary.md#11-已确认决定与实施边界)，协议迁移见 [#18](https://github.com/Dcuhddrg/Optimus/issues/18)，会话恢复修复与验证见 [#27](https://github.com/Dcuhddrg/Optimus/issues/27)。
+协议决定见 [ADR-003](../memory/long-term/decisions/ADR-003-gva-response-protocol.md)，实施与验证记录在其中关联的 Issue。

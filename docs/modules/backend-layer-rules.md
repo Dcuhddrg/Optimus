@@ -1,4 +1,4 @@
-# 后端分层与迁移规则
+# 后端分层规则
 
 > 项目规则以 [AGENT.MD](../../AGENT.MD) 为准。
 
@@ -19,22 +19,22 @@ Router -> API -> Service -> Model
 
 - `enter.go` 作为分组注册与组合入口，聚合职责类型和别名；具体路由由 `initialize` 注册，不另建平行装配或注册链。
 - API 向 Service 显式传入所需业务参数。Swagger 注释与真实接口行为保持一致。
-- 新旧模块均按上述四层职责组织；原始参考模板见 [开发示例](../examples/README.md)，迁移取舍和验证在 [#45](https://github.com/Dcuhddrg/Optimus/issues/45) 跟进；#8 为历史示例交付。
+- 各层写法示例见 [开发示例](../examples/README.md)。
 
-### 后端结构维护要求
+### 结构调整要求
 
-- 不得重新引入已清理的旧 `usecase/infra` 分层；新发现的结构差异在 GitHub Issue 跟进。
+- 不得重新引入已清理的旧 `usecase/infra` 分层；新发现的结构差异登记到 GitHub Issue。
 - 数据库查询和事务归对应职责 Service，生产路径使用 `global.OPTIMUS_DB` 或当前事务句柄。需要替换的测试依赖与外部客户端可以使用接口，启动装配不创建平行 Store 实现。
 - 外部 SDK、协议适配和公共能力按职责迁入明确的模块或插件位置，每项给出旧路径、新路径、调用者与测试映射；避免仅给旧层改名后保留平行体系。
 - 同批调整 API 导入、服务构造、`enter.go`、初始化注入和测试。必要接口可保留用于解耦与测试，不能成为旧包长期存在的豁免理由。
 - 结构调整保持已有接口返回、权限和项目隔离行为；响应协议照 GVA，见[接口契约](../frontend-backend/boundary.md#4-响应协议与-http-语义)。
-- 结构调整须清除临时兼容入口，并按影响范围验证构建和隔离 MySQL 回归；进度与剩余差异在 GitHub 跟进。
+- 结构调整须清除临时兼容入口，并按影响范围验证构建和隔离 MySQL 回归。
 
-现行决定及替代关系见 [ADR-002](../memory/long-term/decisions/ADR-002-backend-structure-migration.md)，迁移结果及验证依据见 [结构迁移 #11](https://github.com/Dcuhddrg/Optimus/issues/11)。
+决定与替代关系见 [架构决策索引](../memory/long-term/decisions/README.md)。
 
 ## 装配与注册入口
 
-根级通过 ServiceGroupApp、ApiGroupApp 和 RouterGroupApp 汇总模块；模块 `enter.go` 聚合职责类型和集中别名。API 通过别名访问 Service，Router 通过别名访问 API。详细设计与兼容边界见[迁移设计](../superpowers/specs/2026-11-02-gva-backend-migration-design.md)。
+根级通过 ServiceGroupApp、ApiGroupApp 和 RouterGroupApp 汇总模块，链路为 `ServiceGroupApp → ApiGroupApp → RouterGroupApp`；模块 `enter.go` 聚合职责类型和集中别名。API 通过别名访问 Service，Router 通过别名访问 API。
 
 聚合与职责声明须分开：enter.go 中仅定义 ApiGroup、ServiceGroup 或 RouterGroup；AuthApi/UserApi 等职责类型位于 auth.go/user.go 等对应文件，Authorizer 等支持接口也归对应职责文件。ServiceGroup 匿名嵌入具体服务值，API 的 Service 别名与 Router 的 API 别名复制聚合值。行为测试通过不等于组织方式对齐，验收同时检查声明位置与聚合边界。
 
@@ -44,7 +44,7 @@ HTTP 输入包括完整表单、局部状态/角色/权限操作和查询条件�
 
 种子数据按 GVA 放在 `source/<模块>`，用 `RegisterInit(order, initializer)` 注册，由 `initialize.InitializeData` 在启动时按序迁移并幂等写入；定时任务实现放在 `task/`，在 `initialize.Timer` 用 `global.OPTIMUS_Timer` 注册；GORM 配置与日志放在 `initialize/internal`。
 
-当前链路为 `ServiceGroupApp → ApiGroupApp → RouterGroupApp`，见 [#52](https://github.com/Dcuhddrg/Optimus/issues/52)。审计清理任务和 HTTP API 使用同一审计职责及数据库；插件注册框架另行设计。迁移与验证记录见 [#45](https://github.com/Dcuhddrg/Optimus/issues/45) 和 [#48](https://github.com/Dcuhddrg/Optimus/pull/48)。
+插件的注册与装配见[插件开发约束](plugin-development.md)。
 
 ### Router 组织约定
 
@@ -55,11 +55,11 @@ HTTP 输入包括完整表单、局部状态/角色/权限操作和查询条件�
 - 具体路径、中间件和 handler 绑定放在同目录职责文件中，按各模块实际职责命名，不照搬 system 的业务划分。例如 system 拆为 `base.go`、`auth.go`、`user.go`、`role.go`、`ldap.go`、`audit.go`，角色权限及权限树由 `RoleRouter` 注册；project 可按项目与成员、cloud 可按账号与资产组织子 Router。
 - 公开与私有组由 initialize 创建并传入，保持路径、HTTP 方法、注册顺序、JWT/RBAC、项目范围及响应协议标记的实际作用范围。拆分不能重复挂载中间件、重复注册或放宽权限。
 
-原始参考示例见 [Router](../examples/backend/router-example.md) 与 [enter.go](../examples/backend/enter-go-example.md)；结构整改与 #18 响应协议迁移分批提交。
+写法示例见 [Router](../examples/backend/router-example.md) 与 [enter.go](../examples/backend/enter-go-example.md)。
 
 ## 各层通用写法
 
-参照 gin-vue-admin `cee04b08` 的 `aiDoc/modules/backend-layer-rules.md`，与上文的装配和迁移约定一起使用。
+参照 gin-vue-admin `cee04b08` 的 `aiDoc/modules/backend-layer-rules.md`，与上文的装配约定一起使用。
 
 ### Model 层
 

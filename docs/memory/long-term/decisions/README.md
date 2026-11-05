@@ -7,7 +7,8 @@
 | 主题 | 原始依据 | 适用范围与核查说明 |
 | --- | --- | --- |
 | 新旧模块的分层、结构迁移与装配 | [ADR-002](ADR-002-backend-structure-migration.md)、[当前架构约定](../../../relations/repo-profile.md) | 新旧模块采用统一分层，旧结构不再享有长期豁免 |
-| 前后端接口契约 | [接口契约](../../../frontend-backend/boundary.md) | 响应、HTTP 语义、空数据及分模块切换；确认范围见契约第 11 节 |
+| 前后端响应协议 | [ADR-003](ADR-003-gva-response-protocol.md)、[接口契约](../../../frontend-backend/boundary.md) | 全部 JSON 接口采用 GVA 协议，取代 #18 原定的 HTTP 4xx/5xx 语义；例外为 CSV、health/ping 和 Recovery 500 |
+| 后端装配照 GVA（GroupApp、无状态 Service、职责子路由） | [后端分层规则](../../../modules/backend-layer-rules.md#装配与注册入口)、[GVA 后端迁移设计](../../../superpowers/specs/2026-11-02-gva-backend-migration-design.md)、[#52](https://github.com/Dcuhddrg/Optimus/issues/52) | 取代 ADR-002 时期的构造注入装配；无状态 Service 由 #52 收敛确认，现行规则以后端分层文档为准 |
 | 账号同步、凭证加密、资产软删除、Provider 注册 | [账号资产设计的 Architecture Decisions](../../../superpowers/specs/2026-05-13-cloud-account-asset-registry-design.md) | 原文标为 Approved；凭证与同步的实际安全性尚未在本轮验证 |
 | 项目角色、资源归属与请求项目上下文 | [项目隔离设计的 Architecture Decisions](../../../superpowers/specs/2026-05-14-multi-project-cloud-isolation-design.md) | 复用原文理由；保留 Open Questions，不能推断全部已解决 |
 | 工单完成由任务完成驱动 | [任务管理设计](../../../superpowers/specs/2026-06-02-ops-center-tasks-design.md) | 取代早期门户设计中的定时自动 done；已抽查核心联动源码，未做完整运行验收 |

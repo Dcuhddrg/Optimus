@@ -1,13 +1,10 @@
 # 前后端协作与接口契约
 
-- 日期：2026-10-27；关联 [Issue #7](https://github.com/Dcuhddrg/Optimus/issues/7)。
-- 状态：2026-11-04 起全部 JSON 接口采用 gin-vue-admin（`cee04b08`）响应协议，取代 #18 原定的"保留 HTTP 4xx/5xx"契约；确认范围见[第 11 节](#11-已确认决定与实施边界)，会话恢复见 [#27](https://github.com/Dcuhddrg/Optimus/issues/27)。
+全部 JSON 接口采用 gin-vue-admin（`cee04b08`）响应协议；决定、例外与取代关系见 [ADR-003](../memory/long-term/decisions/ADR-003-gva-response-protocol.md)。
 
-## 1. 来源与适用范围
+## 1. 适用范围与代码依据
 
-以 [AGENT.MD](../../AGENT.MD) 为项目规则入口。本契约描述前后端可观察行为，不依赖 Service 内部目录。
-
-本轮基于 codebase-memory 核对客户端封装、项目集合和云资产分页，并复用 #11 的定向审计。属于代表性调用核对，不是全部端点的逐一运行验收。
+以 [AGENT.MD](../../AGENT.MD) 为项目规则入口。本契约描述前后端可观察行为，不依赖 Service 内部目录；与代码不符时按[文档维护约定](../relations/documentation-workflow.md#状态与事实)核查登记。
 
 | 内容 | 可定位依据 |
 | --- | --- |
@@ -89,9 +86,9 @@
 ```
 
 - 真正分页的接口返回 page、pageSize、total、list；total 为完整筛选结果数，不是当前页长度，空页返回 list=[]，保留真实 total。
-- 当前资产和审计查询采用 page 从 1 开始、默认 pageSize=20、范围 1～200；非法值回退默认。目标沿用这一约定，新模块的分页能力须明确实现及验证。
+- page 从 1 开始，默认 pageSize=20，范围 1～200，非法值回退默认（`model/common/request.PageInfo.Normalize`）。
 - 普通集合建议返回 `data: { list: [] }`；业务需要计数时可声明真实 total，但不伪造 page/pageSize。权限树和非分页项目集合不能只为结构统一强行分页化。
-- 新增 JSON 字段使用 camelCase；现有字段名和类型保持调用方一致，重命名放在明确的迁移批次，不全局批量替换。
+- 新增 JSON 字段使用 camelCase；现有字段名和类型保持调用方一致，重命名须单独设计并同步所有调用方，不全局批量替换。
 - 集合为空返回数组，不用 null 代替；可选与 nullable 分开声明，不把字段缺失、null、空字符串混为一种状态。普通无业务数据与未认证响应按第 4 节区分；不可将 null 泛化为所有失败响应。
 - 时间使用带时区的 RFC3339/ISO 字符串，前端负责展示本地化；现有 ID 类型先保持不变，超出 JavaScript 安全整数范围等问题需单独明确，不能默默截断或改类型。
 
@@ -99,14 +96,14 @@
 
 - view 通过 `web/src/api/` 的模块函数发请求；目前公共封装固定 `/api/v1`，后端 RouterPrefix 的自定义能力不等于前端 base URL 已自动适配。
 - JSON 请求使用 Content-Type: application/json，GET 参数使用明确的查询类型；区分未定义字段、空字符串和 undefined。通用请求层不自动重试非幂等写操作。
-- 认证照 GVA：令牌放在 `x-token` 请求头，缺失时读 `x-token` cookie（登录与刷新时服务端写入）；剩余有效期小于 buffer-time 时响应头 `new-token` 返回新令牌，前端替换本地令牌；登出把令牌加入黑名单。X-Project-Code 只是资源项目选择，不是授权凭证。后端执行 JWT、Casbin（`casbin_rule`，按角色 ID、去掉路由前缀的路径和方法）、成员资格和项目隔离检查。云资源使用项目范围，系统和项目恢复入口不受无关的过期项目选择拦截（#12/#13）；项目管理按路径项目独立鉴权。
-- 携带当前凭据且未取消的私有请求明确 401 才触发凭据失效；登录表单 401 显示认证失败，不无条件注销另一会话；权限不足和失效的项目选择（HTTP 200 + code 7）不注销用户，失效项目选择提示重新选择。网络错误、5xx 或解析异常不直接证明 token 失效：保留凭据并提供重试，但不将未确认状态显示为认证成功。会话恢复与未覆盖项见 [#27 修复设计](../superpowers/specs/2026-10-29-session-recovery-design.md)。
+- 认证照 GVA：令牌放在 `x-token` 请求头，缺失时读 `x-token` cookie（登录与刷新时服务端写入）；剩余有效期小于 buffer-time 时响应头 `new-token` 返回新令牌，前端替换本地令牌；登出把令牌加入黑名单。X-Project-Code 只是资源项目选择，不是授权凭证。后端执行 JWT、Casbin（`casbin_rule`，按角色 ID、去掉路由前缀的路径和方法）、成员资格和项目隔离检查。云资源使用项目范围，系统和项目恢复入口不受无关的过期项目选择拦截；项目管理按路径项目独立鉴权。
+- 携带当前凭据且未取消的私有请求明确 401 才触发凭据失效；登录表单 401 显示认证失败，不无条件注销另一会话；权限不足和失效的项目选择（HTTP 200 + code 7）不注销用户，失效项目选择提示重新选择。网络错误、5xx 或解析异常不直接证明 token 失效：保留凭据并提供重试，但不将未确认状态显示为认证成功。会话恢复设计见 [session recovery](../superpowers/specs/2026-10-29-session-recovery-design.md)。
 
 ## 7. CSV、探活与无正文例外
 
-- CSV 成功响应保留 text/csv、Content-Disposition 和文件名，不包 `{code,data,msg}`。下载适配器检查 Content-Type：JSON 表示失败（HTTP 200 + code 7 或 401），不能当文件保存。审计导出复用已应用筛选并排除分页参数，上限 10000 条，范围见 [#28 设计](../superpowers/specs/2026-10-29-audit-query-experience-design.md)。
-- health/ping 保留小响应：`/ping`、`/base/ping` 始终 200；`/health` 正常时 200 `{"status":"ok"}`，数据库或启动数据初始化失败时 503 `{"status":"unhealthy"}`（与 GVA 不同的明确例外，见 #51）。
-- 其他上传、流式或非 JSON 接口存在时，必须独立声明内容类型及错误方式，本提案不假定这些能力已实现。
+- CSV 成功响应保留 text/csv、Content-Disposition 和文件名，不包 `{code,data,msg}`。下载适配器检查 Content-Type：JSON 表示失败（HTTP 200 + code 7 或 401），不能当文件保存。审计导出复用已应用筛选并排除分页参数，上限 10000 条，范围见[审计查询设计](../superpowers/specs/2026-10-29-audit-query-experience-design.md)。
+- health/ping 保留小响应：`/ping`、`/base/ping` 始终 200；`/health` 正常时 200 `{"status":"ok"}`，数据库或启动数据初始化失败时 503 `{"status":"unhealthy"}`（与 GVA 不同的明确例外，见 ADR-003）。
+- 其他上传、流式或非 JSON 接口存在时，必须独立声明内容类型及错误方式。
 - 已声明的 JSON 操作不通过省略整个响应正文代替 data；若保留 204 等无正文响应，应明确列为例外并使用相应适配器。
 
 ## 8. 前端开发规则
@@ -123,8 +120,4 @@
 
 - 后端同步请求/响应 DTO、处理逻辑、HTTP/业务码及 Swagger；前端同步 API、类型、错误处理和调用方。核对真实路由、方法、参数、字段及页面状态，明确兼容和回退方案的负责人及退出条件。
 - 使用真实路径和调用链验证登录/当前用户、权限与项目隔离、集合与分页、空数据、HTTP 非 2xx、业务和协议失败、CSV/探活及新旧调用兼容；页面变更检查主要操作、失败和空状态，不能只测试自造返回值。
-- 更新目标契约及相关设计，记录当前行为和实施证据。文档检查不能代替接口验证；按[工程操作参考](../relations/engineering-workflow.md#验证步骤)运行受影响的测试和构建，记录未覆盖或受阻场景。
-
-## 11. 已确认决定与实施边界
-
-2026-11-04 用户确认后端与前端协议"完全照 GVA"：业务失败与权限不足均为 HTTP 200 + code 7，未认证为 HTTP 401。这取代 #18 原先"保留 HTTP 4xx/5xx、错误不改为 HTTP 200"的决定。例外只有 CSV 成功响应、health/ping 和 Recovery 的 500。会话恢复和审计分页分别见 [#27](https://github.com/Dcuhddrg/Optimus/issues/27)、[#28](https://github.com/Dcuhddrg/Optimus/issues/28)；令牌传输、黑名单与 Casbin 策略见 #56。
+- 接口变更时同步本文档；实施与验证证据记在对应 Issue/PR，不写入本文。文档检查不能代替接口验证；按[工程操作参考](../relations/engineering-workflow.md#验证步骤)运行受影响的测试和构建，记录未覆盖或受阻场景。
