@@ -3,6 +3,7 @@ FROM golang:1.24-alpine AS build
 WORKDIR /app/server
 
 COPY server/go.mod server/go.sum ./
+ARG GOPROXY=https://goproxy.cn,direct
 RUN go mod download
 
 COPY server/ ./
