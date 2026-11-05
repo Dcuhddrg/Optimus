@@ -27,6 +27,7 @@
 - 状态不明时，先用 `index_status(project="home-lilin-trae-project-Optimus")` 确认 ready。
 - 拉取主干、大重构或批量新增后执行 `detect_changes()`；明显落后时用 `index_repository`，必要时清理后重建。清理操作仍受根规则的授权边界约束。
 - 文本工具回退仅用于：非代码文件（如 `.md`、`.yaml`、`.json`、`.toml`、`.env*`）；配置值、注释、字符串字面量或错误文案；`.claude/`、`docs/`、`deploy/` 等非源码目录；先经 `detect_changes` 确认未被图谱覆盖的新文件。
+- `codebase-memory-mcp` 服务本身不可用（未启动、索引失败或重建后仍不 ready）时，停止源码检索，向用户说明原因并等待处理；不改用文本工具检索源码。
 - 使用文本工具处理源码前，必须核实符合上条列出的回退条件，并说明依据；否则继续使用 `codebase-memory-mcp`。已知路径、已定位符号或进入实现阶段，均不构成回退条件。
 - 派发子代理时传递 `codebase-memory-mcp` 使用要求及回退条件；定向查询并限制输出，不以固定 Token 数字推断工具成本。
 

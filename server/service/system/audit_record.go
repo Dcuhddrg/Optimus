@@ -36,7 +36,7 @@ type auditRecordDetail struct {
 // Raw persistence errors may contain SQL and credentials; only their type is safe to log here.
 func recordAudit(ctx context.Context, event AuditEvent) {
 	if err := writeAuditEvent(ctx, event); err != nil {
-		if logger, ok := global.OPTIMUS_LOG.(*zap.Logger); ok && logger != nil {
+		if logger := global.OPTIMUS_LOG; logger != nil {
 			logger.Error("audit write failed", zap.String("action", event.Action), zap.String("resource_type", event.ResourceType), zap.String("resource_id", event.ResourceID), zap.String("result", event.Result), zap.String("error_type", fmt.Sprintf("%T", err)))
 		} else {
 			log.Printf("audit write failed action=%q resource_type=%q resource_id=%q result=%q error_type=%T", event.Action, event.ResourceType, event.ResourceID, event.Result, err)

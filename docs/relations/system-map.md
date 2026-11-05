@@ -15,7 +15,7 @@
 main → initialize → router → API → Service → Model
 ```
 
-- `initialize/` 创建模块并注入依赖；`router/enter.go` 汇总 RouterGroup，各模块路由注册路径和中间件。
+- `initialize/` 完成配置、日志、数据库、定时任务和种子数据初始化并调用职责路由注册（Service 无状态，不在启动时装配）；`router/enter.go` 汇总 RouterGroup，具体路由文件绑定路径和中间件。
 - `api/v1/` 处理 HTTP 输入、校验与响应；`service/` 处理业务和数据访问协作；`model/` 放置实体及请求/响应类型。
 - 后端职责和注册规则详见 [后端分层规则](../modules/backend-layer-rules.md)。
 
@@ -35,7 +35,7 @@ router → view / components → api → 后端
 
 ## 插件边界
 
-插件按项目规则分别放在 `server/plugin/<name>/` 和 `web/src/plugin/<name>/`，按现有装配方式组织；目录约定不等于当前所有插件能力均已实现。职责稳定后补充对应模块说明。
+插件按项目规则分别放在 `server/plugin/<name>/` 和 `web/src/plugin/<name>/`，复用现有模块装配和权限机制；独立注册或自动加载先设计确认。职责稳定后补充对应模块说明。
 
 ## 继续阅读
 

@@ -17,7 +17,7 @@ Router -> API -> Service -> Model
 | Service | `server/service/<module>/`，业务规则、流程编排和数据访问协作 | 使用 Model 及所需基础设施，不依赖 `gin.Context`，不反向调用 API/Router |
 | Model | `server/model/<module>/`，实体、请求/响应数据结构和持久化映射 | 不反向依赖 Router/API/Service |
 
-- `enter.go` 聚合分组，`initialize` 注册职责路由；不得另建平行装配或注册链。
+- `enter.go` 作为分组注册与组合入口，聚合职责类型和别名；具体路由由 `initialize` 注册，不另建平行装配或注册链。
 - API 向 Service 显式传入所需业务参数。Swagger 注释与真实接口行为保持一致。
 - 新旧模块均按上述四层职责组织；原始参考模板见 [开发示例](../examples/README.md)，迁移取舍和验证在 [#45](https://github.com/Dcuhddrg/Optimus/issues/45) 跟进；#8 为历史示例交付。
 

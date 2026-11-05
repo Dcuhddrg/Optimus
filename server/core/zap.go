@@ -39,8 +39,8 @@ func Zap() *zap.Logger {
 }
 
 func Logger() *zap.Logger {
-	logger, ok := global.OPTIMUS_LOG.(*zap.Logger)
-	if ok && logger != nil {
+	logger := global.OPTIMUS_LOG
+	if logger != nil {
 		return logger
 	}
 

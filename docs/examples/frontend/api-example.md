@@ -2,7 +2,7 @@
 
 ## 这个文件负责什么
 
-前端 API 文件负责把后端接口封装成可复用函数，统一走 `@/utils/request`，不在组件里直接拼 axios 请求。
+`web/src/api/<模块>.ts` 把后端接口封装成带类型的函数，统一调用 [client.ts](../../../web/src/api/client.ts) 的 `apiRequest`。页面不直接 `fetch`。
 
 ## 什么时候应该这样写
 
@@ -12,43 +12,45 @@
 
 ## 推荐写法示例
 
-```js
-import service from '@/utils/request'
+```ts
+import { apiRequest } from './client';
+import type { CreateOrderPayload, Order } from '../types/order';
 
-// @Summary 分页获取订单列表
-// @Router /order/getOrderList [post]
-export const getOrderList = (data) => {
-  return service({
-    url: '/order/getOrderList',
-    method: 'post',
-    data
-  })
+type OrderList = { list: Order[]; total: number; page: number; pageSize: number };
+
+// GET /orders：分页查询
+export function listOrders(params: { page: number; pageSize: number; keyword?: string }) {
+  const query = new URLSearchParams({ page: String(params.page), pageSize: String(params.pageSize) });
+  if (params.keyword) query.set('keyword', params.keyword);
+  return apiRequest<OrderList>(`/orders?${query}`);
 }
 
-// @Summary 创建订单
-// @Router /order/createOrder [post]
-export const createOrder = (data) => {
-  return service({
-    url: '/order/createOrder',
-    method: 'post',
-    data
-  })
+// POST /orders：创建
+export function createOrder(payload: CreateOrderPayload) {
+  return apiRequest<Order>('/orders', { method: 'POST', body: JSON.stringify(payload) });
+}
+
+// DELETE /orders/:id：无业务数据时 data 为 {}
+export function deleteOrder(id: number) {
+  return apiRequest<Record<string, never>>(`/orders/${id}`, { method: 'DELETE' });
 }
 ```
 
 ## 为什么这样写
 
-- 所有请求统一走 `service`，自动复用 token、loading、错误处理
-- 页面层只调用函数，不关心底层请求细节
-- JSDoc 风格的接口说明能帮助 AI 和协作者快速理解用途
+- `apiRequest` 统一处理 `/api/v1` 前缀、`x-token` 与 `X-Project-Code` 请求头、`new-token` 刷新和 401 会话失效。
+- 它按 GVA 协议校验 `{code,data,msg}`：code 为 0 返回 `data`，否则抛出 `kind: 'business'` 的 `ApiError`；调用方拿到的就是 `data`，不再判断 `res.code`。
+- 泛型写明 `data` 的形状，与[接口契约](../../frontend-backend/boundary.md#3-当前接口形状)第 3 节一致。
 
 ## 常见错误
 
-- 在页面组件里直接写 axios
-- 把页面状态逻辑混进 API 文件
-- URL、method、参数位置写错，导致接口契约漂移
+- 在页面里直接 `fetch` 或自己拼认证头
+- 在调用侧再判断 `res.code === 0`（`apiRequest` 已解包）
+- 用类型断言掩盖与真实响应不符的类型
+- URL、方法、参数位置与后端路由不一致
 
 ## 真实参考文件
 
-- `web/src/api/user.js`
-- `web/src/plugin/announcement/api/info.js`
+- [web/src/api/project.ts](../../../web/src/api/project.ts)
+- [web/src/api/cloud.ts](../../../web/src/api/cloud.ts)
+- [web/src/api/client.ts](../../../web/src/api/client.ts)

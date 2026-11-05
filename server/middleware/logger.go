@@ -25,7 +25,7 @@ func Logger() gin.HandlerFunc {
 }
 
 func logger() *zap.Logger {
-	if logger, ok := global.OPTIMUS_LOG.(*zap.Logger); ok && logger != nil {
+	if logger := global.OPTIMUS_LOG; logger != nil {
 		return logger
 	}
 	return zap.L()

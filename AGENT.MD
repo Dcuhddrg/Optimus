@@ -35,7 +35,7 @@
 - 明确请求与响应契约，保持现有接口、权限和项目隔离行为。
 - JSON 响应照 gin-vue-admin：只用 `model/common/response` 的 `Ok*`/`Fail*`/`NoAuth`，业务结果为 HTTP 200 + `{code,data,msg}`（0 成功、7 失败），仅未认证为 HTTP 401；分页放在 data 内。详见[接口契约](docs/frontend-backend/boundary.md)。
 - 前端请求通过 `web/src/api/`，view 不直接 `fetch`。
-- 优先复用 `web/src/utils/` 和已有组件；跨端变更同步调用方和文档。
+- 优先复用 `web/src/api/client.ts`、`web/src/auth/`、`web/src/locale/` 和 `web/src/components/` 的已有能力；跨端变更同步调用方和文档。
 
 ### 插件与模块
 
@@ -47,7 +47,7 @@
 ### 示例文档
 
 - [docs/examples/](docs/examples/README.md) 是讲解型示例层。
-- 示例说明项目标准，不代表相关功能已经实现；上游模板不按项目现状反向改写。
+- 示例说明项目标准，不代表相关功能已经实现；示例参照 gin-vue-admin 结构，按 Optimus 的 Go/Gin 与 React/TypeScript 写法改写。
 - 新增某层文件前阅读对应示例、模块设计和同类实现。
 
 ### 记忆规则

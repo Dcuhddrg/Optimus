@@ -2,66 +2,90 @@
 
 ## 这个文件负责什么
 
-`enter.go` 用来聚合某一层的模块入口，降低循环引用风险，让其他层通过统一入口访问能力。
+`enter.go` 只做聚合：模块级把职责类型匿名嵌入 Group 并声明包级别名，根级把模块 Group 汇总为 `ServiceGroupApp`、`ApiGroupApp`、`RouterGroupApp`。职责类型本身写在各自文件里。
 
 ## 什么时候应该这样写
 
-- 新增一个模块组
-- 需要把多个 Router / API / Service 聚合到统一入口
-- 需要让其他层通过 `GroupApp` 访问当前层能力
+- 新增模块
+- 模块内新增一个职责（Service、Api 或 Router）
 
 ## 推荐写法示例
 
 ### 根级聚合
 
 ```go
+// server/service/enter.go
 package service
 
 import (
-	"github.com/flipped-aurora/gin-vue-admin/server/service/example"
-	"github.com/flipped-aurora/gin-vue-admin/server/service/system"
+	"optimus/server/service/cloud"
+	"optimus/server/service/order"
+	"optimus/server/service/project"
+	"optimus/server/service/system"
 )
 
 var ServiceGroupApp = new(ServiceGroup)
 
 type ServiceGroup struct {
 	SystemServiceGroup  system.ServiceGroup
-	ExampleServiceGroup example.ServiceGroup
+	ProjectServiceGroup project.ServiceGroup
+	CloudServiceGroup   cloud.ServiceGroup
+	OrderServiceGroup   order.ServiceGroup
 }
 ```
 
 ### 模块级聚合
 
 ```go
-package system
+// server/service/order/enter.go
+package order
 
-import api "github.com/flipped-aurora/gin-vue-admin/server/api/v1"
+type ServiceGroup struct {
+	OrderService
+}
+```
+
+```go
+// server/api/v1/order/enter.go
+package order
+
+import "optimus/server/service"
+
+type ApiGroup struct {
+	OrderApi
+}
+
+var orderSvc = service.ServiceGroupApp.OrderServiceGroup.OrderService
+```
+
+```go
+// server/router/order/enter.go
+package order
+
+import api "optimus/server/api/v1"
 
 type RouterGroup struct {
-	UserRouter
 	OrderRouter
 }
 
-var (
-	baseApi  = api.ApiGroupApp.SystemApiGroup.BaseApi
-	orderApi = api.ApiGroupApp.SystemApiGroup.OrderApi
-)
+var orderApi = api.ApiGroupApp.OrderApiGroup.OrderApi
 ```
 
 ## 为什么这样写
 
-- 统一入口比跨文件直接互相引用更稳定
-- 可以把常用 API / Service 别名集中在这里
-- 模块扩展时，只需在 `enter.go` 增加聚合字段
+- 与 GVA 相同：Group 匿名嵌入职责类型，别名在包初始化时复制值；Service 无状态，所以复制的值始终可用，不需要启动后刷新。
+- 上层只依赖别名，不在 handler 里拼接 `ServiceGroupApp...` 长路径。
+- `initialize` 只调用 `InitXxxRouter`，不另建装配或注册链。
 
 ## 常见错误
 
-- 不用 `enter.go`，跨层直接互相 import
-- 在多个文件里重复声明同一组别名变量
-- 新增模块后忘记把它注册进 `Group` 结构体
+- 在 `enter.go` 里写职责类型或业务逻辑（契约测试 `TestEnterFilesOnlyDeclareGroupTypes` 会失败）
+- 新模块只加了模块级 Group，忘记加入根级 Group
+- 在 handler 里直接引用 `service.ServiceGroupApp...`
 
 ## 真实参考文件
 
-- `server/api/v1/enter.go`
-- `server/service/enter.go`
-- `server/router/system/enter.go`
+- [server/service/enter.go](../../../server/service/enter.go)
+- [server/api/v1/project/enter.go](../../../server/api/v1/project/enter.go)
+- [server/router/project/enter.go](../../../server/router/project/enter.go)
+- [server/api/v1/enter.go](../../../server/api/v1/enter.go)、[server/router/enter.go](../../../server/router/enter.go)
