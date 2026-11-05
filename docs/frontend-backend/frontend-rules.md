@@ -5,7 +5,7 @@
 ## 请求与复用
 
 - 页面和组件负责交互、展示；请求放在 `web/src/api/` 模块函数，公共 HTTP 行为集中在 [utils/request.ts](../../web/src/utils/request.ts)。插件 API 按插件边界组织，复用公共请求能力；组件不自行拼接认证或绕过服务端校验。
-- 优先检查 `web/src/utils/`（`request`、`format`）、`web/src/auth/`、`web/src/locale/`、`web/src/components/` 和相关模块已有能力（见[复用示例](../examples/frontend/reuse-example.md)），不凭上游文档假定工具可用。确有重复需求时再提取通用能力，不为单次使用新增抽象或依赖。
+- 优先检查 `web/src/utils/`（`request`、`format`）、`web/src/auth/`、`web/src/locale/`、`web/src/components/` 和相关模块已有能力（见[工具函数约束](frontend-utils.md)与[复用示例](../examples/frontend/reuse-example.md)），不凭上游文档假定工具可用。确有重复需求时再提取通用能力，不为单次使用新增抽象或依赖。
 
 ## 命名与状态
 

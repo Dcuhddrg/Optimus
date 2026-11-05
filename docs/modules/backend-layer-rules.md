@@ -56,3 +56,37 @@ HTTP 输入包括完整表单、局部状态/角色/权限操作和查询条件�
 - 公开与私有组由 initialize 创建并传入，保持路径、HTTP 方法、注册顺序、JWT/RBAC、项目范围及响应协议标记的实际作用范围。拆分不能重复挂载中间件、重复注册或放宽权限。
 
 原始参考示例见 [Router](../examples/backend/router-example.md) 与 [enter.go](../examples/backend/enter-go-example.md)；结构整改与 #18 响应协议迁移分批提交。
+
+## 各层通用写法
+
+参照 gin-vue-admin `cee04b08` 的 `aiDoc/modules/backend-layer-rules.md`，与上文的装配和迁移约定一起使用。
+
+### Model 层
+
+- 实体优先嵌入 `global.OPTIMUS_MODEL`（对应 GVA 的 `GVA_MODEL`），`ID`、`CreatedAt`、`UpdatedAt` 沿用其约定；关联表等确需自定义主键的，保持字段名和 JSON 名一致。
+- 字段补全 `gorm` 与 `json` 标签，JSON 名用 camelCase，敏感字段用 `json:"-"`；表名通过 `TableName()` 显式声明。
+- 请求 DTO 放在 `model/<module>/request/`，响应 DTO 放在 `model/<module>/response/`；列表查询定义 `XxxSearch` 并内嵌 `model/common/request.PageInfo`。
+
+### 类型一致性
+
+- 同一字段在实体、请求 DTO、响应 DTO 和前端类型中保持一致；ID、状态、枚举和时间字段重点核对。
+- 指针与非指针互转（如可空时间 `*time.Time`）在 Service 层显式处理 `nil`，不让零值静默写入。
+
+### API 参数来源
+
+绑定方式与参数真实来源一致，不为了套模板把 Header、Cookie、Query 或 form-data 的数据改成 body。
+
+| 来源 | 取法 |
+| --- | --- |
+| JSON body | `ShouldBindJSON` |
+| Query | `ShouldBindQuery`、`c.Query`、`c.DefaultQuery` |
+| Path | `c.Param` |
+| form-data / 文件上传 | `c.FormFile`、`c.PostForm`、`c.DefaultPostForm` |
+| Header | `c.GetHeader` |
+| Cookie | `c.Cookie` |
+
+认证令牌和项目范围（`X-Project-Code`）由中间件从 Header 解析，API 从上下文取已校验结果，不重复解析，也不信任客户端传入的授权项目列表。
+
+### Swagger 注释
+
+对外 API 的 Swagger 注释至少写清：功能说明（`@Summary`）、请求参数（`@Param`，含来源）、响应结构（`@Success`/`@Failure`）、路由路径与方法（`@Router`）和鉴权要求（`Authorization` Header 或 `@Security`）。注释须与真实行为一致，现有写法见 `server/api/v1/system/audit.go`。当前未接入 swag 生成，注释仍按上述要求维护。

@@ -1,6 +1,6 @@
 # 项目画像与运行边界
 
-项目规则以 [AGENT.MD](../../AGENT.MD) 为准；系统结构和工程操作分别见 [系统关系图](system-map.md) 与 [工程操作参考](engineering-workflow.md)。
+项目规则以 [AGENT.MD](../../AGENT.MD) 为准；系统结构和工程操作分别见 [系统关系图](system-map.md) 与 [工程操作参考](engineering-workflow.md)，模块分组见[模块说明索引](../modules/module-index.md)。
 
 ## 项目定位
 
