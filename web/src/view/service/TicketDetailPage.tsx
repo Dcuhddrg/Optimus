@@ -8,13 +8,16 @@ import { PageHeader } from '../../components/page/PageHeader';
 import { TicketStatusBadge } from './components/TicketStatusBadge';
 import { TaskStatusBadge } from './components/TaskStatusBadge';
 import { TicketTimeline } from './components/TicketTimeline';
+import { ApprovalStepper } from './components/ApprovalStepper';
 import { getCatalogById } from './data/serviceCatalog';
 import { useTicketStore } from './data/ticketStore';
 import { useTaskStore } from './data/taskStore';
 import styles from './TicketDetailPage.module.css';
 import { formatDateTime } from '../../utils/format';
+import { useTicketMockEngine } from './data/ticketMockEngine';
 
 export function TicketDetailPage() {
+  useTicketMockEngine();
   const { id = '' } = useParams<{ id: string }>();
   const { t, locale } = useI18n();
   const { getTicket } = useTicketStore();
@@ -60,6 +63,8 @@ export function TicketDetailPage() {
         description={`${ticket.id} · ${formatDateTime(ticket.createdAt, locale)}`}
         actions={<TicketStatusBadge status={ticket.status} />}
       />
+
+      <ApprovalStepper ticket={ticket} />
 
       <section className={styles.summary}>
         <div className={styles.field}>

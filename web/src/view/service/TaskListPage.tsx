@@ -10,10 +10,12 @@ import { TaskStatusBadge } from './components/TaskStatusBadge';
 import { useTaskStore } from './data/taskStore';
 import type { TaskStatus } from './data/taskTypes';
 import styles from './TaskListPage.module.css';
+import { useTicketMockEngine } from './data/ticketMockEngine';
 
 const ALL_STATUSES: TaskStatus[] = ['pending', 'in_progress', 'done'];
 
 export function TaskListPage() {
+  useTicketMockEngine();
   const { t } = useI18n();
   const navigate = useNavigate();
   const { current } = useAuth();

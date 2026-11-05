@@ -59,6 +59,7 @@ export interface Ticket {
   createdAt: string; // ISO
   timeline: TicketEvent[];
   applicant: { name: string; email: string };
+  approvalChain: ApprovalStep[]; // 创建时快照；旧数据加载时补为 []
 }
 
 export type StorageStatus = 'persisted' | 'memory-only';

@@ -1,0 +1,102 @@
+/* ApprovalStepper.module.css */
+.stepper {
+  --step-done: var(--shell-control-active-bg);
+  --step-current: var(--accent);
+  --step-rejected: #a23838;
+  --step-idle: var(--shell-border-strong);
+
+  display: flex;
+  margin: 0;
+  padding: 1rem 1.25rem 0.9rem;
+  list-style: none;
+  overflow-x: auto;
+  border: 1px solid rgba(86, 70, 55, 0.13);
+  border-radius: 1rem;
+  background: rgba(255, 253, 249, 0.74);
+}
+
+.node {
+  position: relative;
+  display: flex;
+  flex: 1 0 6rem;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+/* 连接线：画在每个节点左侧，从上一个节点中心到本节点中心 */
+.node + .node::before {
+  content: '';
+  position: absolute;
+  top: 0.55rem;
+  right: 50%;
+  width: 100%;
+  height: 2px;
+  background: var(--step-idle);
+}
+
+.node[data-state='done']::before,
+.node[data-state='current']::before,
+.node[data-state='rejected']::before {
+  background: var(--step-done);
+}
+
+.dot {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  border: 2px solid var(--step-idle);
+  border-radius: 50%;
+  background: var(--shell-bg-soft);
+  color: var(--shell-control-active-fg);
+}
+
+.node[data-state='done'] .dot {
+  border-color: var(--step-done);
+  background: var(--step-done);
+}
+
+.node[data-state='current'] .dot {
+  border-color: var(--step-current);
+  box-shadow: 0 0 0 3px rgba(183, 121, 75, 0.2);
+}
+
+.node[data-state='current'] .dot::after {
+  content: '';
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--step-current);
+}
+
+.node[data-state='rejected'] .dot {
+  border-color: var(--step-rejected);
+  background: var(--step-rejected);
+}
+
+.label {
+  margin-top: 0.4rem;
+  color: var(--text-primary);
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.sub {
+  margin-top: 0.1rem;
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+}
+
+.node[data-state='current'] .sub {
+  color: var(--step-current);
+  font-weight: 700;
+}
+
+.node[data-state='rejected'] .sub {
+  color: var(--step-rejected);
+  font-weight: 700;
+}

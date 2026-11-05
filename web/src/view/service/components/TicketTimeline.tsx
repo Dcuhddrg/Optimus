@@ -28,6 +28,8 @@ export function TicketTimeline({ ticket }: Props) {
           ? t(event.i18nNoteKey as MessageKey)
               .replace('{applicant}', ticket.applicant.name || ticket.applicant.email)
               .replace('{status}', statusLabel)
+              .replace('{actor}', event.actor ?? '')
+              .replace('{role}', event.roleI18nKey ? t(event.roleI18nKey as MessageKey) : '')
           : statusLabel;
         return (
           <li key={`${event.at}-${index}`} className={styles.item}>

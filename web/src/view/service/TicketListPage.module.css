@@ -101,3 +101,9 @@
   letter-spacing: -0.01em;
   color: #4a3f33;
 }
+
+.approvalNote {
+  margin-top: 0.3rem;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}

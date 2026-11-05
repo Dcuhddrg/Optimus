@@ -7,8 +7,10 @@ import type {
   CreateTicketResult,
   StorageStatus,
   Ticket,
+  TicketEvent,
   TicketStatus,
 } from '../ticketTypes';
+import { buildApprovalChain } from './approvalChains';
 
 const STORAGE_KEY = 'optimus.servicePortal.tickets.v1';
 
@@ -24,7 +26,8 @@ function loadInitial(): Ticket[] {
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed as Ticket[];
+    // 升级前创建的工单没有 approvalChain，补为空链：步骤条退化，审批直接放行。
+    return (parsed as Ticket[]).map((t) => ({ ...t, approvalChain: t.approvalChain ?? [] }));
   } catch (error) {
     console.warn('[ticketStore] failed to parse localStorage; starting empty', error);
     return [];
@@ -89,6 +92,7 @@ export const ticketStore = {
         },
       ],
       applicant: input.applicant,
+      approvalChain: buildApprovalChain(input.serviceId),
     };
     const next = [ticket, ...tickets];
     const storageStatus = persist(next);
@@ -118,6 +122,50 @@ export const ticketStore = {
     const next = [...tickets.slice(0, idx), updated, ...tickets.slice(idx + 1)];
     // 故意丢弃 persist 返回的 storageStatus：advance 是定时器触发，没有用户上下文挂 banner；
     // 失败仅记录到 console.warn，让状态机继续推进。
+    persist(next);
+    tickets = next;
+    notify();
+  },
+
+  // 审批链通过一级；没有待审步（含空链）时直接进入 processing，避免工单卡在 approving。
+  advanceApproval(ticketId: string): void {
+    const idx = tickets.findIndex((t) => t.id === ticketId);
+    if (idx === -1) return;
+    const current = tickets[idx];
+    if (current.status !== 'approving') return;
+    const chain = current.approvalChain;
+    const pendingIdx = chain.findIndex((s) => s.status === 'pending');
+    const at = new Date().toISOString();
+    const processingEvent: TicketEvent = {
+      at,
+      status: 'processing',
+      i18nNoteKey: 'servicePortal.ticket.event.autoAdvanced',
+    };
+    let updated: Ticket;
+    if (pendingIdx === -1) {
+      updated = { ...current, status: 'processing', timeline: [...current.timeline, processingEvent] };
+    } else {
+      const step = chain[pendingIdx];
+      const nextChain = chain.map((s, i) =>
+        i === pendingIdx ? { ...s, status: 'approved' as const, decidedAt: at } : s,
+      );
+      const stillPending = nextChain.some((s) => s.status === 'pending');
+      const approvedEvent: TicketEvent = {
+        at,
+        status: 'approving',
+        i18nNoteKey: 'servicePortal.ticket.event.approved',
+        actor: step.approver.name,
+        roleI18nKey: step.roleI18nKey,
+      };
+      updated = {
+        ...current,
+        approvalChain: nextChain,
+        status: stillPending ? 'approving' : 'processing',
+        timeline: [...current.timeline, approvedEvent, ...(stillPending ? [] : [processingEvent])],
+      };
+    }
+    const next = [...tickets.slice(0, idx), updated, ...tickets.slice(idx + 1)];
+    // 与 advance 一样由定时器触发，持久化失败只记录 console.warn。
     persist(next);
     tickets = next;
     notify();
