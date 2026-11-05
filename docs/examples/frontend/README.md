@@ -15,7 +15,7 @@
 
 新增或修改以下文件前先阅读对应示例：
 
-- `web/src/api/**`
+- `web/src/api/**`、`web/src/utils/**`
 - `web/src/auth/**`（共享状态 Context）
 - `web/src/view/**`
 - `web/src/components/**`

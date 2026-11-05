@@ -28,7 +28,7 @@ router → view / components → api → 后端
 ```
 
 - `web/src/router/` 组织路由和权限入口；`view/` 与 `components/` 承担页面和复用组件。
-- `web/src/api/` 封装模块接口，公共请求由 `client.ts` 处理。
+- `web/src/api/` 封装模块接口，公共请求由 `web/src/utils/request.ts` 处理；通用工具放在 `web/src/utils/`。
 - `web/src/auth/` 和 `web/src/locale/` 提供现有共享上下文；React 组件状态与项目 Context 按实际范围使用。
 - 中英文文案通过 `LanguageProvider` 和 `useI18n` 提供；导航与模块页面分别位于导航组件和对应 `view/<module>/`。
 - 详细规则与接口边界见 [前端开发规范](../frontend-backend/frontend-rules.md) 和 [接口契约](../frontend-backend/boundary.md)。

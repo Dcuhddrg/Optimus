@@ -12,10 +12,11 @@ import { getCatalogById } from './data/serviceCatalog';
 import { useTicketStore } from './data/ticketStore';
 import { useTaskStore } from './data/taskStore';
 import styles from './TicketDetailPage.module.css';
+import { formatDateTime } from '../../utils/format';
 
 export function TicketDetailPage() {
   const { id = '' } = useParams<{ id: string }>();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { getTicket } = useTicketStore();
   const ticket = getTicket(id);
   const { tasks } = useTaskStore();
@@ -56,7 +57,7 @@ export function TicketDetailPage() {
       <PageHeader
         eyebrow={t('servicePortal.ticket.detail.eyebrow')}
         title={ticket.title}
-        description={`${ticket.id} · ${new Date(ticket.createdAt).toLocaleString()}`}
+        description={`${ticket.id} · ${formatDateTime(ticket.createdAt, locale)}`}
         actions={<TicketStatusBadge status={ticket.status} />}
       />
 

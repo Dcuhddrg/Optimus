@@ -6,6 +6,7 @@ import { TagFilter } from '../../components/tag/TagFilter';
 import { useI18n } from '../../locale/useI18n';
 import type { CloudAccount, CloudAsset } from '../../types/cloud';
 import styles from './CloudAssetsPage.module.css';
+import { formatDateTime } from '../../utils/format';
 
 interface BasicFilters {
   accountId: string;
@@ -26,7 +27,7 @@ const emptyBasicFilters: BasicFilters = {
 };
 
 export function CloudAssetsPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [assets, setAssets] = useState<CloudAsset[]>([]);
   const [total, setTotal] = useState(0);
   const [accountsById, setAccountsById] = useState<Record<number, CloudAccount>>({});
@@ -173,7 +174,7 @@ export function CloudAssetsPage() {
               <span>{asset.region}</span>
               <span className={styles.status}>{asset.status || '-'}</span>
               <span>{account?.name ?? `#${asset.accountId}`}</span>
-              <span className={styles.timestamp}>{formatTimestamp(asset.lastSeenAt)}</span>
+              <span className={styles.timestamp}>{formatDateTime(asset.lastSeenAt, locale)}</span>
               <div className={styles.tags}>
                 {Object.entries(accountTags).length === 0 ? (
                   <span className={styles.untagged}>{t('cloud.accounts.untagged')}</span>
@@ -231,21 +232,6 @@ export function CloudAssetsPage() {
       </div>
     </section>
   );
-}
-
-function formatTimestamp(iso: string): string {
-  if (!iso) return '-';
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) {
-    return iso;
-  }
-  return date.toLocaleString(undefined, {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 }
 
 function parseNativeTags(tagsJson: string): Record<string, string> {

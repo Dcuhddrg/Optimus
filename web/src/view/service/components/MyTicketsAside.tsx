@@ -5,11 +5,12 @@ import { useI18n } from '../../../locale/useI18n';
 import { useTicketStore } from '../data/ticketStore';
 import { TicketStatusBadge } from './TicketStatusBadge';
 import styles from './MyTicketsAside.module.css';
+import { formatDateTime } from '../../../utils/format';
 
 const PREVIEW_COUNT = 5;
 
 export function MyTicketsAside() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { tickets } = useTicketStore();
   const preview = tickets.slice(0, PREVIEW_COUNT);
 
@@ -46,7 +47,7 @@ export function MyTicketsAside() {
                 <TicketStatusBadge status={ticket.status} />
               </div>
               <p className={styles.meta}>
-                {ticket.id} · {new Date(ticket.createdAt).toLocaleString()}
+                {ticket.id} · {formatDateTime(ticket.createdAt, locale)}
               </p>
             </Link>
           ))}

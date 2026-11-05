@@ -1,6 +1,6 @@
 import { createContext, ReactNode, useContext, useEffect, useMemo, useState } from 'react';
 
-import { getStoredProjectCode, setStoredProjectCode } from '../api/client';
+import { getStoredProjectCode, setStoredProjectCode } from '../utils/request';
 import { listProjects } from '../api/project';
 import type { Project } from '../types/project';
 

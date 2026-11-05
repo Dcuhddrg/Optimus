@@ -3,13 +3,14 @@ import { useI18n } from '../../../locale/useI18n';
 import type { MessageKey } from '../../../locale/messages';
 import type { Ticket } from '../ticketTypes';
 import styles from './TicketTimeline.module.css';
+import { formatDateTime } from '../../../utils/format';
 
 interface Props {
   ticket: Ticket;
 }
 
 export function TicketTimeline({ ticket }: Props) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   return (
     <div className={styles.wrap}>
       <svg
@@ -30,7 +31,7 @@ export function TicketTimeline({ ticket }: Props) {
           : statusLabel;
         return (
           <li key={`${event.at}-${index}`} className={styles.item}>
-            <span className={styles.timestamp}>{new Date(event.at).toLocaleString()}</span>
+            <span className={styles.timestamp}>{formatDateTime(event.at, locale)}</span>
             <p className={styles.text}>{note}</p>
           </li>
         );

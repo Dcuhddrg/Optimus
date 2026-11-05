@@ -1,5 +1,5 @@
 import { afterEach, expect, test, vi } from 'vitest';
-import { apiDownloadCSV } from './client';
+import { apiDownloadCSV } from './request';
 
 afterEach(() => vi.unstubAllGlobals());
 

@@ -9,11 +9,12 @@ import { TicketStatusBadge } from './components/TicketStatusBadge';
 import { useTicketStore } from './data/ticketStore';
 import type { TicketStatus } from './ticketTypes';
 import styles from './TicketListPage.module.css';
+import { formatDateTime } from '../../utils/format';
 
 const ALL_STATUSES: TicketStatus[] = ['submitted', 'approving', 'processing', 'done', 'rejected'];
 
 export function TicketListPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const navigate = useNavigate();
   const { tickets } = useTicketStore();
   const [search, setSearch] = useState('');
@@ -100,7 +101,7 @@ export function TicketListPage() {
                 <td>
                   <TicketStatusBadge status={ticket.status} />
                 </td>
-                <td className={styles.mono}>{new Date(ticket.createdAt).toLocaleString()}</td>
+                <td className={styles.mono}>{formatDateTime(ticket.createdAt, locale)}</td>
               </tr>
             ))
           )}
