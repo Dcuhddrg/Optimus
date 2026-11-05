@@ -4,17 +4,15 @@ import (
 	"errors"
 
 	systemModel "optimus/server/model/system"
-	"optimus/server/utils"
 
 	gormadapter "github.com/casbin/gorm-adapter/v3"
 	"gorm.io/gorm"
 )
 
 const (
-	defaultAdminUsername = "admin"
-	defaultUserStatus    = "enabled"
-	defaultRoleStatus    = "enabled"
-	defaultAdminPassword = "admin"
+	DefaultAdminUsername = "admin"
+	DefaultUserStatus    = "enabled"
+	DefaultRoleStatus    = "enabled"
 )
 
 func AutoMigrateSystem(db *gorm.DB) error {
@@ -35,36 +33,10 @@ func AutoMigrateSystem(db *gorm.DB) error {
 	)
 }
 
-func SeedSystemData(db *gorm.DB, initialAdminPassword string) error {
-	if db == nil {
-		return errors.New("db is nil")
-	}
-	if initialAdminPassword == "" {
-		initialAdminPassword = defaultAdminPassword
-	}
-
-	if err := seedRoles(db); err != nil {
-		return err
-	}
-	if err := seedPermissions(db); err != nil {
-		return err
-	}
-	if err := migrateAPIGrantsToCasbin(db); err != nil {
-		return err
-	}
-	if err := seedAdminUser(db, initialAdminPassword); err != nil {
-		return err
-	}
-	if err := seedAdminUserRole(db); err != nil {
-		return err
-	}
-	return seedAdminRolePermissions(db)
-}
-
 func DefaultSystemRoles() []systemModel.SystemRole {
 	return []systemModel.SystemRole{
-		{Code: "admin", Name: "Administrator", Description: "Full system administrator", Status: defaultRoleStatus},
-		{Code: "user", Name: "User", Description: "Default LDAP user role", Status: defaultRoleStatus},
+		{Code: "admin", Name: "Administrator", Description: "Full system administrator", Status: DefaultRoleStatus},
+		{Code: "user", Name: "User", Description: "Default LDAP user role", Status: DefaultRoleStatus},
 	}
 }
 
@@ -94,77 +66,4 @@ func DefaultSystemPermissions() []systemModel.SystemPermission {
 		{Code: "system.audit.view", Name: "View audit logs", Type: "api", Method: "GET", Path: "/system/audit-logs", Sort: 600},
 		{Code: "system.audit.export", Name: "Export audit logs", Type: "api", Method: "GET", Path: "/system/audit-logs/export", Sort: 601},
 	}
-}
-
-func seedRoles(db *gorm.DB) error {
-	for _, role := range DefaultSystemRoles() {
-		if err := db.Where("code = ?", role.Code).FirstOrCreate(&role).Error; err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func seedPermissions(db *gorm.DB) error {
-	for _, permission := range DefaultSystemPermissions() {
-		if err := db.Where("code = ?", permission.Code).FirstOrCreate(&permission).Error; err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func seedAdminUser(db *gorm.DB, initialAdminPassword string) error {
-	var existing systemModel.SystemUser
-	err := db.Where("username = ?", defaultAdminUsername).First(&existing).Error
-	if err == nil {
-		return nil
-	}
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		return err
-	}
-
-	hash, err := utils.BcryptHash(initialAdminPassword)
-	if err != nil {
-		return err
-	}
-
-	admin := systemModel.SystemUser{
-		UUID:         "00000000-0000-0000-0000-000000000001",
-		Username:     defaultAdminUsername,
-		DisplayName:  "Administrator",
-		Source:       "local",
-		Status:       defaultUserStatus,
-		PasswordHash: hash,
-	}
-	return db.Create(&admin).Error
-}
-
-func seedAdminUserRole(db *gorm.DB) error {
-	var admin systemModel.SystemUser
-	if err := db.Where("username = ?", defaultAdminUsername).First(&admin).Error; err != nil {
-		return err
-	}
-
-	var adminRole systemModel.SystemRole
-	if err := db.Where("code = ?", "admin").First(&adminRole).Error; err != nil {
-		return err
-	}
-
-	userRole := systemModel.SystemUserRole{UserID: admin.ID, RoleID: adminRole.ID}
-	return db.Where("user_id = ? AND role_id = ?", admin.ID, adminRole.ID).FirstOrCreate(&userRole).Error
-}
-
-func seedAdminRolePermissions(db *gorm.DB) error {
-	var adminRole systemModel.SystemRole
-	if err := db.Where("code = ?", "admin").First(&adminRole).Error; err != nil {
-		return err
-	}
-
-	var permissions []systemModel.SystemPermission
-	if err := db.Find(&permissions).Error; err != nil {
-		return err
-	}
-
-	return GrantPermissions(db, adminRole.ID, permissions)
 }

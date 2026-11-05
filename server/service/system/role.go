@@ -30,7 +30,7 @@ func (s *RoleService) CreateRole(ctx context.Context, actorID uint, req systemRe
 		Code:        req.Code,
 		Name:        req.Name,
 		Description: req.Description,
-		Status:      defaultRoleStatus,
+		Status:      DefaultRoleStatus,
 	}
 	created, err := s.createRole(ctx, role)
 	if err != nil {
@@ -66,7 +66,7 @@ func (s *RoleService) UpdateRoleStatus(ctx context.Context, actorID uint, roleID
 	if err != nil {
 		return systemModel.SystemRole{}, err
 	}
-	if role.Code == "admin" && status != defaultRoleStatus {
+	if role.Code == "admin" && status != DefaultRoleStatus {
 		return systemModel.SystemRole{}, ErrProtectedAdminRole
 	}
 	role.Status = status

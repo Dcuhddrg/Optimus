@@ -18,6 +18,9 @@ mysql:
   max-idle-conns: 10
   max-open-conns: 100
   log-mode: info
+  log-zap: false
+  prefix: ""
+  singular: false
 jwt:
   signing-key: optimus
   expires-time: 7d

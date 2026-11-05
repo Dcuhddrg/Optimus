@@ -26,6 +26,7 @@ func initializeSystem() {
 	global.OPTIMUS_LOG = logger
 	zap.ReplaceGlobals(logger)
 	global.OPTIMUS_DB = initialize.Gorm()
+	initialize.Timer()
 	initialize.Cloud()
 	if err := initialize.InitializeData(global.OPTIMUS_DB); err != nil {
 		global.OPTIMUS_STARTUP_ERR = err

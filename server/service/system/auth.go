@@ -24,20 +24,20 @@ type AuthService struct{}
 func (s *AuthService) Login(ctx context.Context, req systemRequest.LoginRequest, meta AuditMeta) (systemResponse.LoginResult, error) {
 	user, err := s.findUserByUsername(ctx, req.Username)
 	if err != nil {
-		if req.Username != defaultAdminUsername {
+		if req.Username != DefaultAdminUsername {
 			return s.loginLDAP(ctx, req, meta)
 		}
 		s.writeAudit(ctx, loginFailure(req.Username, meta, 0, "user_lookup_failed"))
 		return systemResponse.LoginResult{}, ErrInvalidCredentials
 	}
 
-	if user.Status != defaultUserStatus {
+	if user.Status != DefaultUserStatus {
 		s.writeAudit(ctx, loginFailure(req.Username, meta, user.ID, "user_disabled"))
 		return systemResponse.LoginResult{}, ErrUserDisabled
 	}
 
-	if user.Source != "local" || user.Username != defaultAdminUsername || !utils.BcryptCheck(req.Password, user.PasswordHash) {
-		if user.Username != defaultAdminUsername {
+	if user.Source != "local" || user.Username != DefaultAdminUsername || !utils.BcryptCheck(req.Password, user.PasswordHash) {
+		if user.Username != DefaultAdminUsername {
 			return s.loginLDAP(ctx, req, meta)
 		}
 		s.writeAudit(ctx, loginFailure(req.Username, meta, user.ID, "invalid_credentials"))
@@ -67,7 +67,7 @@ func (s *AuthService) loginLDAP(ctx context.Context, req systemRequest.LoginRequ
 		s.writeAudit(ctx, loginFailure(req.Username, meta, 0, "user_sync_failed"))
 		return systemResponse.LoginResult{}, err
 	}
-	if user.Status != defaultUserStatus {
+	if user.Status != DefaultUserStatus {
 		s.writeAudit(ctx, loginFailure(req.Username, meta, user.ID, "user_disabled"))
 		return systemResponse.LoginResult{}, ErrUserDisabled
 	}
@@ -205,7 +205,7 @@ func (s *AuthService) syncLDAPUser(ctx context.Context, ldapUser LDAPUser) (syst
 			UUID:     "ldap:" + ldapUser.Username,
 			Username: ldapUser.Username,
 			Source:   "ldap",
-			Status:   defaultUserStatus,
+			Status:   DefaultUserStatus,
 		}
 	}
 	user.DisplayName = ldapUser.DisplayName
@@ -237,7 +237,7 @@ func queryUserRoles(ctx context.Context, userID uint) ([]systemModel.SystemRoleS
 		Table((&systemModel.SystemRole{}).TableName()+" AS roles").
 		Select("roles.id, roles.code, roles.name").
 		Joins("JOIN sys_user_roles user_roles ON user_roles.role_id = roles.id").
-		Where("user_roles.user_id = ? AND roles.status = ?", userID, defaultRoleStatus).
+		Where("user_roles.user_id = ? AND roles.status = ?", userID, DefaultRoleStatus).
 		Order("roles.id ASC").
 		Scan(&roles).Error
 	return roles, err

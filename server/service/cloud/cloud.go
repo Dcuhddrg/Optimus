@@ -2,18 +2,12 @@ package cloud
 
 import (
 	"errors"
-	"fmt"
 
 	cloudModel "optimus/server/model/cloud"
-	projectModel "optimus/server/model/project"
 	systemModel "optimus/server/model/system"
-	projectService "optimus/server/service/project"
-	systemService "optimus/server/service/system"
 
 	"gorm.io/gorm"
 )
-
-const defaultProjectCode = "default"
 
 func AutoMigrateCloud(db *gorm.DB) error {
 	if db == nil {
@@ -23,68 +17,6 @@ func AutoMigrateCloud(db *gorm.DB) error {
 		&cloudModel.CloudAccount{},
 		&cloudModel.CloudAsset{},
 	)
-}
-
-func SeedCloudData(db *gorm.DB) error {
-	if db == nil {
-		return errors.New("db is nil")
-	}
-	if err := seedCloudPermissions(db); err != nil {
-		return err
-	}
-	return seedAdminCloudPermissions(db)
-}
-
-// BackfillCloudProjectScope migrates legacy cloud accounts into the default project.
-func BackfillCloudProjectScope(db *gorm.DB) error {
-	if db == nil {
-		return errors.New("db is nil")
-	}
-
-	defaultProject, err := ensureDefaultProject(db)
-	if err != nil {
-		return err
-	}
-	return db.Model(&cloudModel.CloudAccount{}).
-		Where("project_id = 0").
-		Update("project_id", defaultProject.ID).Error
-}
-
-func ensureDefaultProject(db *gorm.DB) (projectModel.Project, error) {
-	var project projectModel.Project
-	err := db.Where("code = ?", defaultProjectCode).First(&project).Error
-	if err == nil {
-		return project, nil
-	}
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		return projectModel.Project{}, err
-	}
-
-	var admin systemModel.SystemUser
-	if err := db.Where("username = ?", "admin").First(&admin).Error; err != nil {
-		return projectModel.Project{}, fmt.Errorf("cannot find admin user to own default project: %w", err)
-	}
-
-	project = projectModel.Project{
-		Name:        "Default",
-		Code:        defaultProjectCode,
-		Description: "Default project for legacy cloud accounts",
-		OwnerID:     admin.ID,
-		Status:      "active",
-	}
-	if err := db.Create(&project).Error; err != nil {
-		return projectModel.Project{}, err
-	}
-
-	member := projectModel.UserProject{
-		UserID:      admin.ID,
-		ProjectID:   project.ID,
-		ProjectRole: projectService.RoleOwner,
-	}
-	if err := db.Create(&member).Error; err != nil {
-		return projectModel.Project{}, err
-	}
-	return project, nil
 }
 
 // DefaultCloudPermissions returns all cloud menu and API permissions.
@@ -101,30 +33,4 @@ func DefaultCloudPermissions() []systemModel.SystemPermission {
 		{Code: "cloud.accounts.tags.update", Name: "Update cloud account tags", Type: "api", Method: "PUT", Path: "/cloud/accounts/:id/tags", Sort: 1006},
 		{Code: "cloud.assets.view", Name: "View cloud assets", Type: "api", Method: "GET", Path: "/cloud/assets", Sort: 1100},
 	}
-}
-
-func seedCloudPermissions(db *gorm.DB) error {
-	for _, p := range DefaultCloudPermissions() {
-		if err := db.Where("code = ?", p.Code).FirstOrCreate(&p).Error; err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func seedAdminCloudPermissions(db *gorm.DB) error {
-	var adminRole systemModel.SystemRole
-	if err := db.Where("code = ?", "admin").First(&adminRole).Error; err != nil {
-		return err
-	}
-	for _, p := range DefaultCloudPermissions() {
-		var perm systemModel.SystemPermission
-		if err := db.Where("code = ?", p.Code).First(&perm).Error; err != nil {
-			return err
-		}
-		if err := systemService.GrantPermissions(db, adminRole.ID, []systemModel.SystemPermission{perm}); err != nil {
-			return err
-		}
-	}
-	return nil
 }

@@ -2,15 +2,14 @@ package initialize
 
 import (
 	"fmt"
-	"strings"
 
 	"optimus/server/config"
 	"optimus/server/global"
+	"optimus/server/initialize/internal"
 
 	"go.uber.org/zap"
 	gormmysql "gorm.io/driver/mysql"
 	"gorm.io/gorm"
-	gormlogger "gorm.io/gorm/logger"
 )
 
 type sqlDBConn interface {
@@ -23,9 +22,7 @@ type sqlDBConn interface {
 func GormMysql() *gorm.DB {
 	cfg := global.OPTIMUS_CONFIG.Mysql
 
-	db, err := gorm.Open(gormmysql.Open(buildMySQLDSN(cfg)), &gorm.Config{
-		Logger: gormlogger.Default.LogMode(mysqlLogMode(cfg.LogMode)),
-	})
+	db, err := gorm.Open(gormmysql.Open(buildMySQLDSN(cfg)), internal.Gorm.Config(cfg))
 	if err != nil {
 		logDBInitFailure("open mysql connection", err)
 		return nil
@@ -63,21 +60,6 @@ func configureMySQLPool(conn sqlDBConn, cfg config.Mysql) error {
 	}
 
 	return nil
-}
-
-func mysqlLogMode(mode string) gormlogger.LogLevel {
-	switch strings.ToLower(mode) {
-	case "silent":
-		return gormlogger.Silent
-	case "error":
-		return gormlogger.Error
-	case "warn", "warning":
-		return gormlogger.Warn
-	case "info":
-		return gormlogger.Info
-	default:
-		return gormlogger.Warn
-	}
 }
 
 func logDBInitFailure(action string, err error) {

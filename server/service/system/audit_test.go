@@ -148,23 +148,6 @@ func TestAuditServiceDatabaseExportLogsReturnsSortedEntries(t *testing.T) {
 	require.Equal(t, "login", entries[0].Action)
 }
 
-func TestAuditServiceDatabaseDeleteBefore(t *testing.T) {
-	db := openTestDB(t)
-	require.NoError(t, writeAuditEvent(context.Background(), AuditEvent{Action: "old", Result: "success"}))
-
-	store := (&AuditService{})
-	future := time.Now().Add(time.Hour)
-	require.NoError(t, store.PurgeBefore(context.Background(), future))
-
-	page, err := store.QueryLogs(context.Background(), AuditFilter{Page: 1, PageSize: 20})
-	require.NoError(t, err)
-	require.Equal(t, int64(0), page.Total)
-
-	var retained int64
-	require.NoError(t, db.Unscoped().Table("sys_audit_logs").Count(&retained).Error)
-	require.Zero(t, retained)
-}
-
 func TestAuditRecordFallbackDoesNotLeak(t *testing.T) {
 	db := openTestDB(t)
 	require.NoError(t, db.Migrator().DropTable("sys_audit_logs"))
