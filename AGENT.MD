@@ -41,7 +41,7 @@
 
 - 后端插件位于 `server/plugin/<name>/`。
 - 前端插件位于 `web/src/plugin/<name>/`。
-- 复用现有模块装配和权限机制，独立注册或自动加载先设计确认。
+- 插件注册照 gin-vue-admin v2（`init()` 登记、`server/plugin/register.go` 汇总），复用主系统的中间件和权限机制，见 [ADR-004](docs/adr/0004-gva-plugin-registration.md)。
 - 稳定的模块职责、入口和边界放入 `docs/modules/` 或相关设计。
 
 ### 示例文档

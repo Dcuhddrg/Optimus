@@ -35,7 +35,7 @@ router → view / components → api → 后端
 
 ## 插件边界
 
-插件按项目规则分别放在 `server/plugin/<name>/` 和 `web/src/plugin/<name>/`，前后端结构对称，复用现有模块装配和权限机制；独立注册或自动加载先设计确认。结构、入口职责与开发顺序见[插件开发约束](../modules/plugin-development.md)，职责稳定后按[模块说明索引](../modules/module-index.md)补充对应模块说明。
+插件按项目规则分别放在 `server/plugin/<name>/` 和 `web/src/plugin/<name>/`，前后端结构对称，复用主系统的中间件和权限机制；注册方式照 gin-vue-admin v2（[ADR-004](../adr/0004-gva-plugin-registration.md)），框架随第一个插件落地。结构、入口职责与开发顺序见[插件开发约束](../modules/plugin-development.md)，职责稳定后按[模块说明索引](../modules/module-index.md)补充对应模块说明。
 
 ## 继续阅读
 

@@ -12,7 +12,7 @@
 | [api-example.md](api-example.md) | API：绑定、调用服务、GVA 响应 |
 | [router-example.md](router-example.md) | 职责子组路由与注册位置 |
 | [enter-go-example.md](enter-go-example.md) | 根级与模块级 `enter.go` 聚合及别名 |
-| [plugin-go-example.md](plugin-go-example.md) | 插件目录与接入方式（插件机制待设计确认） |
+| [plugin-go-example.md](plugin-go-example.md) | 插件入口与注册（照 GVA v2，框架尚未实现） |
 
 ## 适用范围
 
