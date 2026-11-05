@@ -10,7 +10,8 @@
 | [modules](modules/README.md) | 模块职责与后端分层 |
 | [frontend-backend](frontend-backend/README.md) | 前后端协作、接口契约与前端规范 |
 | [examples](examples/README.md) | 前后端参考示例及插件边界 |
-| [memory](memory/README.md) | 项目长期方向与重要决策 |
+| [memory](memory/README.md) | 项目长期方向与业务上下文 |
+| [adr](adr/README.md) | 架构决策记录（ADR） |
 
 ## 产品与实施
 

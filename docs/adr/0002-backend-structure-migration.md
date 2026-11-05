@@ -3,7 +3,7 @@
 - 日期：2026-10-27。
 - 状态：规范方向已由用户明确确认；迁移实施和验收见 [Issue #11](https://github.com/Dcuhddrg/Optimus/issues/11)，本记录不宣称代码迁移已完成。
 - 背景：统一后端结构，历史变更可通过 Git 和 [Issue #11](https://github.com/Dcuhddrg/Optimus/issues/11) 追溯。
-- 规则入口：[AGENT.MD](../../../../AGENT.MD)；职责与路径要求：[当前架构](../../../modules/backend-layer-rules.md#后端分层契约)。
+- 规则入口：[AGENT.MD](../../AGENT.MD)；职责与路径要求：[当前架构](../modules/backend-layer-rules.md#后端分层契约)。
 
 ## 决定
 
@@ -22,7 +22,7 @@
 
 用户后续明确恢复 #7 的契约文档工作，文档可先于结构迁移完成，用于定义对外行为与迁移边界。结构迁移期间保持当前接口行为，响应格式代码改造仍作为独立批次实施。
 
-已确认的 HTTP 4xx/5xx 语义及成功码 0、失败码 7 保留；已确认的分模块切换方向及实施细则见 [接口契约](../../../frontend-backend/boundary.md)，不作为本批默认代码实施方案。
+已确认的 HTTP 4xx/5xx 语义及成功码 0、失败码 7 保留（HTTP 4xx/5xx 语义已被 [ADR-003](0003-gva-response-protocol.md) 取代）；已确认的分模块切换方向及实施细则见 [接口契约](../frontend-backend/boundary.md)，不作为本批默认代码实施方案。
 
 #12/#13 已验收修复及其测试证据继续有效，迁移必须保留其行为。旧计划中“本批不迁移”等表述仅描述当时的交付范围，不再限制后续 #11 的结构迁移。
 

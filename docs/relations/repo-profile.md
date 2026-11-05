@@ -4,7 +4,7 @@
 
 ## 项目定位
 
-Optimus 以治理、云资源、运维和成本能力为[长期方向](../memory/long-term/platform-roadmap.md)。当前实现和验证以相关 Issue/PR 为依据，历史基线见 [#2](https://github.com/Dcuhddrg/Optimus/issues/2)；架构决定及迁移记录见 [ADR-002](../memory/long-term/decisions/ADR-002-backend-structure-migration.md) 和 [#11](https://github.com/Dcuhddrg/Optimus/issues/11)。
+Optimus 以治理、云资源、运维和成本能力为[长期方向](../memory/long-term/platform-roadmap.md)。当前实现和验证以相关 Issue/PR 为依据，历史基线见 [#2](https://github.com/Dcuhddrg/Optimus/issues/2)；架构决定及迁移记录见 [ADR-002](../adr/0002-backend-structure-migration.md) 和 [#11](https://github.com/Dcuhddrg/Optimus/issues/11)。
 
 ## API 设计契约
 
