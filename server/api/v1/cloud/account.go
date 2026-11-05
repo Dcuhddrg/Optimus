@@ -2,6 +2,7 @@ package cloud
 
 import (
 	cloudRequest "optimus/server/model/cloud/request"
+	cloudResponse "optimus/server/model/cloud/response"
 	"optimus/server/model/common/response"
 
 	"github.com/gin-gonic/gin"
@@ -10,6 +11,18 @@ import (
 // AccountApi handles HTTP requests for cloud accounts.
 type AccountApi struct{}
 
+// swag 只能解析本文件导入的包别名；保留此引用，供 Swagger 注释使用 cloudResponse。
+var _ = cloudResponse.AccountView{}
+
+// @Tags CloudAccount
+// @Summary 云账号列表（不分页，支持标签筛选）
+// @Security ApiKeyAuth
+// @Produce application/json
+// @Param X-Project-Code header string false "当前项目编码；为空时按可访问项目范围"
+// @Param tag query []string false "标签筛选，key=value 或 __none__:key，可重复" collectionFormat(multi)
+// @Success 200 {object} response.Response{data=object{list=[]cloudResponse.AccountView}} "code 0 成功，code 7 业务失败"
+// @Failure 401 {object} response.Response "未认证"
+// @Router /cloud/accounts [get]
 func (h *AccountApi) ListAccounts(c *gin.Context) {
 	svc := accountService
 	if !cloudReady() {
@@ -30,6 +43,15 @@ func (h *AccountApi) ListAccounts(c *gin.Context) {
 	response.OkWithData(gin.H{"list": views}, c)
 }
 
+// @Tags CloudAccount
+// @Summary 获取云账号
+// @Security ApiKeyAuth
+// @Produce application/json
+// @Param X-Project-Code header string false "当前项目编码；为空时按可访问项目范围"
+// @Param id path int true "云账号 ID"
+// @Success 200 {object} response.Response{data=cloudResponse.AccountView} "code 0 成功，code 7 业务失败"
+// @Failure 401 {object} response.Response "未认证"
+// @Router /cloud/accounts/{id} [get]
 func (h *AccountApi) GetAccount(c *gin.Context) {
 	svc := accountService
 	if !cloudReady() {
@@ -49,6 +71,16 @@ func (h *AccountApi) GetAccount(c *gin.Context) {
 	response.OkWithData(view, c)
 }
 
+// @Tags CloudAccount
+// @Summary 在当前项目下创建云账号
+// @Security ApiKeyAuth
+// @Accept application/json
+// @Produce application/json
+// @Param X-Project-Code header string true "当前项目编码，创建时必填"
+// @Param data body cloudRequest.CreateAccountRequest true "请求体"
+// @Success 200 {object} response.Response{data=cloudResponse.AccountView} "code 0 成功，code 7 业务失败"
+// @Failure 401 {object} response.Response "未认证"
+// @Router /cloud/accounts [post]
 func (h *AccountApi) CreateAccount(c *gin.Context) {
 	svc := accountService
 	if !cloudReady() {
@@ -73,6 +105,17 @@ func (h *AccountApi) CreateAccount(c *gin.Context) {
 	response.OkWithData(view, c)
 }
 
+// @Tags CloudAccount
+// @Summary 更新云账号
+// @Security ApiKeyAuth
+// @Accept application/json
+// @Produce application/json
+// @Param X-Project-Code header string false "当前项目编码；为空时按可访问项目范围"
+// @Param id path int true "云账号 ID"
+// @Param data body cloudRequest.UpdateAccountRequest true "请求体"
+// @Success 200 {object} response.Response{data=cloudResponse.AccountView} "code 0 成功，code 7 业务失败"
+// @Failure 401 {object} response.Response "未认证"
+// @Router /cloud/accounts/{id} [put]
 func (h *AccountApi) UpdateAccount(c *gin.Context) {
 	svc := accountService
 	if !cloudReady() {
@@ -97,6 +140,17 @@ func (h *AccountApi) UpdateAccount(c *gin.Context) {
 	response.OkWithData(view, c)
 }
 
+// @Tags CloudAccount
+// @Summary 替换云账号标签
+// @Security ApiKeyAuth
+// @Accept application/json
+// @Produce application/json
+// @Param X-Project-Code header string false "当前项目编码；为空时按可访问项目范围"
+// @Param id path int true "云账号 ID"
+// @Param data body cloudRequest.UpdateAccountTagsRequest true "请求体"
+// @Success 200 {object} response.Response{data=cloudResponse.AccountView} "code 0 成功，code 7 业务失败"
+// @Failure 401 {object} response.Response "未认证"
+// @Router /cloud/accounts/{id}/tags [put]
 func (h *AccountApi) UpdateAccountTags(c *gin.Context) {
 	svc := accountService
 	if !cloudReady() {
@@ -121,6 +175,15 @@ func (h *AccountApi) UpdateAccountTags(c *gin.Context) {
 	response.OkWithData(view, c)
 }
 
+// @Tags CloudAccount
+// @Summary 删除云账号
+// @Security ApiKeyAuth
+// @Produce application/json
+// @Param X-Project-Code header string false "当前项目编码；为空时按可访问项目范围"
+// @Param id path int true "云账号 ID"
+// @Success 200 {object} response.Response "code 0 成功，code 7 业务失败"
+// @Failure 401 {object} response.Response "未认证"
+// @Router /cloud/accounts/{id} [delete]
 func (h *AccountApi) DeleteAccount(c *gin.Context) {
 	svc := accountService
 	if !cloudReady() {
@@ -139,6 +202,15 @@ func (h *AccountApi) DeleteAccount(c *gin.Context) {
 	response.Ok(c)
 }
 
+// @Tags CloudAccount
+// @Summary 同步云账号下的资产
+// @Security ApiKeyAuth
+// @Produce application/json
+// @Param X-Project-Code header string false "当前项目编码；为空时按可访问项目范围"
+// @Param id path int true "云账号 ID"
+// @Success 200 {object} response.Response{data=cloudResponse.SyncResult} "code 0 成功，code 7 业务失败"
+// @Failure 401 {object} response.Response "未认证"
+// @Router /cloud/accounts/{id}/sync [post]
 func (h *AccountApi) SyncAccount(c *gin.Context) {
 	svc := assetService
 	if !cloudReady() {

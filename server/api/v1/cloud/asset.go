@@ -15,6 +15,23 @@ import (
 // AssetApi handles HTTP requests for cloud assets.
 type AssetApi struct{}
 
+// @Tags CloudAsset
+// @Summary 分页查询云资产
+// @Security ApiKeyAuth
+// @Produce application/json
+// @Param X-Project-Code header string false "当前项目编码；为空时按可访问项目范围"
+// @Param page query int false "页码，从 1 开始" default(1)
+// @Param pageSize query int false "每页条数，1～200" default(20)
+// @Param accountId query int false "云账号 ID"
+// @Param provider query string false "云厂商"
+// @Param region query string false "地域"
+// @Param resourceType query string false "资源类型"
+// @Param status query string false "状态"
+// @Param keyword query string false "关键字"
+// @Param tag query []string false "标签筛选，key=value，可重复" collectionFormat(multi)
+// @Success 200 {object} response.Response{data=response.PageResult[cloudResponse.AssetView]} "code 0 成功，code 7 业务失败"
+// @Failure 401 {object} response.Response "未认证"
+// @Router /cloud/assets [get]
 func (h *AssetApi) ListAssets(c *gin.Context) {
 	svc := assetService
 	if !cloudReady() {

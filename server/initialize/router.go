@@ -1,6 +1,7 @@
 package initialize
 
 import (
+	"optimus/server/docs"
 	"optimus/server/global"
 	"optimus/server/middleware"
 	"optimus/server/router"
@@ -8,12 +9,17 @@ import (
 	"optimus/server/utils"
 
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func Routers() *gin.Engine {
 	engine := gin.New()
 	// 全局中间件
 	engine.Use(middleware.Logger(), middleware.Recovery())
+	// Swagger 文档，与 GVA 一致在所有模式下注册
+	docs.SwaggerInfo.BasePath = routerPrefix()
+	engine.GET(routerPrefix()+"/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	// 公共路由
 	publicGroup := engine.Group(routerPrefix())
 	// 私有路由

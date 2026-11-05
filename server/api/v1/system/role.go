@@ -4,6 +4,7 @@ import (
 	"errors"
 	"optimus/server/global"
 	"optimus/server/model/common/response"
+	systemModel "optimus/server/model/system"
 	systemRequest "optimus/server/model/system/request"
 
 	systemService "optimus/server/service/system"
@@ -13,6 +14,16 @@ import (
 
 type RoleApi struct{}
 
+// swag 只能解析本文件导入的包别名；保留此引用，供 Swagger 注释使用 systemModel。
+var _ = systemModel.SystemRole{}
+
+// @Tags Role
+// @Summary 角色列表（完整集合，不分页）
+// @Security ApiKeyAuth
+// @Produce application/json
+// @Success 200 {object} response.Response{data=object{list=[]systemModel.SystemRole,total=int}} "code 0 成功，code 7 业务失败"
+// @Failure 401 {object} response.Response "未认证"
+// @Router /system/roles [get]
 func (h *RoleApi) Roles(c *gin.Context) {
 	svc := roleService
 	if global.OPTIMUS_DB == nil {
@@ -27,6 +38,15 @@ func (h *RoleApi) Roles(c *gin.Context) {
 	response.OkWithData(gin.H{"list": roles, "total": len(roles)}, c)
 }
 
+// @Tags Role
+// @Summary 创建角色
+// @Security ApiKeyAuth
+// @Accept application/json
+// @Produce application/json
+// @Param data body systemRequest.RoleRequest true "请求体"
+// @Success 200 {object} response.Response{data=systemModel.SystemRole} "code 0 成功，code 7 业务失败"
+// @Failure 401 {object} response.Response "未认证"
+// @Router /system/roles [post]
 func (h *RoleApi) CreateRole(c *gin.Context) {
 	svc := roleService
 	if global.OPTIMUS_DB == nil {
@@ -42,6 +62,16 @@ func (h *RoleApi) CreateRole(c *gin.Context) {
 	writeRoleServiceResult(c, role, err)
 }
 
+// @Tags Role
+// @Summary 更新角色
+// @Security ApiKeyAuth
+// @Accept application/json
+// @Produce application/json
+// @Param id path int true "角色 ID"
+// @Param data body systemRequest.RoleRequest true "请求体"
+// @Success 200 {object} response.Response{data=systemModel.SystemRole} "code 0 成功，code 7 业务失败"
+// @Failure 401 {object} response.Response "未认证"
+// @Router /system/roles/{id} [put]
 func (h *RoleApi) UpdateRole(c *gin.Context) {
 	svc := roleService
 	if global.OPTIMUS_DB == nil {
@@ -61,6 +91,16 @@ func (h *RoleApi) UpdateRole(c *gin.Context) {
 	writeRoleServiceResult(c, role, err)
 }
 
+// @Tags Role
+// @Summary 启用或禁用角色
+// @Security ApiKeyAuth
+// @Accept application/json
+// @Produce application/json
+// @Param id path int true "角色 ID"
+// @Param data body systemRequest.UpdateRoleStatusRequest true "请求体"
+// @Success 200 {object} response.Response{data=systemModel.SystemRole} "code 0 成功，code 7 业务失败"
+// @Failure 401 {object} response.Response "未认证"
+// @Router /system/roles/{id}/status [patch]
 func (h *RoleApi) UpdateRoleStatus(c *gin.Context) {
 	svc := roleService
 	if global.OPTIMUS_DB == nil {
@@ -80,6 +120,16 @@ func (h *RoleApi) UpdateRoleStatus(c *gin.Context) {
 	writeRoleServiceResult(c, role, err)
 }
 
+// @Tags Role
+// @Summary 设置角色权限码
+// @Security ApiKeyAuth
+// @Accept application/json
+// @Produce application/json
+// @Param id path int true "角色 ID"
+// @Param data body systemRequest.UpdateRolePermissionsRequest true "请求体"
+// @Success 200 {object} response.Response "code 0 成功，code 7 业务失败"
+// @Failure 401 {object} response.Response "未认证"
+// @Router /system/roles/{id}/permissions [put]
 func (h *RoleApi) UpdateRolePermissions(c *gin.Context) {
 	svc := roleService
 	if global.OPTIMUS_DB == nil {
@@ -111,6 +161,13 @@ func (h *RoleApi) UpdateRolePermissions(c *gin.Context) {
 	response.Ok(c)
 }
 
+// @Tags Role
+// @Summary 权限码清单（菜单与 API）
+// @Security ApiKeyAuth
+// @Produce application/json
+// @Success 200 {object} response.Response{data=object{list=[]systemModel.SystemPermission}} "code 0 成功，code 7 业务失败"
+// @Failure 401 {object} response.Response "未认证"
+// @Router /system/permissions/tree [get]
 func (h *RoleApi) PermissionTree(c *gin.Context) {
 	response.OkWithData(gin.H{"list": systemService.DefaultSystemPermissions()}, c)
 }

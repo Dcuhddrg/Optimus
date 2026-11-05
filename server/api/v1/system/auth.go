@@ -2,6 +2,7 @@ package system
 
 import (
 	"errors"
+	systemResponse "optimus/server/model/system/response"
 	"time"
 
 	"optimus/server/global"
@@ -18,6 +19,16 @@ import (
 
 type AuthApi struct{}
 
+// swag 只能解析本文件导入的包别名；保留此引用，供 Swagger 注释使用 systemResponse。
+var _ = systemResponse.LoginResult{}
+
+// @Tags Auth
+// @Summary 用户名密码或 LDAP 登录，返回令牌并写入 x-token cookie
+// @Accept application/json
+// @Produce application/json
+// @Param data body systemRequest.LoginRequest true "请求体"
+// @Success 200 {object} response.Response{data=systemResponse.LoginResult} "code 0 成功，code 7 业务失败"
+// @Router /system/auth/login [post]
 func (h *AuthApi) Login(c *gin.Context) {
 	svc := authService
 	var req systemRequest.LoginRequest
@@ -47,6 +58,13 @@ func (h *AuthApi) Login(c *gin.Context) {
 	response.OkWithData(result, c)
 }
 
+// @Tags Auth
+// @Summary 获取当前用户、角色与权限
+// @Security ApiKeyAuth
+// @Produce application/json
+// @Success 200 {object} response.Response{data=systemResponse.CurrentUserResult} "code 0 成功，code 7 业务失败"
+// @Failure 401 {object} response.Response "未认证"
+// @Router /system/auth/me [get]
 func (h *AuthApi) CurrentUser(c *gin.Context) {
 	svc := authService
 	claims, ok := c.Get(utils.ClaimsContextKey)
@@ -75,6 +93,13 @@ func (h *AuthApi) CurrentUser(c *gin.Context) {
 
 // Logout revokes the current token (GVA's JsonInBlacklist), clears the
 // x-token cookie and records the logout audit.
+// @Tags Auth
+// @Summary 登出：令牌加入黑名单并清除 cookie
+// @Security ApiKeyAuth
+// @Produce application/json
+// @Success 200 {object} response.Response "code 0 成功，code 7 业务失败"
+// @Failure 401 {object} response.Response "未认证"
+// @Router /system/auth/logout [post]
 func (h *AuthApi) Logout(c *gin.Context) {
 	svc := authService
 	if global.OPTIMUS_DB == nil {

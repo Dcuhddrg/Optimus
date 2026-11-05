@@ -5,6 +5,7 @@ import (
 	"optimus/server/global"
 	"optimus/server/model/common/response"
 	systemRequest "optimus/server/model/system/request"
+	systemResponse "optimus/server/model/system/response"
 
 	systemService "optimus/server/service/system"
 
@@ -13,6 +14,16 @@ import (
 
 type LDAPApi struct{}
 
+// swag 只能解析本文件导入的包别名；保留此引用，供 Swagger 注释使用 systemResponse。
+var _ = systemResponse.LDAPConfigResult{}
+
+// @Tags LDAP
+// @Summary 获取 LDAP 配置
+// @Security ApiKeyAuth
+// @Produce application/json
+// @Success 200 {object} response.Response{data=systemResponse.LDAPConfigResult} "code 0 成功，code 7 业务失败"
+// @Failure 401 {object} response.Response "未认证"
+// @Router /system/ldap/config [get]
 func (h *LDAPApi) LDAPConfig(c *gin.Context) {
 	svc := ldapService
 	if global.OPTIMUS_DB == nil {
@@ -27,6 +38,15 @@ func (h *LDAPApi) LDAPConfig(c *gin.Context) {
 	response.OkWithData(cfg, c)
 }
 
+// @Tags LDAP
+// @Summary 保存 LDAP 配置
+// @Security ApiKeyAuth
+// @Accept application/json
+// @Produce application/json
+// @Param data body systemRequest.LDAPConfigRequest true "请求体"
+// @Success 200 {object} response.Response{data=systemResponse.LDAPConfigResult} "code 0 成功，code 7 业务失败"
+// @Failure 401 {object} response.Response "未认证"
+// @Router /system/ldap/config [put]
 func (h *LDAPApi) UpdateLDAPConfig(c *gin.Context) {
 	svc := ldapService
 	if global.OPTIMUS_DB == nil {
@@ -46,6 +66,15 @@ func (h *LDAPApi) UpdateLDAPConfig(c *gin.Context) {
 	response.OkWithData(cfg, c)
 }
 
+// @Tags LDAP
+// @Summary 测试 LDAP 连接
+// @Security ApiKeyAuth
+// @Accept application/json
+// @Produce application/json
+// @Param data body systemRequest.LDAPTestRequest true "请求体"
+// @Success 200 {object} response.Response{data=systemResponse.LDAPTestResult} "code 0 成功，code 7 业务失败"
+// @Failure 401 {object} response.Response "未认证"
+// @Router /system/ldap/test [post]
 func (h *LDAPApi) TestLDAPConfig(c *gin.Context) {
 	svc := ldapService
 	if global.OPTIMUS_DB == nil {

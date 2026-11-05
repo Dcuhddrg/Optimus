@@ -16,6 +16,13 @@ import (
 
 type UserApi struct{}
 
+// @Tags User
+// @Summary 用户列表（完整集合，不分页）
+// @Security ApiKeyAuth
+// @Produce application/json
+// @Success 200 {object} response.Response{data=object{list=[]systemResponse.UserListItem,total=int}} "code 0 成功，code 7 业务失败"
+// @Failure 401 {object} response.Response "未认证"
+// @Router /system/users [get]
 func (h *UserApi) Users(c *gin.Context) {
 	svc := userService
 	if global.OPTIMUS_DB == nil {
@@ -30,6 +37,16 @@ func (h *UserApi) Users(c *gin.Context) {
 	response.OkWithData(gin.H{"list": result.Items, "total": result.Total}, c)
 }
 
+// @Tags User
+// @Summary 更新用户资料
+// @Security ApiKeyAuth
+// @Accept application/json
+// @Produce application/json
+// @Param id path int true "用户 ID"
+// @Param data body systemRequest.UpdateUserRequest true "请求体"
+// @Success 200 {object} response.Response{data=systemResponse.SystemUserSummary} "code 0 成功，code 7 业务失败"
+// @Failure 401 {object} response.Response "未认证"
+// @Router /system/users/{id} [put]
 func (h *UserApi) UpdateUser(c *gin.Context) {
 	svc := userService
 	if global.OPTIMUS_DB == nil {
@@ -49,6 +66,16 @@ func (h *UserApi) UpdateUser(c *gin.Context) {
 	writeUserServiceResult(c, user, err)
 }
 
+// @Tags User
+// @Summary 启用或禁用用户
+// @Security ApiKeyAuth
+// @Accept application/json
+// @Produce application/json
+// @Param id path int true "用户 ID"
+// @Param data body systemRequest.UpdateUserStatusRequest true "请求体"
+// @Success 200 {object} response.Response{data=systemResponse.SystemUserSummary} "code 0 成功，code 7 业务失败"
+// @Failure 401 {object} response.Response "未认证"
+// @Router /system/users/{id}/status [patch]
 func (h *UserApi) UpdateUserStatus(c *gin.Context) {
 	svc := userService
 	if global.OPTIMUS_DB == nil {
@@ -68,6 +95,16 @@ func (h *UserApi) UpdateUserStatus(c *gin.Context) {
 	writeUserServiceResult(c, user, err)
 }
 
+// @Tags User
+// @Summary 设置用户角色
+// @Security ApiKeyAuth
+// @Accept application/json
+// @Produce application/json
+// @Param id path int true "用户 ID"
+// @Param data body systemRequest.UpdateUserRolesRequest true "请求体"
+// @Success 200 {object} response.Response "code 0 成功，code 7 业务失败"
+// @Failure 401 {object} response.Response "未认证"
+// @Router /system/users/{id}/roles [put]
 func (h *UserApi) UpdateUserRoles(c *gin.Context) {
 	svc := userService
 	if global.OPTIMUS_DB == nil {

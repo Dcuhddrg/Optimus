@@ -56,7 +56,7 @@ docker compose -f deploy/docker-compose/docker-compose.yml up -d
 
 ### 启动、路由或接口
 
-追加服务启动验证、`/api/v1/health` 可用性验证和相关 ping 路由返回值验证。
+追加服务启动验证、`/api/v1/health` 可用性验证和相关 ping 路由返回值验证。接口或注释有变化时运行 `cd server && swag init` 重新生成 `server/docs/`，并确认 `go test ./initialize/` 中的 Swagger 覆盖测试通过；`swag` CLI 版本与 `go.mod` 中的 `github.com/swaggo/swag`（v1.16.4）一致，安装：`go install github.com/swaggo/swag/cmd/swag@v1.16.4`。
 
 ### 文档和规则
 
