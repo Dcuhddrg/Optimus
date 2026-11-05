@@ -83,6 +83,7 @@ import (
 
 - 在 `plugin.go` 里塞业务细节
 - 忘记调用 `interfaces.Register`，或忘记在 `register.go` 加空白导入
+- 不加别名直接导入 `utils/plugin/v2`：其包名是 `plugin`，与 `type plugin struct{}` 重名，编译失败
 - 私有组漏挂 `JWTAuth`/`CasbinHandler`，访问云资源的路由漏挂 `ProjectScope`
 - 新增 API 没有登记权限码，请求被 Casbin 拒绝
 

@@ -13,7 +13,7 @@ Optimus 没有插件机制，`docs/modules/plugin-development.md` 原先只给�
 插件注册与 gin-vue-admin v2 一致：
 
 - `server/utils/plugin/v2` 定义 `Plugin` 接口（`Register(engine *gin.Engine)`）和注册表（`Register`、`Registered`）。
-- 每个插件在 `server/plugin/<name>/plugin.go` 导出 `Plugin` 值，在包的 `init()` 中调用 `plugin.Register(Plugin)` 登记。
+- 每个插件在 `server/plugin/<name>/plugin.go` 以别名 `interfaces` 导入注册包（避免与插件内的 `type plugin struct{}` 重名），导出 `Plugin` 值，在包的 `init()` 中调用 `interfaces.Register(Plugin)` 登记。
 - `server/plugin/register.go` 用空白导入汇总所有插件；`initialize` 在主路由注册后遍历 `plugin.Registered()` 调用各插件的 `Register`。
 - 插件的 `Register` 只做调度，按顺序调用插件内 `initialize/` 的权限登记、表迁移和路由注册。
 

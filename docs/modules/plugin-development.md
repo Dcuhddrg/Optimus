@@ -43,7 +43,8 @@ web/src/plugin/<name>/
 
 与 gin-vue-admin v2 一致：
 
-- `plugin.go` 导出 `var Plugin = new(plugin)`，用 `var _ plugin.Plugin = (*plugin)(nil)` 校验接口；在 `init()` 中调用 `plugin.Register(Plugin)`。
+- `plugin.go` 以别名导入注册包：`interfaces "optimus/server/utils/plugin/v2"`。注册包的包名也是 `plugin`，不加别名会与插件内的 `type plugin struct{}` 冲突，编译失败。
+- `plugin.go` 导出 `var Plugin = new(plugin)`，用 `var _ interfaces.Plugin = (*plugin)(nil)` 校验接口；在 `init()` 中调用 `interfaces.Register(Plugin)`。
 - `Register(engine *gin.Engine)` 按顺序调用 `initialize.Permission`、`initialize.Gorm`、`initialize.Router`，不写业务细节。
 - 插件的 `initialize/router.go` 用 `utils.RouterPrefix()` 创建公开和私有组，私有组挂 `middleware.JWTAuth()`、`middleware.CasbinHandler()`；访问云资源的路由还要挂 `middleware.ProjectScope`。
 - 插件的菜单与 API 权限码按主系统格式（`menu`/`api`，API 含方法和去前缀路径）登记并同步 Casbin，否则请求会被拒绝。
