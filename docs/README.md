@@ -13,6 +13,18 @@
 | [memory](memory/README.md) | 项目长期方向与业务上下文 |
 | [adr](adr/README.md) | 架构决策记录（ADR） |
 
+## 按任务入口
+
+| 任务 | 先读 |
+| --- | --- |
+| 新增或修改后端接口 | [开发工作流](relations/development-workflow.md#分层实现顺序)、[后端分层规则](modules/backend-layer-rules.md)、[接口契约](frontend-backend/boundary.md)、[后端示例](examples/README.md#后端示例) |
+| 新增或修改前端页面 | [前端规范](frontend-backend/frontend-rules.md)、[前端工具函数](frontend-backend/frontend-utils.md)、[接口契约](frontend-backend/boundary.md)、[前端示例](examples/README.md#前端示例) |
+| 新增模块或插件 | [模块说明索引](modules/module-index.md)、[插件开发约束](modules/plugin-development.md)、[系统关系图](relations/system-map.md) |
+| 权限、认证或项目隔离 | [接口契约第 6 节](frontend-backend/boundary.md#6-请求认证与权限协作)、[项目隔离设计](design/2026-05-14-multi-project-cloud-isolation-design.md) |
+| 记录重要决定 | [ADR 索引](adr/README.md) |
+| 运行、部署与验证 | [项目画像](relations/repo-profile.md)、[工程操作参考](relations/engineering-workflow.md) |
+| 更新文档或 Issue | [文档维护约定](relations/documentation-workflow.md) |
+
 ## 产品与实施
 
 - [平台路线图](memory/long-term/platform-roadmap.md)：长期方向与阶段依赖。

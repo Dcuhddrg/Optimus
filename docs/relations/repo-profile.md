@@ -6,6 +6,16 @@
 
 Optimus 以治理、云资源、运维和成本能力为[长期方向](../memory/long-term/platform-roadmap.md)。当前实现和验证以相关 Issue/PR 为依据，历史基线见 [#2](https://github.com/Dcuhddrg/Optimus/issues/2)；架构决定及迁移记录见 [ADR-002](../adr/0002-backend-structure-migration.md) 和 [#11](https://github.com/Dcuhddrg/Optimus/issues/11)。
 
+## 核心特征
+
+- JWT 认证 + Casbin RBAC，菜单与 API 权限码由种子数据登记；支持本地账号与 LDAP 登录。
+- 多项目隔离：云资源按项目范围（`X-Project-Code`）访问，项目管理按成员资格鉴权。
+- 统一响应协议（GVA `{code,data,msg}`，见 [ADR-003](../adr/0003-gva-response-protocol.md)）。
+- 审计日志：查询、CSV 导出与定时清理。
+- 云资源：云账号、资产与标签管理。
+- 运维中心：服务门户、工单与任务页面，当前为前端 mock，审批链见 [#4](https://github.com/Dcuhddrg/Optimus/issues/4)。
+- 中英文界面切换。
+
 ## API 设计契约
 
 - 前后端响应、分页、错误和兼容边界见 [接口契约](../frontend-backend/boundary.md)。
@@ -35,7 +45,12 @@ Optimus 以治理、云资源、运维和成本能力为[长期方向](../memory
 | 权限 | Casbin v3 + gorm-adapter（casbin_rule） | |
 | JWT | golang-jwt/jwt v5 | |
 | 测试 | Go test + testify | |
-| 前端 | React 18 + TypeScript + Vite | |
+| 前端框架 | React 18 + TypeScript 5 + Vite 5 | |
+| 前端路由 | react-router-dom 6 | |
+| 前端状态 | React Context（Auth、Project、Language） | 不使用 Pinia/Redux 等全局状态库 |
+| 前端样式 | CSS Modules（`*.module.css`）+ 主题变量 | 不使用 UnoCSS/Element Plus |
+| 前端图标与动效 | @phosphor-icons/react、framer-motion | 字体 Geist |
+| 前端测试 | Vitest + jsdom | `pnpm test` |
 | 前端包管理 | pnpm | 禁用 npm install |
 
 技术选型变更**必须先写设计并经用户确认**，不允许任务级擅自替换。
