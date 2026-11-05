@@ -15,10 +15,6 @@ import (
 )
 
 func RunServer() {
-	if global.OPTIMUS_CONFIG.System.UseRedis {
-		initialize.Redis()
-	}
-
 	if global.OPTIMUS_DB != nil {
 		system.LoadAll()
 	}

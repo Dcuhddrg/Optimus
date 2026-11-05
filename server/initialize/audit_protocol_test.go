@@ -30,10 +30,8 @@ func TestAuditProtocolThroughRealRouter(t *testing.T) {
 			global.OPTIMUS_CONFIG.System.RouterPrefix = prefix
 			global.OPTIMUS_CONFIG.JWT = config.JWT{SigningKey: "protocol-test-key", ExpiresTime: "1h", Issuer: "protocol-test"}
 			setTestDatabase(t, db)
-			for _, path := range []string{"/api/v1/system/audit-logs", "/api/v1/system/audit-logs/export"} {
-				permission := model.SystemPermission{Code: path, Name: path, Type: "api", Method: "GET", Path: path}
-				require.NoError(t, db.Create(&permission).Error)
-				require.NoError(t, db.Create(&model.SystemRolePermission{RoleID: 1, PermissionID: permission.ID}).Error)
+			for _, path := range []string{"/system/audit-logs", "/system/audit-logs/export"} {
+				grantAPI(t, db, 1, "GET", path)
 			}
 			entries := make([]model.SystemAuditLog, 42)
 			for i := range entries {
@@ -47,17 +45,18 @@ func TestAuditProtocolThroughRealRouter(t *testing.T) {
 					tx.AddError(errors.New("private database error"))
 				}
 			}))
-			require.NoError(t, db.Callback().Query().After("gorm:query").Register("test:remove_db_after_authorization", func(tx *gorm.DB) {
-				if missing && tx.Statement.Table == "sys_role_permissions" && tx.Error == nil {
-					global.OPTIMUS_DB = nil
-				}
-			}))
 			token, err := utils.NewJWT().CreateToken(utils.NewJWT().CreateClaims(utils.BaseClaims{ID: 1, Username: "admin", RoleIDs: []uint{1}, RoleCodes: []string{"admin"}}))
 			require.NoError(t, err)
 			base := strings.TrimRight(prefix, "/")
 			require.Len(t, Routers().Routes(), 38)
 			request := func(path, credential string) *httptest.ResponseRecorder {
 				global.OPTIMUS_DB = db
+				if missing {
+					// The enforcer is cached, so authorization passes; the handler
+					// then finds no database.
+					require.NotNil(t, utils.GetCasbin())
+					global.OPTIMUS_DB = nil
+				}
 				w := httptest.NewRecorder()
 				req := httptest.NewRequest("GET", base+path, nil)
 				if credential != "" {
@@ -76,13 +75,11 @@ func TestAuditProtocolThroughRealRouter(t *testing.T) {
 				require.Contains(t, body, "data")
 				require.Nil(t, body["data"])
 			}
-			var permission model.SystemPermission
-			require.NoError(t, db.Where("method = ? AND path = ?", "GET", "/api/v1/system/audit-logs").First(&permission).Error)
-			require.NoError(t, db.Where("role_id = ? AND permission_id = ?", 1, permission.ID).Delete(&model.SystemRolePermission{}).Error)
+			revokeAPI(t, db, 1, "GET", "/system/audit-logs")
 			w := request("/system/audit-logs", token)
 			require.Equal(t, 200, w.Code) // GVA permission denial
 			require.JSONEq(t, `{"code":7,"data":{},"msg":"permission denied"}`, w.Body.String())
-			require.NoError(t, db.Create(&model.SystemRolePermission{RoleID: 1, PermissionID: permission.ID}).Error)
+			grantAPI(t, db, 1, "GET", "/system/audit-logs")
 			w = request("/system/audit-logs?page=2&pageSize=50&result=failure", token)
 			require.Equal(t, 200, w.Code)
 			require.JSONEq(t, `{"code":0,"data":{"list":[],"total":42,"page":2,"pageSize":50},"msg":"成功"}`, w.Body.String())

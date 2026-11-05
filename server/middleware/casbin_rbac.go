@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"context"
+	"strconv"
 	"strings"
 
 	"optimus/server/model/common/response"
@@ -10,69 +10,32 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type APIAuthorizer interface {
-	AuthorizeAPI(ctx context.Context, method string, path string, roleIDs []uint) (bool, error)
-}
-
-// CasbinHandlerWithPrefix maps registered route paths to the canonical prefix
-// used by permission seeds. It preserves route parameters, methods and roles.
-func CasbinHandlerWithPrefix(authorizer APIAuthorizer, runtimePrefix, permissionPrefix string) gin.HandlerFunc {
-	if authorizer == nil {
-		return CasbinHandler(nil)
-	}
-	return CasbinHandler(prefixedAPIAuthorizer{
-		authorizer:       authorizer,
-		runtimePrefix:    strings.TrimRight(runtimePrefix, "/"),
-		permissionPrefix: strings.TrimRight(permissionPrefix, "/"),
-		valid:            strings.HasPrefix(runtimePrefix, "/") && strings.HasPrefix(permissionPrefix, "/"),
-	})
-}
-
-type prefixedAPIAuthorizer struct {
-	authorizer                      APIAuthorizer
-	runtimePrefix, permissionPrefix string
-	valid                           bool
-}
-
-func (a prefixedAPIAuthorizer) AuthorizeAPI(ctx context.Context, method, path string, roleIDs []uint) (bool, error) {
-	if !a.valid || path == "" || !strings.HasPrefix(path, "/") {
-		return false, nil
-	}
-	if a.runtimePrefix != "" && path != a.runtimePrefix && !strings.HasPrefix(path, a.runtimePrefix+"/") {
-		return false, nil
-	}
-	permissionPath := a.permissionPrefix + strings.TrimPrefix(path, a.runtimePrefix)
-	return a.authorizer.AuthorizeAPI(ctx, method, permissionPath, roleIDs)
-}
-
-func CasbinHandler(authorizer APIAuthorizer) gin.HandlerFunc {
+// CasbinHandler authorizes the request path (without router prefix) and method
+// against casbin_rule, as GVA. Optimus users may hold several roles, so any
+// role allowing the request suffices.
+func CasbinHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		claimsValue, ok := c.Get(utils.ClaimsContextKey)
-		if !ok {
-			response.FailWithMessage("permission denied", c)
+		var waitUse *utils.CustomClaims
+		if claims, ok := c.Get(utils.ClaimsContextKey); ok {
+			waitUse, _ = claims.(*utils.CustomClaims)
+		} else {
+			waitUse, _ = utils.GetClaims(c)
+		}
+		if waitUse == nil {
+			response.FailWithDetailed(gin.H{}, "permission denied", c)
 			c.Abort()
 			return
 		}
-		claims, ok := claimsValue.(*utils.CustomClaims)
-		if !ok {
-			response.FailWithMessage("permission denied", c)
-			c.Abort()
-			return
+		obj := strings.TrimPrefix(c.Request.URL.Path, strings.TrimRight(utils.RouterPrefix(), "/"))
+		act := c.Request.Method
+		e := utils.GetCasbin()
+		for _, roleID := range waitUse.RoleIDs {
+			if success, _ := e.Enforce(strconv.Itoa(int(roleID)), obj, act); success {
+				c.Next()
+				return
+			}
 		}
-
-		if authorizer == nil {
-			response.FailWithMessage("permission denied", c)
-			c.Abort()
-			return
-		}
-
-		allowed, err := authorizer.AuthorizeAPI(c.Request.Context(), c.Request.Method, c.FullPath(), claims.BaseClaims.RoleIDs)
-		if err != nil || !allowed {
-			response.FailWithMessage("permission denied", c)
-			c.Abort()
-			return
-		}
-
-		c.Next()
+		response.FailWithDetailed(gin.H{}, "permission denied", c)
+		c.Abort()
 	}
 }

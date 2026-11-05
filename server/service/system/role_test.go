@@ -3,12 +3,15 @@ package system
 import (
 	"context"
 	"encoding/json"
+	"strconv"
 	"testing"
 
 	"optimus/server/global"
 	systemModel "optimus/server/model/system"
 	systemRequest "optimus/server/model/system/request"
+	"optimus/server/utils"
 
+	gormadapter "github.com/casbin/gorm-adapter/v3"
 	"github.com/stretchr/testify/require"
 	gormmysql "gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -37,22 +40,34 @@ func TestRoleServiceDatabaseReplaceRolePermissions(t *testing.T) {
 	role := systemModel.SystemRole{Code: "editor", Name: "Editor", Status: defaultRoleStatus}
 	require.NoError(t, db.Create(&role).Error)
 
-	p1 := systemModel.SystemPermission{Code: "content.create", Name: "Create Content", Type: "api"}
-	p2 := systemModel.SystemPermission{Code: "content.delete", Name: "Delete Content", Type: "api"}
-	require.NoError(t, db.Create(&[]systemModel.SystemPermission{p1, p2}).Error)
+	p1 := systemModel.SystemPermission{Code: "content.create", Name: "Create Content", Type: "api", Method: "POST", Path: "/content"}
+	p2 := systemModel.SystemPermission{Code: "content.delete", Name: "Delete Content", Type: "api", Method: "DELETE", Path: "/content/:id"}
+	menu := systemModel.SystemPermission{Code: "content.menu", Name: "Content", Type: "menu", Path: "/content"}
+	require.NoError(t, db.Create(&[]systemModel.SystemPermission{p1, p2, menu}).Error)
 	require.NoError(t, db.Where("code = ?", "content.create").First(&p1).Error)
 	require.NoError(t, db.Where("code = ?", "content.delete").First(&p2).Error)
+	require.NoError(t, db.Where("code = ?", "content.menu").First(&menu).Error)
 
 	store := (&RoleService{})
+	countRows := func() (menus, policies int64) {
+		require.NoError(t, db.Model(&systemModel.SystemRolePermission{}).Where("role_id = ?", role.ID).Count(&menus).Error)
+		require.NoError(t, db.Model(&gormadapter.CasbinRule{}).Where("ptype = ? AND v0 = ?", "p", strconv.Itoa(int(role.ID))).Count(&policies).Error)
+		return
+	}
 
-	require.NoError(t, store.replaceRolePermissions(context.Background(), role.ID, []uint{p1.ID}))
-	var rps []systemModel.SystemRolePermission
-	require.NoError(t, db.Where("role_id = ?", role.ID).Find(&rps).Error)
-	require.Len(t, rps, 1)
+	// API grants become Casbin policies; menu grants stay in sys_role_permissions.
+	require.NoError(t, store.replaceRolePermissions(context.Background(), role.ID, []systemModel.SystemPermission{p1, menu}))
+	menus, policies := countRows()
+	require.Equal(t, int64(1), menus)
+	require.Equal(t, int64(1), policies)
 
-	require.NoError(t, store.replaceRolePermissions(context.Background(), role.ID, []uint{p1.ID, p2.ID}))
-	require.NoError(t, db.Where("role_id = ?", role.ID).Find(&rps).Error)
-	require.Len(t, rps, 2)
+	require.NoError(t, store.replaceRolePermissions(context.Background(), role.ID, []systemModel.SystemPermission{p1, p2}))
+	menus, policies = countRows()
+	require.Zero(t, menus)
+	require.Equal(t, int64(2), policies)
+	allowed, err := utils.GetCasbin().Enforce(strconv.Itoa(int(role.ID)), "/content/42", "DELETE")
+	require.NoError(t, err)
+	require.True(t, allowed, "the enforcer reloads after the update")
 }
 
 func TestProtectedAdminRoleAudit(t *testing.T) {
@@ -69,8 +84,8 @@ func TestProtectedAdminRoleAudit(t *testing.T) {
 func TestRolePermissionAuditUsesPersistedCodes(t *testing.T) {
 	db := openTestDB(t)
 	role := systemModel.SystemRole{OPTIMUS_MODEL: global.OPTIMUS_MODEL{ID: 3}, Code: "ops", Name: "ops", Status: "enabled"}
-	read := systemModel.SystemPermission{Code: "read", Name: "read", Type: "api"}
-	write := systemModel.SystemPermission{Code: "write", Name: "write", Type: "api"}
+	read := systemModel.SystemPermission{Code: "read", Name: "read", Type: "api", Method: "GET", Path: "/things"}
+	write := systemModel.SystemPermission{Code: "write", Name: "write", Type: "api", Method: "POST", Path: "/things"}
 	require.NoError(t, db.Create(&role).Error)
 	require.NoError(t, db.Create(&read).Error)
 	require.NoError(t, db.Create(&write).Error)

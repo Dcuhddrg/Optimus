@@ -36,10 +36,8 @@ func TestLogoutRevokesTokenAcrossRestart(t *testing.T) {
 	user := systemModel.SystemUser{UUID: "logout-admin", Username: "admin", DisplayName: "Admin", Source: "local", Status: "enabled", PasswordHash: hash}
 	require.NoError(t, db.Create(&user).Error)
 	require.NoError(t, db.Create(&systemModel.SystemUserRole{UserID: user.ID, RoleID: 1}).Error)
-	logout := systemModel.SystemPermission{Code: "logout", Name: "logout", Type: "api", Method: "POST", Path: "/api/v1/system/auth/logout"}
-	require.NoError(t, db.Create(&logout).Error)
-	require.NoError(t, db.Create(&systemModel.SystemRolePermission{RoleID: 1, PermissionID: logout.ID}).Error)
 	setTestDatabase(t, db)
+	grantAPI(t, db, 1, "POST", "/system/auth/logout")
 
 	call := func(method, path, token, body string) *httptest.ResponseRecorder {
 		w := httptest.NewRecorder()

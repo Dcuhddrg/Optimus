@@ -3,6 +3,7 @@ package system
 import (
 	"context"
 	"errors"
+	"sort"
 
 	"optimus/server/global"
 	systemModel "optimus/server/model/system"
@@ -94,12 +95,8 @@ func (s *RoleService) UpdateRolePermissions(ctx context.Context, actorID uint, r
 		event.Detail = auditDetails("permission_lookup_failed", nil)
 		return err
 	}
-	permissionIDs := make([]uint, 0, len(permissions))
-	for _, permission := range permissions {
-		permissionIDs = append(permissionIDs, permission.ID)
-	}
 	before, beforeErr := s.permissionCodesForRole(ctx, roleID)
-	if err := s.replaceRolePermissions(ctx, roleID, permissionIDs); err != nil {
+	if err := s.replaceRolePermissions(ctx, roleID, permissions); err != nil {
 		event.Detail = auditDetails("update_failed", nil)
 		return err
 	}
@@ -157,23 +154,43 @@ func (s *RoleService) permissionsByCodes(ctx context.Context, codes []string) ([
 	return permissions, err
 }
 
-func (s *RoleService) replaceRolePermissions(ctx context.Context, roleID uint, permissionIDs []uint) error {
-	return global.OPTIMUS_DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+// replaceRolePermissions stores menu grants in sys_role_permissions and API
+// grants as Casbin policies (GVA UpdateCasbin), then reloads the enforcer.
+func (s *RoleService) replaceRolePermissions(ctx context.Context, roleID uint, permissions []systemModel.SystemPermission) error {
+	err := global.OPTIMUS_DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("role_id = ?", roleID).Delete(&systemModel.SystemRolePermission{}).Error; err != nil {
 			return err
 		}
-		for _, permissionID := range permissionIDs {
-			if err := tx.Create(&systemModel.SystemRolePermission{RoleID: roleID, PermissionID: permissionID}).Error; err != nil {
+		for _, permission := range permissions {
+			if permission.Type == "api" {
+				continue
+			}
+			if err := tx.Create(&systemModel.SystemRolePermission{RoleID: roleID, PermissionID: permission.ID}).Error; err != nil {
 				return err
 			}
 		}
-		return nil
+		return CasbinServiceApp.UpdateCasbin(tx, roleID, APIPolicies(permissions))
 	})
+	if err != nil {
+		return err
+	}
+	return CasbinServiceApp.FreshCasbin()
 }
 
+// permissionCodesForRole returns menu codes from sys_role_permissions plus the
+// catalog codes of the role's Casbin API policies.
 func (s *RoleService) permissionCodesForRole(ctx context.Context, roleID uint) ([]string, error) {
-	permissionIDs := global.OPTIMUS_DB.WithContext(ctx).Model(&systemModel.SystemRolePermission{}).Select("permission_id").Where("role_id = ?", roleID)
+	db := global.OPTIMUS_DB.WithContext(ctx)
+	permissionIDs := db.Model(&systemModel.SystemRolePermission{}).Select("permission_id").Where("role_id = ?", roleID)
 	codes := make([]string, 0)
-	err := global.OPTIMUS_DB.WithContext(ctx).Model(&systemModel.SystemPermission{}).Where("id IN (?)", permissionIDs).Order("code").Pluck("code", &codes).Error
-	return codes, err
+	if err := global.OPTIMUS_DB.WithContext(ctx).Model(&systemModel.SystemPermission{}).Where("id IN (?)", permissionIDs).Pluck("code", &codes).Error; err != nil {
+		return nil, err
+	}
+	apiCodes, err := apiPermissionCodesForRole(global.OPTIMUS_DB.WithContext(ctx), roleID)
+	if err != nil {
+		return nil, err
+	}
+	codes = append(codes, apiCodes...)
+	sort.Strings(codes)
+	return codes, nil
 }

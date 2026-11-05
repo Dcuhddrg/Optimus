@@ -33,16 +33,17 @@ func projectScopeRouterDB(t *testing.T, scenario string, allowed bool) (*gorm.DB
 	}
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
 	require.NoError(t, err)
-	for _, table := range []string{"user_projects", "projects", "sys_role_permissions", "sys_user_roles", "sys_permissions", "sys_roles", "sys_users", "sys_ldap_config", "sys_audit_logs", "jwt_blacklists"} {
+	for _, table := range []string{"user_projects", "projects", "sys_role_permissions", "sys_user_roles", "sys_permissions", "sys_roles", "sys_users", "sys_ldap_config", "sys_audit_logs", "jwt_blacklists", "casbin_rule"} {
 		require.NoError(t, db.Exec("DROP TABLE IF EXISTS `"+table+"`").Error)
 	}
 	require.NoError(t, projectService.AutoMigrateProject(db))
 	require.NoError(t, systemService.AutoMigrateSystem(db))
-	for _, path := range []string{"/api/v1/system/permissions/tree", "/api/v1/projects", "/api/v1/projects/:code", "/api/v1/cloud/accounts"} {
+	setTestDatabase(t, db)
+	for _, path := range []string{"/system/permissions/tree", "/projects", "/projects/:code", "/cloud/accounts"} {
 		permission := systemModel.SystemPermission{Code: path, Name: path, Type: "api", Method: "GET", Path: path}
 		require.NoError(t, db.Create(&permission).Error)
 		if allowed {
-			require.NoError(t, db.Create(&systemModel.SystemRolePermission{RoleID: 1, PermissionID: permission.ID}).Error)
+			grantAPI(t, db, 1, "GET", path)
 		}
 	}
 	p := projectModel.Project{OPTIMUS_MODEL: global.OPTIMUS_MODEL{ID: 1}, Name: "Accessible", Code: "existing", OwnerID: 1, Status: "active"}

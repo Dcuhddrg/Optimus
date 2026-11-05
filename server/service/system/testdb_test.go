@@ -6,6 +6,7 @@ import (
 
 	"optimus/server/config"
 	"optimus/server/global"
+	"optimus/server/utils"
 	ldapUtil "optimus/server/utils/ldap"
 
 	"github.com/stretchr/testify/require"
@@ -27,7 +28,7 @@ func resetTestDB(t *testing.T) *gorm.DB {
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, sqlDB.Close()) })
-	for _, table := range []string{"sys_role_permissions", "sys_user_roles", "sys_permissions", "sys_roles", "sys_users", "sys_ldap_config", "sys_audit_logs"} {
+	for _, table := range []string{"sys_role_permissions", "sys_user_roles", "sys_permissions", "sys_roles", "sys_users", "sys_ldap_config", "sys_audit_logs", "jwt_blacklists", "casbin_rule"} {
 		require.NoError(t, db.Exec("DROP TABLE IF EXISTS `"+table+"`").Error)
 	}
 	return db
@@ -40,8 +41,9 @@ func openTestDB(t *testing.T) *gorm.DB {
 	db := resetTestDB(t)
 	require.NoError(t, AutoMigrateSystem(db))
 	previous := global.OPTIMUS_DB
-	t.Cleanup(func() { global.OPTIMUS_DB = previous })
+	t.Cleanup(func() { global.OPTIMUS_DB = previous; utils.ResetCasbin() })
 	global.OPTIMUS_DB = db
+	utils.ResetCasbin()
 	return db
 }
 

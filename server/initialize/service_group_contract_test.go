@@ -7,7 +7,6 @@ import (
 
 	"optimus/server/config"
 	"optimus/server/global"
-	systemModel "optimus/server/model/system"
 	"optimus/server/service"
 	cloudService "optimus/server/service/cloud"
 	projectService "optimus/server/service/project"
@@ -39,15 +38,13 @@ func TestRealRouterReadsCurrentGroupAuthorizer(t *testing.T) {
 	global.OPTIMUS_CONFIG.JWT = config.JWT{SigningKey: "group-contract-key", ExpiresTime: "1h", Issuer: "group-contract"}
 	db, _ := projectScopeRouterDB(t, "", true)
 	setTestDatabase(t, db)
-	var permission systemModel.SystemPermission
-	require.NoError(t, db.Where("method = ? AND path = ?", "GET", "/api/v1/system/permissions/tree").First(&permission).Error)
 	token, err := utils.NewJWT().CreateToken(utils.NewJWT().CreateClaims(utils.BaseClaims{ID: 1, RoleIDs: []uint{1}}))
 	require.NoError(t, err)
 	for _, allowed := range []bool{false, true} {
 		if allowed {
-			require.NoError(t, db.Create(&systemModel.SystemRolePermission{RoleID: 1, PermissionID: permission.ID}).Error)
+			grantAPI(t, db, 1, "GET", "/system/permissions/tree")
 		} else {
-			require.NoError(t, db.Where("role_id = ? AND permission_id = ?", 1, permission.ID).Delete(&systemModel.SystemRolePermission{}).Error)
+			revokeAPI(t, db, 1, "GET", "/system/permissions/tree")
 		}
 		req := httptest.NewRequest("GET", "/api/v1/system/permissions/tree", nil)
 		req.Header.Set("x-token", token)
@@ -83,6 +80,7 @@ func TestMissingDatabaseAuthorizerPreservesRecoveryStatus(t *testing.T) {
 func setTestDatabase(t *testing.T, db *gorm.DB) {
 	t.Helper()
 	previousDB := global.OPTIMUS_DB
-	t.Cleanup(func() { global.OPTIMUS_DB = previousDB })
+	t.Cleanup(func() { global.OPTIMUS_DB = previousDB; utils.ResetCasbin() })
 	global.OPTIMUS_DB = db
+	utils.ResetCasbin()
 }

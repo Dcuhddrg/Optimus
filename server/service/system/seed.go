@@ -6,6 +6,7 @@ import (
 	systemModel "optimus/server/model/system"
 	"optimus/server/utils"
 
+	gormadapter "github.com/casbin/gorm-adapter/v3"
 	"gorm.io/gorm"
 )
 
@@ -30,6 +31,7 @@ func AutoMigrateSystem(db *gorm.DB) error {
 		&systemModel.SystemLDAPConfig{},
 		&systemModel.SystemAuditLog{},
 		&systemModel.JwtBlacklist{},
+		&gormadapter.CasbinRule{},
 	)
 }
 
@@ -45,6 +47,9 @@ func SeedSystemData(db *gorm.DB, initialAdminPassword string) error {
 		return err
 	}
 	if err := seedPermissions(db); err != nil {
+		return err
+	}
+	if err := migrateAPIGrantsToCasbin(db); err != nil {
 		return err
 	}
 	if err := seedAdminUser(db, initialAdminPassword); err != nil {
@@ -71,23 +76,23 @@ func DefaultSystemPermissions() []systemModel.SystemPermission {
 		{Code: "system.roles.menu", Name: "Roles", Type: "menu", Path: "/system/roles", ParentCode: "system.menu", Sort: 22},
 		{Code: "system.ldap.menu", Name: "LDAP", Type: "menu", Path: "/system/ldap", ParentCode: "system.menu", Sort: 23},
 		{Code: "system.audit.menu", Name: "Audit Logs", Type: "menu", Path: "/system/audit-logs", ParentCode: "system.menu", Sort: 24},
-		{Code: "system.auth.me", Name: "Current user", Type: "api", Method: "GET", Path: "/api/v1/system/auth/me", Sort: 100},
-		{Code: "system.auth.logout", Name: "Logout", Type: "api", Method: "POST", Path: "/api/v1/system/auth/logout", Sort: 101},
-		{Code: "system.users.view", Name: "View users", Type: "api", Method: "GET", Path: "/api/v1/system/users", Sort: 200},
-		{Code: "system.users.update", Name: "Update users", Type: "api", Method: "PUT", Path: "/api/v1/system/users/:id", Sort: 201},
-		{Code: "system.users.status.update", Name: "Update user status", Type: "api", Method: "PATCH", Path: "/api/v1/system/users/:id/status", Sort: 202},
-		{Code: "system.users.roles.update", Name: "Update user roles", Type: "api", Method: "PUT", Path: "/api/v1/system/users/:id/roles", Sort: 203},
-		{Code: "system.roles.view", Name: "View roles", Type: "api", Method: "GET", Path: "/api/v1/system/roles", Sort: 300},
-		{Code: "system.roles.create", Name: "Create roles", Type: "api", Method: "POST", Path: "/api/v1/system/roles", Sort: 301},
-		{Code: "system.roles.update", Name: "Update roles", Type: "api", Method: "PUT", Path: "/api/v1/system/roles/:id", Sort: 302},
-		{Code: "system.roles.status.update", Name: "Update role status", Type: "api", Method: "PATCH", Path: "/api/v1/system/roles/:id/status", Sort: 303},
-		{Code: "system.roles.permissions.update", Name: "Update role permissions", Type: "api", Method: "PUT", Path: "/api/v1/system/roles/:id/permissions", Sort: 304},
-		{Code: "system.permissions.view", Name: "View permissions", Type: "api", Method: "GET", Path: "/api/v1/system/permissions/tree", Sort: 400},
-		{Code: "system.ldap.view", Name: "View LDAP config", Type: "api", Method: "GET", Path: "/api/v1/system/ldap/config", Sort: 500},
-		{Code: "system.ldap.update", Name: "Update LDAP config", Type: "api", Method: "PUT", Path: "/api/v1/system/ldap/config", Sort: 501},
-		{Code: "system.ldap.test", Name: "Test LDAP config", Type: "api", Method: "POST", Path: "/api/v1/system/ldap/test", Sort: 502},
-		{Code: "system.audit.view", Name: "View audit logs", Type: "api", Method: "GET", Path: "/api/v1/system/audit-logs", Sort: 600},
-		{Code: "system.audit.export", Name: "Export audit logs", Type: "api", Method: "GET", Path: "/api/v1/system/audit-logs/export", Sort: 601},
+		{Code: "system.auth.me", Name: "Current user", Type: "api", Method: "GET", Path: "/system/auth/me", Sort: 100},
+		{Code: "system.auth.logout", Name: "Logout", Type: "api", Method: "POST", Path: "/system/auth/logout", Sort: 101},
+		{Code: "system.users.view", Name: "View users", Type: "api", Method: "GET", Path: "/system/users", Sort: 200},
+		{Code: "system.users.update", Name: "Update users", Type: "api", Method: "PUT", Path: "/system/users/:id", Sort: 201},
+		{Code: "system.users.status.update", Name: "Update user status", Type: "api", Method: "PATCH", Path: "/system/users/:id/status", Sort: 202},
+		{Code: "system.users.roles.update", Name: "Update user roles", Type: "api", Method: "PUT", Path: "/system/users/:id/roles", Sort: 203},
+		{Code: "system.roles.view", Name: "View roles", Type: "api", Method: "GET", Path: "/system/roles", Sort: 300},
+		{Code: "system.roles.create", Name: "Create roles", Type: "api", Method: "POST", Path: "/system/roles", Sort: 301},
+		{Code: "system.roles.update", Name: "Update roles", Type: "api", Method: "PUT", Path: "/system/roles/:id", Sort: 302},
+		{Code: "system.roles.status.update", Name: "Update role status", Type: "api", Method: "PATCH", Path: "/system/roles/:id/status", Sort: 303},
+		{Code: "system.roles.permissions.update", Name: "Update role permissions", Type: "api", Method: "PUT", Path: "/system/roles/:id/permissions", Sort: 304},
+		{Code: "system.permissions.view", Name: "View permissions", Type: "api", Method: "GET", Path: "/system/permissions/tree", Sort: 400},
+		{Code: "system.ldap.view", Name: "View LDAP config", Type: "api", Method: "GET", Path: "/system/ldap/config", Sort: 500},
+		{Code: "system.ldap.update", Name: "Update LDAP config", Type: "api", Method: "PUT", Path: "/system/ldap/config", Sort: 501},
+		{Code: "system.ldap.test", Name: "Test LDAP config", Type: "api", Method: "POST", Path: "/system/ldap/test", Sort: 502},
+		{Code: "system.audit.view", Name: "View audit logs", Type: "api", Method: "GET", Path: "/system/audit-logs", Sort: 600},
+		{Code: "system.audit.export", Name: "Export audit logs", Type: "api", Method: "GET", Path: "/system/audit-logs/export", Sort: 601},
 	}
 }
 
@@ -161,16 +166,5 @@ func seedAdminRolePermissions(db *gorm.DB) error {
 		return err
 	}
 
-	for _, permission := range permissions {
-		rolePermission := systemModel.SystemRolePermission{
-			RoleID:       adminRole.ID,
-			PermissionID: permission.ID,
-		}
-		if err := db.Where("role_id = ? AND permission_id = ?", adminRole.ID, permission.ID).
-			FirstOrCreate(&rolePermission).Error; err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return GrantPermissions(db, adminRole.ID, permissions)
 }

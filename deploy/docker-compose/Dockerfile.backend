@@ -1,4 +1,4 @@
-FROM golang:1.23-alpine AS build
+FROM golang:1.24-alpine AS build
 
 WORKDIR /app/server
 
@@ -19,7 +19,6 @@ RUN apk add --no-cache tzdata \
 
 COPY --from=build /out/optimus-backend ./optimus-backend
 COPY server/config.yaml ./config.yaml
-COPY server/config/casbin_model.conf ./config/casbin_model.conf
 
 EXPOSE 8888
 

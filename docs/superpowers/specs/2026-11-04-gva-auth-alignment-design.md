@@ -50,6 +50,7 @@
 2. **多点登录与 Redis（#55）**：不实现 `UseMultipoint`；移除 Redis 初始化、`global.OPTIMUS_REDIS`、`system.use-redis` 与 `redis` 配置及依赖，#55 随之关闭。
 3. **黑名单缓存**：照 GVA 引入 `github.com/songzhibin97/gkit` 的 `local_cache`。
 4. **JWT 配置**：照 GVA 改为时长字符串（`expires-time: 7d`、`buffer-time: 1d`），用 `utils.ParseDuration` 解析；`config.yaml` 与部署配置同步修改。
+5. **Go 版本**（2026-11-05）：gorm-adapter 自 v3.40 起才使用 casbin v3 且要求 Go 1.24，因此与 GVA 一致采用 casbin v3.10.0 + gorm-adapter v3.41.0，`go.mod` 与 `Dockerfile.backend` 升到 Go 1.24，gorm 随之升到 1.31。
 
 ## 4. 分批与验证
 

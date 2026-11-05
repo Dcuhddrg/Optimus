@@ -1,11 +1,15 @@
 package system
 
 import (
+	"context"
+	"strconv"
 	"testing"
 
+	"optimus/server/global"
 	systemModel "optimus/server/model/system"
 	"optimus/server/utils"
 
+	gormadapter "github.com/casbin/gorm-adapter/v3"
 	"github.com/stretchr/testify/require"
 )
 
@@ -35,11 +39,26 @@ func TestSeedSystemDataCreatesAdminRolePermissionsAndUserMySQL(t *testing.T) {
 	var adminRole systemModel.SystemRole
 	require.NoError(t, db.Where("code = ?", "admin").First(&adminRole).Error)
 
-	var rolePermissionCount int64
-	require.NoError(t, db.Model(&systemModel.SystemRolePermission{}).
-		Where("role_id = ?", adminRole.ID).
-		Count(&rolePermissionCount).Error)
-	require.Equal(t, int64(len(DefaultSystemPermissions())), rolePermissionCount)
+	// Menus are granted in sys_role_permissions, APIs as Casbin policies.
+	var menus, apis int64
+	for _, permission := range DefaultSystemPermissions() {
+		if permission.Type == "api" {
+			apis++
+		} else {
+			menus++
+		}
+	}
+	var menuGrants, policies int64
+	require.NoError(t, db.Model(&systemModel.SystemRolePermission{}).Where("role_id = ?", adminRole.ID).Count(&menuGrants).Error)
+	require.NoError(t, db.Model(&gormadapter.CasbinRule{}).Where("ptype = ? AND v0 = ?", "p", strconv.Itoa(int(adminRole.ID))).Count(&policies).Error)
+	require.Equal(t, menus, menuGrants)
+	require.Equal(t, apis, policies)
+	previousDB := global.OPTIMUS_DB
+	t.Cleanup(func() { global.OPTIMUS_DB = previousDB })
+	global.OPTIMUS_DB = db
+	codes, err := (&RoleService{}).permissionCodesForRole(context.Background(), adminRole.ID)
+	require.NoError(t, err)
+	require.Len(t, codes, len(DefaultSystemPermissions()))
 }
 
 func TestSeedSystemDataIsIdempotentMySQL(t *testing.T) {
@@ -93,4 +112,37 @@ func permissionCodes(permissions []systemModel.SystemPermission) []string {
 		codes = append(codes, permission.Code)
 	}
 	return codes
+}
+
+// Databases from before #56 store API grants in sys_role_permissions with
+// /api/v1-prefixed paths; startup moves them to casbin_rule, idempotently.
+func TestMigrateAPIGrantsToCasbinUpgradesLegacyGrants(t *testing.T) {
+	db := openTestDB(t)
+	role := systemModel.SystemRole{Code: "legacy", Name: "legacy", Status: "enabled"}
+	require.NoError(t, db.Create(&role).Error)
+	api := systemModel.SystemPermission{Code: "legacy.users", Name: "users", Type: "api", Method: "PUT", Path: "/api/v1/system/users/:id"}
+	menu := systemModel.SystemPermission{Code: "legacy.menu", Name: "menu", Type: "menu", Path: "/system/users"}
+	require.NoError(t, db.Create(&[]systemModel.SystemPermission{api, menu}).Error)
+	require.NoError(t, db.Where("code = ?", api.Code).First(&api).Error)
+	require.NoError(t, db.Where("code = ?", menu.Code).First(&menu).Error)
+	require.NoError(t, db.Create(&[]systemModel.SystemRolePermission{{RoleID: role.ID, PermissionID: api.ID}, {RoleID: role.ID, PermissionID: menu.ID}}).Error)
+
+	for run := 0; run < 2; run++ {
+		require.NoError(t, migrateAPIGrantsToCasbin(db))
+		var migrated systemModel.SystemPermission
+		require.NoError(t, db.First(&migrated, api.ID).Error)
+		require.Equal(t, "/system/users/:id", migrated.Path)
+		var rows []systemModel.SystemRolePermission
+		require.NoError(t, db.Where("role_id = ?", role.ID).Find(&rows).Error)
+		require.Len(t, rows, 1, "only the menu grant stays in sys_role_permissions")
+		require.Equal(t, menu.ID, rows[0].PermissionID)
+		var policies []gormadapter.CasbinRule
+		require.NoError(t, db.Where("ptype = ? AND v0 = ?", "p", strconv.Itoa(int(role.ID))).Find(&policies).Error)
+		require.Len(t, policies, 1)
+		require.Equal(t, "/system/users/:id", policies[0].V1)
+		require.Equal(t, "PUT", policies[0].V2)
+	}
+	codes, err := (&RoleService{}).permissionCodesForRole(context.Background(), role.ID)
+	require.NoError(t, err)
+	require.Equal(t, []string{"legacy.menu", "legacy.users"}, codes)
 }

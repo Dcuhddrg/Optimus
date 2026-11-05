@@ -27,7 +27,6 @@ services:
       OPTIMUS_MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-optimus}
     volumes:
       - ../../server/config.yaml:/app/config.yaml
-      - ../../server/config/casbin_model.conf:/app/config/casbin_model.conf
     ports:
       - "${SERVER_PORT:-18888}:8888"
 

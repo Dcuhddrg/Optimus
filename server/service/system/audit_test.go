@@ -209,11 +209,11 @@ func TestPermissionCodesSnapshotUsesSavedAssignments(t *testing.T) {
 	db := openTestDB(t)
 	roles := []systemModel.SystemRole{{Code: "first", Name: "First", Status: "enabled"}, {Code: "second", Name: "Second", Status: "enabled"}}
 	require.NoError(t, db.Create(&roles).Error)
-	permissions := []systemModel.SystemPermission{{Code: "z.write", Name: "Write", Type: "api"}, {Code: "a.read", Name: "Read", Type: "api"}}
+	permissions := []systemModel.SystemPermission{{Code: "z.write", Name: "Write", Type: "api", Method: "POST", Path: "/things"}, {Code: "a.read", Name: "Read", Type: "api", Method: "GET", Path: "/things"}}
 	require.NoError(t, db.Create(&permissions).Error)
 	store := (&RoleService{})
 	ctx := context.Background()
-	require.NoError(t, store.replaceRolePermissions(ctx, roles[0].ID, []uint{permissions[0].ID, permissions[1].ID}))
+	require.NoError(t, store.replaceRolePermissions(ctx, roles[0].ID, permissions))
 	codes, err := store.permissionCodesForRole(ctx, roles[0].ID)
 	require.NoError(t, err)
 	require.Equal(t, []string{"a.read", "z.write"}, codes)
@@ -221,7 +221,7 @@ func TestPermissionCodesSnapshotUsesSavedAssignments(t *testing.T) {
 	require.NoError(t, err)
 	require.Empty(t, other)
 	require.NotNil(t, other)
-	require.NoError(t, store.replaceRolePermissions(ctx, roles[0].ID, []uint{permissions[1].ID}))
+	require.NoError(t, store.replaceRolePermissions(ctx, roles[0].ID, permissions[1:]))
 	codes, err = store.permissionCodesForRole(ctx, roles[0].ID)
 	require.NoError(t, err)
 	require.Equal(t, []string{"a.read"}, codes)
@@ -340,8 +340,8 @@ func TestSuccessfulLoginSurvivesAuditWriteFailure(t *testing.T) {
 func TestRoleMutationFailureSurvivesAuditWriteFailure(t *testing.T) {
 	db := openTestDB(t)
 	role := systemModel.SystemRole{Code: "ops", Name: "ops", Status: "enabled"}
-	read := systemModel.SystemPermission{Code: "read", Name: "read", Type: "api"}
-	write := systemModel.SystemPermission{Code: "write", Name: "write", Type: "api"}
+	read := systemModel.SystemPermission{Code: "read", Name: "read", Type: "api", Method: "GET", Path: "/things"}
+	write := systemModel.SystemPermission{Code: "write", Name: "write", Type: "api", Method: "POST", Path: "/things"}
 	require.NoError(t, db.Create(&role).Error)
 	require.NoError(t, db.Create(&read).Error)
 	require.NoError(t, db.Create(&write).Error)
