@@ -15,6 +15,7 @@ import { listByCategory } from './data/serviceCatalog';
 import { getFormSchema } from './data/serviceFormSchemas';
 import type { ServiceCatalogItem } from './ticketTypes';
 import styles from './ServicePortalPage.module.css';
+import { useTicketMockEngine } from './data/ticketMockEngine';
 
 type DrawerSelection =
   | { kind: 'service'; item: ServiceCatalogItem }
@@ -22,6 +23,7 @@ type DrawerSelection =
   | null;
 
 export function ServicePortalPage() {
+  useTicketMockEngine();
   const { t } = useI18n();
   const { current } = useAuth();
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>('popular');

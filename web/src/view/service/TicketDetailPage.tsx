@@ -14,8 +14,10 @@ import { useTicketStore } from './data/ticketStore';
 import { useTaskStore } from './data/taskStore';
 import styles from './TicketDetailPage.module.css';
 import { formatDateTime } from '../../utils/format';
+import { useTicketMockEngine } from './data/ticketMockEngine';
 
 export function TicketDetailPage() {
+  useTicketMockEngine();
   const { id = '' } = useParams<{ id: string }>();
   const { t, locale } = useI18n();
   const { getTicket } = useTicketStore();

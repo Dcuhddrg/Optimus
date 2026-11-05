@@ -4,6 +4,7 @@ import { ticketMockEngine } from './ticketMockEngine';
 import { ticketStore } from './ticketStore';
 
 beforeEach(() => {
+  ticketMockEngine.__resetForTest();
   ticketStore.__resetForTest();
   vi.useFakeTimers();
 });
@@ -59,5 +60,53 @@ describe('ticketMockEngine 审批链逐级推进', () => {
 
     vi.advanceTimersByTime(120_000);
     expect(ticketStore.get(id)!.status).toBe('processing');
+  });
+});
+
+describe('ticketMockEngine.resumePending（刷新后继续推进）', () => {
+  function createAt(serviceId: string | null) {
+    return ticketStore.createTicket({
+      serviceId,
+      title: '刷新验证',
+      formValues: {},
+      applicant: { name: '申请人', email: 'a@x.io' },
+    }).ticket.id;
+  }
+
+  it('submitted 工单从头安排推进', () => {
+    const id = createAt('account.role-grant'); // 1 级，未 schedule，相当于刷新后定时器丢失
+    ticketMockEngine.resumePending();
+    vi.advanceTimersByTime(5_000);
+    expect(ticketStore.get(id)!.status).toBe('approving');
+    vi.advanceTimersByTime(10_000);
+    expect(ticketStore.get(id)!.status).toBe('processing');
+  });
+
+  it('approving 工单按剩余待审级数接着推进', () => {
+    const id = createAt('cloud.compute-resize'); // 3 级
+    ticketStore.advance(id, 'submitted', 'approving');
+    ticketStore.advanceApproval(id); // 已过 1 级
+    ticketMockEngine.resumePending();
+    vi.advanceTimersByTime(10_000);
+    expect(ticketStore.get(id)!.approvalChain.map((s) => s.status)).toEqual(['approved', 'approved', 'pending']);
+    vi.advanceTimersByTime(10_000);
+    expect(ticketStore.get(id)!.status).toBe('processing');
+  });
+
+  it('没有待审级的 approving 工单（旧数据）立即进入 processing', () => {
+    const legacy = createAt(null);
+    ticketStore.advance(legacy, 'submitted', 'approving');
+    // 模拟升级前的旧工单：加载后审批链为空
+    ticketStore.get(legacy)!.approvalChain.length = 0;
+    ticketMockEngine.resumePending();
+    expect(ticketStore.get(legacy)!.status).toBe('processing');
+  });
+
+  it('已有定时器的工单不重复安排', () => {
+    const id = createAt('network.acl'); // 2 级
+    ticketMockEngine.schedule(id);
+    ticketMockEngine.resumePending();
+    vi.advanceTimersByTime(15_000);
+    expect(ticketStore.get(id)!.approvalChain.map((s) => s.status)).toEqual(['approved', 'pending']);
   });
 });

@@ -11,10 +11,12 @@ import { useTicketStore } from './data/ticketStore';
 import type { Ticket, TicketStatus } from './ticketTypes';
 import styles from './TicketListPage.module.css';
 import { formatDateTime } from '../../utils/format';
+import { useTicketMockEngine } from './data/ticketMockEngine';
 
 const ALL_STATUSES: TicketStatus[] = ['submitted', 'approving', 'processing', 'done', 'rejected'];
 
 export function TicketListPage() {
+  useTicketMockEngine();
   const { t, locale } = useI18n();
   const navigate = useNavigate();
   const { tickets } = useTicketStore();
@@ -113,7 +115,7 @@ export function TicketListPage() {
   );
 }
 
-// approving 工单在状态徽章下显示「审批 m/n · 当前审批人」，由审批链派生。
+// approving 工单在状态徽章下显示「审批 m/n · 当前角色：审批人」，由审批链派生。
 function ApprovalProgressNote({ ticket }: { ticket: Ticket }) {
   const { t } = useI18n();
   const current = currentApprovalStep(ticket);
@@ -124,6 +126,7 @@ function ApprovalProgressNote({ ticket }: { ticket: Ticket }) {
       {t('servicePortal.ticket.approval.listProgress')
         .replace('{count}', String(approved))
         .replace('{total}', String(total))
+        .replace('{role}', t(current.roleI18nKey as MessageKey))
         .replace('{name}', current.approver.name)}
     </div>
   );

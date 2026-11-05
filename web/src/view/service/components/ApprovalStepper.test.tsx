@@ -11,6 +11,7 @@ let container: HTMLDivElement;
 let root: Root;
 
 beforeEach(() => {
+  Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
   setStoredLocale('zh-CN');
   container = document.createElement('div');
   document.body.appendChild(container);

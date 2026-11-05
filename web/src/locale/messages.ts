@@ -380,7 +380,7 @@ const en = {
         stepperCurrent: 'Reviewing',
         stepperWaiting: 'Pending',
         stepperRejected: 'Rejected',
-        listProgress: 'Approval {count}/{total} · {name}',
+        listProgress: 'Approval {count}/{total} · {role}: {name}',
       },
     },
     task: {
@@ -907,7 +907,7 @@ const zhCN: typeof en = {
         stepperCurrent: '审批中',
         stepperWaiting: '待审批',
         stepperRejected: '已驳回',
-        listProgress: '审批 {count}/{total} · 当前:{name}',
+        listProgress: '审批 {count}/{total} · {role}：{name}',
       },
     },
     task: {
