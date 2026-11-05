@@ -30,7 +30,7 @@ Router -> API -> Service -> Model
 - 结构调整保持已有接口返回、权限和项目隔离行为；响应协议照 GVA，见[接口契约](../frontend-backend/boundary.md#4-响应协议与-http-语义)。
 - 结构调整须清除临时兼容入口，并按影响范围验证构建和隔离 MySQL 回归。
 
-决定与替代关系见 [架构决策索引](../memory/long-term/decisions/README.md)。
+决定与替代关系见 [架构决策索引](../adr/README.md)。
 
 ## 装配与注册入口
 

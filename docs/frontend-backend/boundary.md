@@ -1,6 +1,6 @@
 # 前后端协作与接口契约
 
-全部 JSON 接口采用 gin-vue-admin（`cee04b08`）响应协议；决定、例外与取代关系见 [ADR-003](../memory/long-term/decisions/ADR-003-gva-response-protocol.md)。
+全部 JSON 接口采用 gin-vue-admin（`cee04b08`）响应协议；决定、例外与取代关系见 [ADR-003](../adr/0003-gva-response-protocol.md)。
 
 ## 1. 适用范围与代码依据
 

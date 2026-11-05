@@ -2,8 +2,8 @@
 
 - 日期：2026-11-04。
 - 状态：已由用户确认（“完全照 GVA”）；实施与验证见 [#18](https://github.com/Dcuhddrg/Optimus/issues/18)、[#27](https://github.com/Dcuhddrg/Optimus/issues/27)、[#28](https://github.com/Dcuhddrg/Optimus/issues/28)、#51、#56。
-- 取代：#18 原定的“保留 HTTP 4xx/5xx、错误不改为 HTTP 200”，以及 [ADR-002](ADR-002-backend-structure-migration.md) 中“已确认的 HTTP 4xx/5xx 语义保留”一句。
-- 现行规则：[接口契约](../../../frontend-backend/boundary.md)。
+- 取代：#18 原定的“保留 HTTP 4xx/5xx、错误不改为 HTTP 200”，以及 [ADR-002](0002-backend-structure-migration.md) 中“已确认的 HTTP 4xx/5xx 语义保留”一句。
+- 现行规则：[接口契约](../frontend-backend/boundary.md)。
 
 ## 背景
 

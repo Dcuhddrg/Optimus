@@ -8,4 +8,4 @@
 - 业务模块设计见 [文档入口](../README.md#产品与实施)。
 - 各层组织与写法见[开发示例](../examples/README.md)。
 
-目录和代码事实按需通过图谱核对；重要决定见[架构决策索引](../memory/long-term/decisions/README.md)。
+目录和代码事实按需通过图谱核对；重要决定见[架构决策索引](../adr/README.md)。
