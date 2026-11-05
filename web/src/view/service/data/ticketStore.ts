@@ -16,33 +16,54 @@ const STORAGE_KEY = 'optimus.servicePortal.tickets.v1';
 
 type Listener = () => void;
 
-let tickets: Ticket[] = loadInitial();
+// 多个标签页共用同一份 localStorage：写入前先读最新列表（refreshFromStorage），
+// 并监听 storage 事件同步其他标签页的改动，避免用过期列表覆盖别处新建的工单。
+// 一旦写入失败退回内存模式，就不再从 localStorage 读，以免丢掉只在内存中的工单。
+let storageInSync = true;
+let tickets: Ticket[] = readStored() ?? [];
 const listeners = new Set<Listener>();
 
-function loadInitial(): Ticket[] {
-  if (typeof window === 'undefined') return [];
+// 读取并规范化已存工单；没有数据或无法读取时返回 null。
+function readStored(): Ticket[] | null {
+  if (typeof window === 'undefined') return null;
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
+    if (!raw) return null;
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
+    if (!Array.isArray(parsed)) return null;
     // 升级前创建的工单没有 approvalChain，补为空链：步骤条退化，审批直接放行。
     return (parsed as Ticket[]).map((t) => ({ ...t, approvalChain: t.approvalChain ?? [] }));
   } catch (error) {
-    console.warn('[ticketStore] failed to parse localStorage; starting empty', error);
-    return [];
+    console.warn('[ticketStore] failed to parse localStorage; keeping current tickets', error);
+    return null;
   }
+}
+
+function refreshFromStorage(): void {
+  if (!storageInSync) return;
+  const stored = readStored();
+  if (stored) tickets = stored;
 }
 
 function persist(next: Ticket[]): StorageStatus {
   if (typeof window === 'undefined') return 'memory-only';
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    storageInSync = true;
     return 'persisted';
   } catch (error) {
     console.warn('[ticketStore] failed to persist; staying in memory', error);
+    storageInSync = false;
     return 'memory-only';
   }
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (event) => {
+    if (event.key !== STORAGE_KEY || !storageInSync) return;
+    tickets = readStored() ?? [];
+    notify();
+  });
 }
 
 function notify() {
@@ -75,6 +96,7 @@ export const ticketStore = {
   },
 
   createTicket(input: CreateTicketInput): CreateTicketResult {
+    refreshFromStorage();
     const now = new Date();
     const id = nextTicketId(now, tickets);
     const ticket: Ticket = {
@@ -102,6 +124,7 @@ export const ticketStore = {
   },
 
   advance(ticketId: string, expectedFrom: TicketStatus, nextStatus: TicketStatus): void {
+    refreshFromStorage();
     const idx = tickets.findIndex((t) => t.id === ticketId);
     if (idx === -1) return;
     const current = tickets[idx];
@@ -128,13 +151,16 @@ export const ticketStore = {
   },
 
   // 审批链通过一级；没有待审步（含空链）时直接进入 processing，避免工单卡在 approving。
-  advanceApproval(ticketId: string): void {
+  // 传入 expectedLevel 时只审批该级：别的标签页已审过这一级就不再重复推进。
+  advanceApproval(ticketId: string, expectedLevel?: number): void {
+    refreshFromStorage();
     const idx = tickets.findIndex((t) => t.id === ticketId);
     if (idx === -1) return;
     const current = tickets[idx];
     if (current.status !== 'approving') return;
     const chain = current.approvalChain;
     const pendingIdx = chain.findIndex((s) => s.status === 'pending');
+    if (expectedLevel !== undefined && pendingIdx !== -1 && pendingIdx !== expectedLevel) return;
     const at = new Date().toISOString();
     const processingEvent: TicketEvent = {
       at,
