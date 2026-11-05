@@ -38,4 +38,4 @@ Optimus 以治理、云资源、运维和成本能力为[长期方向](../memory
 | 前端 | React 18 + TypeScript + Vite | |
 | 前端包管理 | pnpm | 禁用 npm install |
 
-技术选型变更**必须先经 brainstorming + writing-plans**，不允许任务级擅自替换。
+技术选型变更**必须先写设计并经用户确认**，不允许任务级擅自替换。

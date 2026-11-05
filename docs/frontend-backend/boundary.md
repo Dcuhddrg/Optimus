@@ -97,11 +97,11 @@
 - view 通过 `web/src/api/` 的模块函数发请求；目前公共封装固定 `/api/v1`，后端 RouterPrefix 的自定义能力不等于前端 base URL 已自动适配。
 - JSON 请求使用 Content-Type: application/json，GET 参数使用明确的查询类型；区分未定义字段、空字符串和 undefined。通用请求层不自动重试非幂等写操作。
 - 认证照 GVA：令牌放在 `x-token` 请求头，缺失时读 `x-token` cookie（登录与刷新时服务端写入）；剩余有效期小于 buffer-time 时响应头 `new-token` 返回新令牌，前端替换本地令牌；登出把令牌加入黑名单。X-Project-Code 只是资源项目选择，不是授权凭证。后端执行 JWT、Casbin（`casbin_rule`，按角色 ID、去掉路由前缀的路径和方法）、成员资格和项目隔离检查。云资源使用项目范围，系统和项目恢复入口不受无关的过期项目选择拦截；项目管理按路径项目独立鉴权。
-- 携带当前凭据且未取消的私有请求明确 401 才触发凭据失效；登录表单 401 显示认证失败，不无条件注销另一会话；权限不足和失效的项目选择（HTTP 200 + code 7）不注销用户，失效项目选择提示重新选择。网络错误、5xx 或解析异常不直接证明 token 失效：保留凭据并提供重试，但不将未确认状态显示为认证成功。会话恢复设计见 [session recovery](../superpowers/specs/2026-10-29-session-recovery-design.md)。
+- 携带当前凭据且未取消的私有请求明确 401 才触发凭据失效；登录表单 401 显示认证失败，不无条件注销另一会话；权限不足和失效的项目选择（HTTP 200 + code 7）不注销用户，失效项目选择提示重新选择。网络错误、5xx 或解析异常不直接证明 token 失效：保留凭据并提供重试，但不将未确认状态显示为认证成功。会话恢复设计见 [session recovery](../design/2026-10-29-session-recovery-design.md)。
 
 ## 7. CSV、探活与无正文例外
 
-- CSV 成功响应保留 text/csv、Content-Disposition 和文件名，不包 `{code,data,msg}`。下载适配器检查 Content-Type：JSON 表示失败（HTTP 200 + code 7 或 401），不能当文件保存。审计导出复用已应用筛选并排除分页参数，上限 10000 条，范围见[审计查询设计](../superpowers/specs/2026-10-29-audit-query-experience-design.md)。
+- CSV 成功响应保留 text/csv、Content-Disposition 和文件名，不包 `{code,data,msg}`。下载适配器检查 Content-Type：JSON 表示失败（HTTP 200 + code 7 或 401），不能当文件保存。审计导出复用已应用筛选并排除分页参数，上限 10000 条，范围见[审计查询设计](../design/2026-10-29-audit-query-experience-design.md)。
 - health/ping 保留小响应：`/ping`、`/base/ping` 始终 200；`/health` 正常时 200 `{"status":"ok"}`，数据库或启动数据初始化失败时 503 `{"status":"unhealthy"}`（与 GVA 不同的明确例外，见 ADR-003）。
 - 其他上传、流式或非 JSON 接口存在时，必须独立声明内容类型及错误方式。
 - 已声明的 JSON 操作不通过省略整个响应正文代替 data；若保留 204 等无正文响应，应明确列为例外并使用相应适配器。
