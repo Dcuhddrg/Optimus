@@ -2,11 +2,11 @@
 
 - 日期：2026-06-04
 - 范围：服务门户「工单管理」展示增强 —— 中间审批人 + 当前进度（前端优先，纯 mock）
-- 状态：原文记录已通过设计评审；按[实施计划](plans/2026-06-04-ticket-approval-chain.md)实现（2026-11-05），单元测试与构建通过，待页面验证与用户验收。实现与计划的差异：审批事件文案放在 `servicePortal.ticket.event.approved`（与既有事件同级）；旧工单在加载时补空链，而不是在各处读取时兜底。
+- 状态：已实现并验收（2026-11-05），由 [PR #76](https://github.com/Dcuhddrg/Optimus/pull/76) 交付，[#4](https://github.com/Dcuhddrg/Optimus/issues/4) 已关闭。实施计划交付后已删除，可从 Git 历史找回。实现与计划的差异：审批事件文案放在 `servicePortal.ticket.event.approved`（与既有事件同级）；旧工单在加载时补空链；刷新或升级后由 `ticketMockEngine.resumePending` 接着推进未完成的工单；列表小字显示当前角色与审批人。
 - 最近核查：2026-10-26；实现范围及相关证据见 [#4](https://github.com/Dcuhddrg/Optimus/issues/4)，基础验证记录见 [#2](https://github.com/Dcuhddrg/Optimus/issues/2)。
 - 分支：在 `feat/ops-center-tasks` 基础上继续（不另开分支）
 
-> 演进关系：本设计将 [任务阶段](2026-06-02-ops-center-tasks-design.md) 的固定审批推进改为逐级通过，保留任务完成驱动工单 done。审批仍是前端 mock，后端与交互式审批见“范围外”。
+> 演进关系：本设计将 [任务阶段](../2026-06-02-ops-center-tasks-design.md) 的固定审批推进改为逐级通过，保留任务完成驱动工单 done。审批仍是前端 mock，后端与交互式审批见“范围外”。
 
 ## 背景
 
