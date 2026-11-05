@@ -2,8 +2,8 @@
 
 ## 包含内容
 
-[完整插件示例](full-plugin-example.md) 保留原有的本项目目录与装配边界说明，暂未纳入 #45 第一阶段替换。另可阅读后端 [plugin.go 参考模板](../backend/plugin-go-example.md)；其中的注册 SDK、初始化函数和文件引用属于参考框架，不代表 Optimus 已有对应能力。
+[完整插件示例](full-plugin-example.md) 按 gin-vue-admin `cee04b08` 改写，说明前后端目录和实现顺序；入口写法见 [plugin.go 示例](../backend/plugin-go-example.md)。注册方式见 [ADR-004](../../adr/0004-gva-plugin-registration.md)，框架代码随第一个插件落地，当前仓库中不存在。
 
 ## 适用范围
 
-仅用于已确认需要独立插件生命周期的能力。尚未验证的 SDK/自动发现不作为可直接运行的标准；普通模块先沿用已验证链路。
+仅用于可整体启用或移除、且不属于 system/project/cloud 的能力，见[插件开发约束](../../modules/plugin-development.md#什么时候做成插件)；其他功能按普通模块开发。

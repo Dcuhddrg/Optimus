@@ -89,4 +89,4 @@ HTTP 输入包括完整表单、局部状态/角色/权限操作和查询条件�
 
 ### Swagger 注释
 
-对外 API 的 Swagger 注释至少写清：功能说明（`@Summary`）、请求参数（`@Param`，含来源）、响应结构（`@Success`/`@Failure`）、路由路径与方法（`@Router`）和鉴权要求（`Authorization` Header 或 `@Security`）。注释须与真实行为一致，现有写法见 `server/api/v1/system/audit.go`。当前未接入 swag 生成，注释仍按上述要求维护。
+对外 API 的 Swagger 注释至少写清：功能说明（`@Summary`）、请求参数（`@Param`，含来源）、响应结构（`@Success`/`@Failure`）、路由路径与方法（`@Router`）和鉴权要求（`Authorization` Header 或 `@Security`）。注释须与真实行为一致，现有写法见 `server/api/v1/system/audit.go`。新增接口必须带注释。照 gin-vue-admin 用 swaggo/swag 生成 `server/docs/` 并提供 `/swagger` 页面；接入与存量注释补齐见 [#73](https://github.com/Dcuhddrg/Optimus/issues/73)，接入前注释仍按上述要求维护。
