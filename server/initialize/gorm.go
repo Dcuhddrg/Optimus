@@ -23,8 +23,8 @@ func Gorm() *gorm.DB {
 }
 
 func logUnsupportedDBType(dbType string) {
-	logger, ok := global.OPTIMUS_LOG.(*zap.Logger)
-	if !ok || logger == nil {
+	logger := global.OPTIMUS_LOG
+	if logger == nil {
 		return
 	}
 

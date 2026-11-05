@@ -14,7 +14,7 @@ func Cloud() {
 	cloudService.Syncers.Register("aliyun", aliyun.NewECSSyncer())
 
 	if _, err := cloudService.CredentialKey(); err != nil {
-		if logger, ok := global.OPTIMUS_LOG.(*zap.Logger); ok && logger != nil {
+		if logger := global.OPTIMUS_LOG; logger != nil {
 			logger.Error("cloud credential encryption key is invalid; cloud services are unavailable",
 				zap.Int("configured_len", len(global.OPTIMUS_CONFIG.Cloud.CredentialEncryptionKey)), zap.Error(err))
 		}

@@ -6,6 +6,7 @@ import (
 
 	"github.com/songzhibin97/gkit/cache/local_cache"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 	"gorm.io/gorm"
 )
@@ -13,7 +14,7 @@ import (
 var (
 	OPTIMUS_CONFIG config.Config
 	OPTIMUS_VP     *viper.Viper
-	OPTIMUS_LOG    any
+	OPTIMUS_LOG    *zap.Logger
 	OPTIMUS_DB     *gorm.DB
 	// OPTIMUS_STARTUP_ERR is set once before the HTTP server starts when the
 	// database or data initialization failed; /health then reports unhealthy.

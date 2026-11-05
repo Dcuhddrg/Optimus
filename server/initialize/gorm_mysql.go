@@ -63,8 +63,8 @@ func configureMySQLPool(conn sqlDBConn, cfg config.Mysql) error {
 }
 
 func logDBInitFailure(action string, err error) {
-	logger, ok := global.OPTIMUS_LOG.(*zap.Logger)
-	if !ok || logger == nil {
+	logger := global.OPTIMUS_LOG
+	if logger == nil {
 		return
 	}
 
