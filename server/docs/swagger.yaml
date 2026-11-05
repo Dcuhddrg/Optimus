@@ -1,0 +1,1720 @@
+definitions:
+  request.AddMemberRequest:
+    properties:
+      projectRole:
+        type: string
+      userId:
+        type: integer
+    type: object
+  request.CreateAccountRequest:
+    properties:
+      accountId:
+        type: string
+      credential:
+        additionalProperties:
+          type: string
+        type: object
+      credentialType:
+        type: string
+      name:
+        type: string
+      provider:
+        type: string
+      tags:
+        additionalProperties:
+          type: string
+        type: object
+    required:
+    - accountId
+    - credential
+    - credentialType
+    - name
+    - provider
+    type: object
+  request.CreateProjectRequest:
+    properties:
+      code:
+        type: string
+      description:
+        type: string
+      name:
+        type: string
+    type: object
+  request.LDAPConfigRequest:
+    properties:
+      baseDn:
+        type: string
+      bindDn:
+        type: string
+      bindPassword:
+        type: string
+      displayNameAttr:
+        type: string
+      emailAttr:
+        type: string
+      enabled:
+        type: boolean
+      url:
+        type: string
+      userFilter:
+        type: string
+      usernameAttr:
+        type: string
+    type: object
+  request.LDAPTestRequest:
+    properties:
+      baseDn:
+        type: string
+      bindDn:
+        type: string
+      bindPassword:
+        type: string
+      displayNameAttr:
+        type: string
+      emailAttr:
+        type: string
+      url:
+        type: string
+      useSavedBindPassword:
+        type: boolean
+      userFilter:
+        type: string
+      usernameAttr:
+        type: string
+    type: object
+  request.LoginRequest:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    type: object
+  request.RoleRequest:
+    properties:
+      code:
+        type: string
+      description:
+        type: string
+      name:
+        type: string
+    type: object
+  request.UpdateAccountRequest:
+    properties:
+      credential:
+        additionalProperties:
+          type: string
+        type: object
+      name:
+        type: string
+    type: object
+  request.UpdateAccountTagsRequest:
+    properties:
+      tags:
+        additionalProperties:
+          type: string
+        type: object
+    required:
+    - tags
+    type: object
+  request.UpdateMemberRoleRequest:
+    properties:
+      projectRole:
+        type: string
+    type: object
+  request.UpdateProjectRequest:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+    type: object
+  request.UpdateRolePermissionsRequest:
+    properties:
+      permissionCodes:
+        items:
+          type: string
+        type: array
+    type: object
+  request.UpdateRoleStatusRequest:
+    properties:
+      status:
+        type: string
+    type: object
+  request.UpdateUserRequest:
+    properties:
+      displayName:
+        type: string
+      email:
+        type: string
+    type: object
+  request.UpdateUserRolesRequest:
+    properties:
+      roleIds:
+        items:
+          type: integer
+        type: array
+    type: object
+  request.UpdateUserStatusRequest:
+    properties:
+      status:
+        type: string
+    type: object
+  response.AccountView:
+    properties:
+      accountId:
+        type: string
+      credential:
+        type: string
+      credentialType:
+        type: string
+      id:
+        type: integer
+      lastSyncedAt:
+        type: string
+      name:
+        type: string
+      projectId:
+        type: integer
+      provider:
+        type: string
+      status:
+        type: string
+      tags:
+        additionalProperties:
+          type: string
+        type: object
+    type: object
+  response.AssetView:
+    properties:
+      accountId:
+        type: integer
+      configJson:
+        type: string
+      deletedAt:
+        type: string
+      discoveredAt:
+        type: string
+      id:
+        type: integer
+      lastSeenAt:
+        type: string
+      name:
+        type: string
+      provider:
+        type: string
+      region:
+        type: string
+      resourceId:
+        type: string
+      resourceType:
+        type: string
+      status:
+        type: string
+      tagsJson:
+        type: string
+    type: object
+  response.AuditListData:
+    properties:
+      list:
+        items:
+          $ref: '#/definitions/system.AuditLogEntry'
+        type: array
+      page:
+        type: integer
+      pageSize:
+        type: integer
+      total:
+        type: integer
+    type: object
+  response.CurrentUserResult:
+    properties:
+      menuPermissions:
+        items:
+          type: string
+        type: array
+      roles:
+        items:
+          type: string
+        type: array
+      user:
+        $ref: '#/definitions/response.SystemUserSummary'
+    type: object
+  response.HealthResponse:
+    properties:
+      status:
+        type: string
+    type: object
+  response.LDAPConfigResult:
+    properties:
+      baseDn:
+        type: string
+      bindDn:
+        type: string
+      bindPassword:
+        type: string
+      displayNameAttr:
+        type: string
+      emailAttr:
+        type: string
+      enabled:
+        type: boolean
+      hasBindPassword:
+        type: boolean
+      url:
+        type: string
+      userFilter:
+        type: string
+      usernameAttr:
+        type: string
+    type: object
+  response.LDAPTestResult:
+    properties:
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  response.LoginResult:
+    properties:
+      menuPermissions:
+        items:
+          type: string
+        type: array
+      roles:
+        items:
+          type: string
+        type: array
+      token:
+        type: string
+      user:
+        $ref: '#/definitions/response.SystemUserSummary'
+    type: object
+  response.PageResult-response_AssetView:
+    properties:
+      list:
+        items:
+          $ref: '#/definitions/response.AssetView'
+        type: array
+      page:
+        type: integer
+      pageSize:
+        type: integer
+      total:
+        type: integer
+    type: object
+  response.PingResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  response.ProjectMember:
+    properties:
+      displayName:
+        type: string
+      projectRole:
+        type: string
+      userId:
+        type: integer
+      username:
+        type: string
+    type: object
+  response.ProjectView:
+    properties:
+      code:
+        type: string
+      createdAt:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      ownerId:
+        type: integer
+      status:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  response.Response:
+    properties:
+      code:
+        type: integer
+      data: {}
+      msg:
+        type: string
+    type: object
+  response.SyncResult:
+    properties:
+      errors:
+        type: integer
+      upserted:
+        type: integer
+    type: object
+  response.SystemUserSummary:
+    properties:
+      displayName:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      source:
+        type: string
+      status:
+        type: string
+      username:
+        type: string
+      uuid:
+        type: string
+    type: object
+  response.UserListItem:
+    properties:
+      displayName:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      roles:
+        items:
+          type: string
+        type: array
+      source:
+        type: string
+      status:
+        type: string
+      username:
+        type: string
+      uuid:
+        type: string
+    type: object
+  system.AuditLogEntry:
+    properties:
+      action:
+        type: string
+      actorUserId:
+        type: integer
+      actorUsername:
+        type: string
+      createdAt:
+        type: string
+      detail:
+        type: string
+      id:
+        type: integer
+      ip:
+        type: string
+      resourceId:
+        type: string
+      resourceType:
+        type: string
+      result:
+        type: string
+      userAgent:
+        type: string
+    type: object
+  system.SystemPermission:
+    properties:
+      code:
+        type: string
+      createdAt:
+        type: string
+      id:
+        type: integer
+      method:
+        type: string
+      name:
+        type: string
+      parentCode:
+        type: string
+      path:
+        type: string
+      sort:
+        type: integer
+      type:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  system.SystemRole:
+    properties:
+      code:
+        type: string
+      createdAt:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      status:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: Optimus 运维平台后端接口。业务结果均为 HTTP 200 + {code,data,msg}（code 0 成功、7 失败），仅未认证返回
+    HTTP 401。
+  title: Optimus Swagger API 接口文档
+  version: v1
+paths:
+  /base/ping:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.PingResponse'
+      summary: 存活探针
+      tags:
+      - Base
+  /cloud/accounts:
+    get:
+      parameters:
+      - description: 当前项目编码；为空时按可访问项目范围
+        in: header
+        name: X-Project-Code
+        type: string
+      - collectionFormat: multi
+        description: 标签筛选，key=value 或 __none__:key，可重复
+        in: query
+        items:
+          type: string
+        name: tag
+        type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: code 0 成功，code 7 业务失败
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  properties:
+                    list:
+                      items:
+                        $ref: '#/definitions/response.AccountView'
+                      type: array
+                  type: object
+              type: object
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 云账号列表（不分页，支持标签筛选）
+      tags:
+      - CloudAccount
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 当前项目编码，创建时必填
+        in: header
+        name: X-Project-Code
+        required: true
+        type: string
+      - description: 请求体
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/request.CreateAccountRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: code 0 成功，code 7 业务失败
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/response.AccountView'
+              type: object
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 在当前项目下创建云账号
+      tags:
+      - CloudAccount
+  /cloud/accounts/{id}:
+    delete:
+      parameters:
+      - description: 当前项目编码；为空时按可访问项目范围
+        in: header
+        name: X-Project-Code
+        type: string
+      - description: 云账号 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: code 0 成功，code 7 业务失败
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 删除云账号
+      tags:
+      - CloudAccount
+    get:
+      parameters:
+      - description: 当前项目编码；为空时按可访问项目范围
+        in: header
+        name: X-Project-Code
+        type: string
+      - description: 云账号 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: code 0 成功，code 7 业务失败
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/response.AccountView'
+              type: object
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 获取云账号
+      tags:
+      - CloudAccount
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: 当前项目编码；为空时按可访问项目范围
+        in: header
+        name: X-Project-Code
+        type: string
+      - description: 云账号 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 请求体
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/request.UpdateAccountRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: code 0 成功，code 7 业务失败
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/response.AccountView'
+              type: object
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 更新云账号
+      tags:
+      - CloudAccount
+  /cloud/accounts/{id}/sync:
+    post:
+      parameters:
+      - description: 当前项目编码；为空时按可访问项目范围
+        in: header
+        name: X-Project-Code
+        type: string
+      - description: 云账号 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: code 0 成功，code 7 业务失败
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/response.SyncResult'
+              type: object
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 同步云账号下的资产
+      tags:
+      - CloudAccount
+  /cloud/accounts/{id}/tags:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: 当前项目编码；为空时按可访问项目范围
+        in: header
+        name: X-Project-Code
+        type: string
+      - description: 云账号 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 请求体
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/request.UpdateAccountTagsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: code 0 成功，code 7 业务失败
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/response.AccountView'
+              type: object
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 替换云账号标签
+      tags:
+      - CloudAccount
+  /cloud/assets:
+    get:
+      parameters:
+      - description: 当前项目编码；为空时按可访问项目范围
+        in: header
+        name: X-Project-Code
+        type: string
+      - default: 1
+        description: 页码，从 1 开始
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: 每页条数，1～200
+        in: query
+        name: pageSize
+        type: integer
+      - description: 云账号 ID
+        in: query
+        name: accountId
+        type: integer
+      - description: 云厂商
+        in: query
+        name: provider
+        type: string
+      - description: 地域
+        in: query
+        name: region
+        type: string
+      - description: 资源类型
+        in: query
+        name: resourceType
+        type: string
+      - description: 状态
+        in: query
+        name: status
+        type: string
+      - description: 关键字
+        in: query
+        name: keyword
+        type: string
+      - collectionFormat: multi
+        description: 标签筛选，key=value，可重复
+        in: query
+        items:
+          type: string
+        name: tag
+        type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: code 0 成功，code 7 业务失败
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/response.PageResult-response_AssetView'
+              type: object
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 分页查询云资产
+      tags:
+      - CloudAsset
+  /health:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.HealthResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/response.HealthResponse'
+      summary: 健康检查：数据库或启动数据初始化失败时返回 503
+      tags:
+      - Base
+  /ping:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.PingResponse'
+      summary: 存活探针
+      tags:
+      - Base
+  /projects:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: code 0 成功，code 7 业务失败
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  properties:
+                    list:
+                      items:
+                        $ref: '#/definitions/response.ProjectView'
+                      type: array
+                  type: object
+              type: object
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 当前用户可访问的项目列表
+      tags:
+      - Project
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 请求体
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/request.CreateProjectRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: code 0 成功，code 7 业务失败
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/response.ProjectView'
+              type: object
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 创建项目
+      tags:
+      - Project
+  /projects/{code}:
+    delete:
+      parameters:
+      - description: 项目编码
+        in: path
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: code 0 成功，code 7 业务失败
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 删除项目
+      tags:
+      - Project
+    get:
+      parameters:
+      - description: 项目编码
+        in: path
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: code 0 成功，code 7 业务失败
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/response.ProjectView'
+              type: object
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 获取项目详情
+      tags:
+      - Project
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: 项目编码
+        in: path
+        name: code
+        required: true
+        type: string
+      - description: 请求体
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/request.UpdateProjectRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: code 0 成功，code 7 业务失败
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/response.ProjectView'
+              type: object
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 更新项目
+      tags:
+      - Project
+  /projects/{code}/members:
+    get:
+      parameters:
+      - description: 项目编码
+        in: path
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: code 0 成功，code 7 业务失败
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  properties:
+                    list:
+                      items:
+                        $ref: '#/definitions/response.ProjectMember'
+                      type: array
+                  type: object
+              type: object
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 项目成员列表
+      tags:
+      - ProjectMember
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 项目编码
+        in: path
+        name: code
+        required: true
+        type: string
+      - description: 请求体
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/request.AddMemberRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: code 0 成功，code 7 业务失败
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 添加项目成员
+      tags:
+      - ProjectMember
+  /projects/{code}/members/{userId}:
+    delete:
+      parameters:
+      - description: 项目编码
+        in: path
+        name: code
+        required: true
+        type: string
+      - description: 用户 ID
+        in: path
+        name: userId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: code 0 成功，code 7 业务失败
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 移除项目成员
+      tags:
+      - ProjectMember
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: 项目编码
+        in: path
+        name: code
+        required: true
+        type: string
+      - description: 用户 ID
+        in: path
+        name: userId
+        required: true
+        type: integer
+      - description: 请求体
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/request.UpdateMemberRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: code 0 成功，code 7 业务失败
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 修改成员的项目角色
+      tags:
+      - ProjectMember
+  /system/audit-logs:
+    get:
+      parameters:
+      - default: 1
+        description: Page, starting from 1
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Page size, 1 to 200
+        in: query
+        name: pageSize
+        type: integer
+      - description: Actor user ID
+        in: query
+        name: actorUserId
+        type: integer
+      - description: Exact action code
+        in: query
+        name: action
+        type: string
+      - description: Exact resource type
+        in: query
+        name: resourceType
+        type: string
+      - description: Result
+        in: query
+        name: result
+        type: string
+      - description: Start time in RFC3339
+        in: query
+        name: startTime
+        type: string
+      - description: End time in RFC3339
+        in: query
+        name: endTime
+        type: string
+      - description: Recorded detail keyword
+        in: query
+        name: keyword
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: code 0 成功，code 7 业务失败
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/response.AuditListData'
+              type: object
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 分页查询审计日志
+      tags:
+      - Audit
+  /system/audit-logs/export:
+    get:
+      parameters:
+      - description: Actor user ID
+        in: query
+        name: actorUserId
+        type: integer
+      - description: Exact action code
+        in: query
+        name: action
+        type: string
+      - description: Exact resource type
+        in: query
+        name: resourceType
+        type: string
+      - description: Result
+        in: query
+        name: result
+        type: string
+      - description: Start time in RFC3339
+        in: query
+        name: startTime
+        type: string
+      - description: End time in RFC3339
+        in: query
+        name: endTime
+        type: string
+      - description: Recorded detail keyword
+        in: query
+        name: keyword
+        type: string
+      produces:
+      - text/csv
+      responses:
+        "200":
+          description: CSV 附件；失败时为 JSON {code:7}
+          schema:
+            type: string
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 导出符合筛选的审计日志 CSV，最多 10000 条；失败时返回 JSON
+      tags:
+      - Audit
+  /system/auth/login:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 请求体
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/request.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: code 0 成功，code 7 业务失败
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/response.LoginResult'
+              type: object
+      summary: 用户名密码或 LDAP 登录，返回令牌并写入 x-token cookie
+      tags:
+      - Auth
+  /system/auth/logout:
+    post:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: code 0 成功，code 7 业务失败
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 登出：令牌加入黑名单并清除 cookie
+      tags:
+      - Auth
+  /system/auth/me:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: code 0 成功，code 7 业务失败
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/response.CurrentUserResult'
+              type: object
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 获取当前用户、角色与权限
+      tags:
+      - Auth
+  /system/ldap/config:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: code 0 成功，code 7 业务失败
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/response.LDAPConfigResult'
+              type: object
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 获取 LDAP 配置
+      tags:
+      - LDAP
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: 请求体
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/request.LDAPConfigRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: code 0 成功，code 7 业务失败
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/response.LDAPConfigResult'
+              type: object
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 保存 LDAP 配置
+      tags:
+      - LDAP
+  /system/ldap/test:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 请求体
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/request.LDAPTestRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: code 0 成功，code 7 业务失败
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/response.LDAPTestResult'
+              type: object
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 测试 LDAP 连接
+      tags:
+      - LDAP
+  /system/permissions/tree:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: code 0 成功，code 7 业务失败
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  properties:
+                    list:
+                      items:
+                        $ref: '#/definitions/system.SystemPermission'
+                      type: array
+                  type: object
+              type: object
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 权限码清单（菜单与 API）
+      tags:
+      - Role
+  /system/roles:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: code 0 成功，code 7 业务失败
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  properties:
+                    list:
+                      items:
+                        $ref: '#/definitions/system.SystemRole'
+                      type: array
+                    total:
+                      type: integer
+                  type: object
+              type: object
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 角色列表（完整集合，不分页）
+      tags:
+      - Role
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 请求体
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/request.RoleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: code 0 成功，code 7 业务失败
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/system.SystemRole'
+              type: object
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 创建角色
+      tags:
+      - Role
+  /system/roles/{id}:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: 角色 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 请求体
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/request.RoleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: code 0 成功，code 7 业务失败
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/system.SystemRole'
+              type: object
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 更新角色
+      tags:
+      - Role
+  /system/roles/{id}/permissions:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: 角色 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 请求体
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/request.UpdateRolePermissionsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: code 0 成功，code 7 业务失败
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 设置角色权限码
+      tags:
+      - Role
+  /system/roles/{id}/status:
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: 角色 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 请求体
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/request.UpdateRoleStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: code 0 成功，code 7 业务失败
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/system.SystemRole'
+              type: object
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 启用或禁用角色
+      tags:
+      - Role
+  /system/users:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: code 0 成功，code 7 业务失败
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  properties:
+                    list:
+                      items:
+                        $ref: '#/definitions/response.UserListItem'
+                      type: array
+                    total:
+                      type: integer
+                  type: object
+              type: object
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 用户列表（完整集合，不分页）
+      tags:
+      - User
+  /system/users/{id}:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: 用户 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 请求体
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/request.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: code 0 成功，code 7 业务失败
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/response.SystemUserSummary'
+              type: object
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 更新用户资料
+      tags:
+      - User
+  /system/users/{id}/roles:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: 用户 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 请求体
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/request.UpdateUserRolesRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: code 0 成功，code 7 业务失败
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 设置用户角色
+      tags:
+      - User
+  /system/users/{id}/status:
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: 用户 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 请求体
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/request.UpdateUserStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: code 0 成功，code 7 业务失败
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/response.SystemUserSummary'
+              type: object
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 启用或禁用用户
+      tags:
+      - User
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: x-token
+    type: apiKey
+swagger: "2.0"
+tags:
+- description: 探活与健康检查
+  name: Base
+- description: 登录、当前用户与登出
+  name: Auth
+- description: 用户管理
+  name: User
+- description: 角色与权限
+  name: Role
+- description: LDAP 配置
+  name: LDAP
+- description: 审计日志
+  name: Audit
+- description: 项目管理
+  name: Project
+- description: 项目成员
+  name: ProjectMember
+- description: 云账号
+  name: CloudAccount
+- description: 云资产
+  name: CloudAsset

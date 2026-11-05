@@ -19,10 +19,10 @@ import (
 type AuditApi struct{}
 
 // QueryAuditLogs returns the migrated audit pagination contract.
-// @Tags System Audit
-// @Summary Query audit logs
-// @Produce json
-// @Param Authorization header string true "Bearer token"
+// @Tags Audit
+// @Summary 分页查询审计日志
+// @Security ApiKeyAuth
+// @Produce application/json
 // @Param page query int false "Page, starting from 1" default(1)
 // @Param pageSize query int false "Page size, 1 to 200" default(20)
 // @Param actorUserId query int false "Actor user ID"
@@ -32,8 +32,8 @@ type AuditApi struct{}
 // @Param startTime query string false "Start time in RFC3339"
 // @Param endTime query string false "End time in RFC3339"
 // @Param keyword query string false "Recorded detail keyword"
-// @Success 200 {object} response.Response{data=systemResponse.AuditListData}
-// @Failure 401 {object} response.Response
+// @Success 200 {object} response.Response{data=systemResponse.AuditListData} "code 0 成功，code 7 业务失败"
+// @Failure 401 {object} response.Response "未认证"
 // @Router /system/audit-logs [get]
 func (h *AuditApi) QueryAuditLogs(c *gin.Context) {
 	svc := auditService
@@ -54,10 +54,10 @@ func (h *AuditApi) QueryAuditLogs(c *gin.Context) {
 }
 
 // ExportAuditLogs retains CSV success and uses migrated JSON failures.
-// @Tags System Audit
-// @Summary Export matching audit logs, up to 10000 rows
+// @Tags Audit
+// @Summary 导出符合筛选的审计日志 CSV，最多 10000 条；失败时返回 JSON
+// @Security ApiKeyAuth
 // @Produce text/csv
-// @Param Authorization header string true "Bearer token"
 // @Param actorUserId query int false "Actor user ID"
 // @Param action query string false "Exact action code"
 // @Param resourceType query string false "Exact resource type"
@@ -65,8 +65,8 @@ func (h *AuditApi) QueryAuditLogs(c *gin.Context) {
 // @Param startTime query string false "Start time in RFC3339"
 // @Param endTime query string false "End time in RFC3339"
 // @Param keyword query string false "Recorded detail keyword"
-// @Success 200 {string} string "CSV attachment"
-// @Failure 401 {object} response.Response
+// @Success 200 {string} string "CSV 附件；失败时为 JSON {code:7}"
+// @Failure 401 {object} response.Response "未认证"
 // @Router /system/audit-logs/export [get]
 func (h *AuditApi) ExportAuditLogs(c *gin.Context) {
 	svc := auditService

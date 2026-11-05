@@ -89,4 +89,14 @@ HTTP 输入包括完整表单、局部状态/角色/权限操作和查询条件�
 
 ### Swagger 注释
 
-对外 API 的 Swagger 注释至少写清：功能说明（`@Summary`）、请求参数（`@Param`，含来源）、响应结构（`@Success`/`@Failure`）、路由路径与方法（`@Router`）和鉴权要求（`Authorization` Header 或 `@Security`）。注释须与真实行为一致，现有写法见 `server/api/v1/system/audit.go`。新增接口必须带注释。照 gin-vue-admin 用 swaggo/swag 生成 `server/docs/` 并提供 `/swagger` 页面；接入与存量注释补齐见 [#73](https://github.com/Dcuhddrg/Optimus/issues/73)，接入前注释仍按上述要求维护。
+照 gin-vue-admin 用 swaggo/swag 生成文档：通用信息与 `@Tag` 写在 `server/main.go`，生成结果 `server/docs/` 入库，所有运行模式下都可访问 `<RouterPrefix>/swagger/index.html`（默认 `/api/v1/swagger/index.html`）。
+
+每个对外接口必须写清：
+
+- `@Tags`（取 `main.go` 中已声明的标签）与 `@Summary`；
+- `@Param`，含来源（path、query、header、body），云资源接口写明 `X-Project-Code` 请求头；
+- `@Success 200 {object} response.Response{data=<类型>}`，列表用 `object{list=[]<类型>}`，分页用 `response.PageResult[<类型>]`；私有接口加 `@Failure 401`；
+- `@Security ApiKeyAuth`（`x-token` 请求头），公开接口不写；
+- `@Router`，路径不含 RouterPrefix。
+
+注释引用的类型所在包必须被该文件导入（swag 只解析本文件的包别名），没有其他用途时用 `var _ = <类型>{}` 保留引用。注释须与真实行为一致，写法见 `server/api/v1/cloud/account.go`。修改注释或接口后运行 `cd server && swag init` 重新生成并提交 `server/docs/`；`initialize` 的 Swagger 测试会检查每个已注册路由都有注释。

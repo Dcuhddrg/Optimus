@@ -44,6 +44,7 @@ Optimus 以治理、云资源、运维和成本能力为[长期方向](../memory
 | 日志 | Zap 1.27 | |
 | 权限 | Casbin v3 + gorm-adapter（casbin_rule） | |
 | JWT | golang-jwt/jwt v5 | |
+| API 文档 | swaggo/swag 1.16 + gin-swagger | `cd server && swag init`，页面 `/api/v1/swagger/index.html` |
 | 测试 | Go test + testify | |
 | 前端框架 | React 18 + TypeScript 5 + Vite 5 | |
 | 前端路由 | react-router-dom 6 | |

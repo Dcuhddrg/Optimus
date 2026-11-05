@@ -11,6 +11,12 @@ import (
 
 type BaseApi struct{}
 
+// @Tags Base
+// @Summary 存活探针
+// @Produce application/json
+// @Success 200 {object} commonResponse.PingResponse
+// @Router /ping [get]
+// @Router /base/ping [get]
 func (h *BaseApi) Ping(c *gin.Context) {
 	service := statusService
 

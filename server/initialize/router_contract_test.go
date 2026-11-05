@@ -41,7 +41,7 @@ func TestRegisteredRoutesAndUnauthenticatedContracts(t *testing.T) {
 		method, path string
 		public       bool
 	}{
-		{"GET", "/health", true}, {"GET", "/ping", true}, {"GET", "/base/ping", true},
+		{"GET", "/health", true}, {"GET", "/ping", true}, {"GET", "/base/ping", true}, {"GET", "/swagger/*any", true},
 		{"POST", "/system/auth/login", true}, {"GET", "/system/auth/me", false}, {"POST", "/system/auth/logout", false},
 		{"GET", "/system/users", false}, {"PUT", "/system/users/:id", false}, {"PATCH", "/system/users/:id/status", false}, {"PUT", "/system/users/:id/roles", false},
 		{"GET", "/system/roles", false}, {"POST", "/system/roles", false}, {"PUT", "/system/roles/:id", false}, {"PATCH", "/system/roles/:id/status", false}, {"PUT", "/system/roles/:id/permissions", false}, {"GET", "/system/permissions/tree", false},
@@ -68,7 +68,7 @@ func TestRegisteredRoutesAndUnauthenticatedContracts(t *testing.T) {
 			require.ElementsMatch(t, expected, actual)
 			for _, route := range routes {
 				t.Run(route.method+route.path, func(t *testing.T) {
-					path := strings.NewReplacer(":userId", "8", ":id", "7", ":code", "demo").Replace(route.path)
+					path := strings.NewReplacer(":userId", "8", ":id", "7", ":code", "demo", "*any", "index.html").Replace(route.path)
 					w := httptest.NewRecorder()
 					engine.ServeHTTP(w, httptest.NewRequest(route.method, base+path, nil))
 					if route.public {
