@@ -31,14 +31,14 @@ router → view / components → api → 后端
 - `web/src/api/` 封装模块接口，公共请求由 `web/src/utils/request.ts` 处理；通用工具放在 `web/src/utils/`。
 - `web/src/auth/` 和 `web/src/locale/` 提供现有共享上下文；React 组件状态与项目 Context 按实际范围使用。
 - 中英文文案通过 `LanguageProvider` 和 `useI18n` 提供；导航与模块页面分别位于导航组件和对应 `view/<module>/`。
-- 详细规则与接口边界见 [前端开发规范](../frontend-backend/frontend-rules.md) 和 [接口契约](../frontend-backend/boundary.md)。
+- 详细规则与接口边界见 [前端开发规范](../frontend-backend/frontend-rules.md)、[前端工具函数约束](../frontend-backend/frontend-utils.md) 和 [接口契约](../frontend-backend/boundary.md)。
 
 ## 插件边界
 
-插件按项目规则分别放在 `server/plugin/<name>/` 和 `web/src/plugin/<name>/`，复用现有模块装配和权限机制；独立注册或自动加载先设计确认。职责稳定后补充对应模块说明。
+插件按项目规则分别放在 `server/plugin/<name>/` 和 `web/src/plugin/<name>/`，前后端结构对称，复用现有模块装配和权限机制；独立注册或自动加载先设计确认。结构、入口职责与开发顺序见[插件开发约束](../modules/plugin-development.md)，职责稳定后按[模块说明索引](../modules/module-index.md)补充对应模块说明。
 
 ## 继续阅读
 
 - 运行时、接口与技术栈：[当前架构](repo-profile.md)。
-- 后端模块分层：[模块与分层](../modules/README.md)。
+- 后端模块分层：[模块与分层](../modules/README.md)；模块分组与入口：[模块说明索引](../modules/module-index.md)。
 - 重要决定：[决策索引](../memory/long-term/decisions/README.md)。
