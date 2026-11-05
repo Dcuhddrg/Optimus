@@ -1,6 +1,6 @@
 # 工单审批链展示 Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> 步骤使用复选框（`- [ ]`）跟踪。
 
 **Goal:** 让工单展示其多级审批链 —— 中间审批人是谁、整体走到哪一步，纯前端 mock 自动逐级推进。
 

@@ -48,7 +48,7 @@
 ### Superpowers 工作流
 
 - 非平凡任务优先走 brainstorming → writing-plans → executing-plans 流程
-- 设计文档写入 docs/superpowers/specs/
+- 设计文档写入 docs/design/
 - 实施计划写入 docs/superpowers/plans/
 - 不跳过设计直接写代码，除非任务明确是单文件小改动
 ```

@@ -20,7 +20,7 @@
 | 分组 | 后端 | 前端 | 设计入口 |
 | --- | --- | --- | --- |
 | system | `server/{api/v1,service,model,router,source}/system/` | `web/src/view/{auth,system}/`、`web/src/api/system.ts` | [后端分层](backend-layer-rules.md)、[接口契约](../frontend-backend/boundary.md) |
-| project | `server/{api/v1,service,model,router,source}/project/` | `web/src/view/project/`、`web/src/api/project.ts` | [多项目隔离](../superpowers/specs/2026-05-14-multi-project-cloud-isolation-design.md) |
+| project | `server/{api/v1,service,model,router,source}/project/` | `web/src/view/project/`、`web/src/api/project.ts` | [多项目隔离](../design/2026-05-14-multi-project-cloud-isolation-design.md) |
 | cloud | `server/{api/v1,service,model,router,source}/cloud/` | `web/src/view/cloud/`、`web/src/api/cloud.ts` | [云资源与项目](../memory/business/cloud-resources.md) |
 | 运维中心 | 设计中 | `web/src/view/service/` | [运维中心](../memory/business/operations.md) |
 | plugins | `server/plugin/<name>/`（尚无） | `web/src/plugin/<name>/`（尚无） | [插件开发约束](plugin-development.md) |
@@ -39,4 +39,4 @@
 - `plugin-<name>.md`；
 - `deploy-runtime.md`。
 
-已有业务设计放在 `superpowers/specs/` 的，模块文档只链接，不复制正文。
+已有业务设计放在 `docs/design/` 的，模块文档只链接，不复制正文。

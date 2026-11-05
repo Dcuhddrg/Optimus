@@ -2,7 +2,7 @@
 
 - 日期：2026-06-04
 - 范围：服务门户「工单管理」展示增强 —— 中间审批人 + 当前进度（前端优先，纯 mock）
-- 状态：原文记录已通过设计评审；[实施计划已存在](../plans/2026-06-04-ticket-approval-chain.md)，部分实现，尚未完成交付验收。
+- 状态：原文记录已通过设计评审；[实施计划已存在](plans/2026-06-04-ticket-approval-chain.md)，部分实现，尚未完成交付验收。
 - 最近核查：2026-10-26；实现范围及相关证据见 [#4](https://github.com/Dcuhddrg/Optimus/issues/4)，基础验证记录见 [#2](https://github.com/Dcuhddrg/Optimus/issues/2)。
 - 分支：在 `feat/ops-center-tasks` 基础上继续（不另开分支）
 

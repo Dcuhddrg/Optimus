@@ -6,8 +6,8 @@
 
 - [GitHub Issues](https://github.com/Dcuhddrg/Optimus/issues)：所有 Bug、反馈、需求建议、架构风险、待决策事项的来源、优先级、责任、进度、讨论、交付、验证结果及验收记录。
 - 业务需求包括模块、接口、页面、流程、业务规则及插件能力的新增或修改；长期稳定的用户偏好和协作方式提炼到根规则或对应设计。
-- 路线图：长期目标、阶段依赖和非目标；架构/ADR：当前约束、重要取舍及理由。
-- spec：场景、范围、异常行为、验收条件；plan：实施步骤。分别放在 `docs/superpowers/specs/` 和 `docs/superpowers/plans/`；已交付阶段归档到 `docs/superpowers/archive/`，待核实项保持活跃。已确认的重要讨论结论写回相关设计，不要求读者遍历 Issue 评论重建设计。
+- 路线图：长期目标、阶段依赖和非目标；架构/ADR：当前约束、重要取舍及理由，放在 `docs/adr/`。
+- spec：场景、范围、异常行为、验收条件；plan：实施步骤。新的 spec 和任务拆分记在 GitHub Issue；需要长期保留的设计放在 `docs/design/`，已交付的设计归档到 `docs/design/archive/`，待核实项保持活跃。plan 交付后删除，结果记在 Issue/PR，历史从 Git 找回。仍在进行的 plan 放在 `docs/design/plans/`。已确认的重要讨论结论写回相关设计，不要求读者遍历 Issue 评论重建设计。
 - 决策索引维护现行决定及依据；已移除的历史内容按需通过 Git 历史和 Issue 追溯。
 
 ## 更新时机

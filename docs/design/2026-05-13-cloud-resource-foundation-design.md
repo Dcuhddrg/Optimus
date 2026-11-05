@@ -6,7 +6,7 @@
 
 ## Background
 
-Phase 1 exists because the [roadmap](../../memory/long-term/platform-roadmap.md) separates shared cloud resource foundation work from the later DevOps, FinOps, and automation phases. The roadmap makes this sequence explicit: the platform must first establish a shared cloud resource base that later phases can depend on without redefining the core resource model.
+Phase 1 exists because the [roadmap](../memory/long-term/platform-roadmap.md) separates shared cloud resource foundation work from the later DevOps, FinOps, and automation phases. The roadmap makes this sequence explicit: the platform must first establish a shared cloud resource base that later phases can depend on without redefining the core resource model.
 
 This spec is the boundary-setting document for that first platform phase. Its job is to lock the scope before any deeper design work starts, so later phase specs can reuse the same foundation instead of re-litigating account, resource, and visibility semantics.
 
@@ -42,9 +42,9 @@ Phase 1 does not define:
 
 The current backend is still `system`-centered. The active repository layout is organized around `server/api/v1/system`, `server/router/system`, `server/service/system`, and `server/initialize`, not around a mature `cloud` domain.
 
-At the time of this design, the architecture documentation described a `main -> initialize -> router -> api/handlers -> usecase/service -> infra/persistence` flow. This historical description is superseded by [ADR-002](../../adr/0002-backend-structure-migration.md); current architecture requirements are in [backend layer rules](../../modules/backend-layer-rules.md).
+At the time of this design, the architecture documentation described a `main -> initialize -> router -> api/handlers -> usecase/service -> infra/persistence` flow. This historical description is superseded by [ADR-002](../adr/0002-backend-structure-migration.md); current architecture requirements are in [backend layer rules](../modules/backend-layer-rules.md).
 
-The recent module-composition and service-boundary specs, [2026-05-11-system-module-composition-design.md](../archive/specs/2026-05-11-system-module-composition-design.md) and [2026-05-12-system-service-boundary-design.md](../archive/specs/2026-05-12-system-service-boundary-design.md), also show that the codebase is still tightening boundary discipline inside `system`. This Phase 1 spec must therefore anchor itself to the repository as it exists now, not to an imagined post-refactor cloud platform.
+The recent module-composition and service-boundary specs, [2026-05-11-system-module-composition-design.md](archive/2026-05-11-system-module-composition-design.md) and [2026-05-12-system-service-boundary-design.md](archive/2026-05-12-system-service-boundary-design.md), also show that the codebase is still tightening boundary discipline inside `system`. This Phase 1 spec must therefore anchor itself to the repository as it exists now, not to an imagined post-refactor cloud platform.
 
 ## Design Overview
 
@@ -260,7 +260,7 @@ The account and asset design describes [sync architecture](2026-05-13-cloud-acco
 
 ## API and Module Boundaries
 
-The [account and asset API design](2026-05-13-cloud-account-asset-registry-design.md#api-endpoints), [project isolation API surface](2026-05-14-multi-project-cloud-isolation-design.md#api-surface), and current [frontend/backend contract](../../frontend-backend/boundary.md) cover these boundaries. Historical implementation paths in design documents are not current architecture rules.
+The [account and asset API design](2026-05-13-cloud-account-asset-registry-design.md#api-endpoints), [project isolation API surface](2026-05-14-multi-project-cloud-isolation-design.md#api-surface), and current [frontend/backend contract](../frontend-backend/boundary.md) cover these boundaries. Historical implementation paths in design documents are not current architecture rules.
 
 ## Delivery Slices
 
@@ -268,4 +268,4 @@ The [project isolation decomposition](2026-05-14-multi-project-cloud-isolation-d
 
 ## Testing and Verification Strategy
 
-Current engineering validation steps are in [engineering workflow](../../relations/engineering-workflow.md#验证步骤); evidence and uncovered integrations are tracked in [#2](https://github.com/Dcuhddrg/Optimus/issues/2). This section does not claim end-to-end or real cloud validation.
+Current engineering validation steps are in [engineering workflow](../relations/engineering-workflow.md#验证步骤); evidence and uncovered integrations are tracked in [#2](https://github.com/Dcuhddrg/Optimus/issues/2). This section does not claim end-to-end or real cloud validation.

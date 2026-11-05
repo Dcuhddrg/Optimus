@@ -4,7 +4,7 @@
 
 ## 背景
 
-在 [`2026-05-11-backend-architecture-gap-assessment.md`](./2026-05-11-backend-architecture-gap-assessment.md) 中，`问题 2` 被定义为：
+在 [`2026-05-11-backend-architecture-gap-assessment.md`](2026-05-11-backend-architecture-gap-assessment.md) 中，`问题 2` 被定义为：
 
 `service` 混合用例逻辑与基础设施实现。
 
