@@ -2,80 +2,102 @@
 
 ## 这个文件负责什么
 
-页面组件负责查询表单、表格、弹窗、抽屉和交互流程，是用户真正接触到的界面层。
+`web/src/view/<模块>/<Name>Page.tsx` 负责查询、列表、表单和交互流程，样式放在同名 `*.module.css`。
 
 ## 什么时候应该这样写
 
-- 新增后台管理页面
+- 新增管理页面
 - 新增列表页 + 搜索 + 分页
-- 新增表单弹窗或抽屉流程
+- 新增创建或编辑表单
 
 ## 推荐写法示例
 
-```vue
-<template>
-  <div>
-    <div class="gva-search-box">
-      <el-form :inline="true" :model="searchInfo">
-        <el-form-item label="名称">
-          <el-input v-model="searchInfo.name" placeholder="请输入名称" />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="onSubmit">查询</el-button>
-          <el-button @click="onReset">重置</el-button>
-        </el-form-item>
-      </el-form>
-    </div>
+```tsx
+import { FormEvent, useEffect, useState } from 'react';
 
-    <div class="gva-table-box">
-      <el-table :data="tableData" row-key="ID">
-        <el-table-column label="ID" prop="ID" width="80" />
-        <el-table-column label="名称" prop="name" />
-      </el-table>
-    </div>
-  </div>
-</template>
+import { listOrders } from '../../api/order';
+import { PageHeader } from '../../components/page/PageHeader';
+import { EmptyState } from '../../components/state/EmptyState';
+import { useI18n } from '../../locale/useI18n';
+import type { Order } from '../../types/order';
+import styles from './OrdersPage.module.css';
 
-<script setup>
-import { ref } from 'vue'
-import { getOrderList } from '@/api/order'
+export function OrdersPage() {
+  const { t } = useI18n();
+  const [keyword, setKeyword] = useState('');
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-const searchInfo = ref({})
-const tableData = ref([])
-
-const getTableData = async () => {
-  const res = await getOrderList(searchInfo.value)
-  if (res.code === 0) {
-    tableData.value = res.data.list
+  async function load(nextPage = page) {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await listOrders({ page: nextPage, pageSize: 20, keyword });
+      setOrders(result.list);
+      setTotal(result.total);
+      setPage(result.page);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('order.list.loadFailed'));
+    } finally {
+      setLoading(false);
+    }
   }
-}
 
-const onSubmit = () => {
-  getTableData()
-}
+  useEffect(() => {
+    void load(1);
+  }, []);
 
-const onReset = () => {
-  searchInfo.value = {}
-  getTableData()
-}
+  function handleSearch(event: FormEvent) {
+    event.preventDefault();
+    void load(1);
+  }
 
-getTableData()
-</script>
+  return (
+    <section className={styles.page}>
+      <PageHeader eyebrow={t('order.list.eyebrow')} title={t('order.list.title')} />
+
+      <form className={styles.search} onSubmit={handleSearch}>
+        <input value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder={t('order.list.keyword')} />
+        <button type="submit">{t('common.search')}</button>
+      </form>
+
+      {error ? <div className={styles.error}>{error}</div> : null}
+      {!loading && orders.length === 0 ? (
+        <EmptyState title={t('order.list.emptyTitle')} description={t('order.list.emptyDescription')} />
+      ) : (
+        <div className={styles.table}>
+          {orders.map((order) => (
+            <article key={order.id} className={styles.row}>
+              <strong>{order.name}</strong>
+            </article>
+          ))}
+        </div>
+      )}
+      <p className={styles.total}>
+        {t('order.list.total')}: {total}
+      </p>
+    </section>
+  );
+}
 ```
 
 ## 为什么这样写
 
-- 查询区和表格区结构清晰，符合项目后台页面习惯
-- `script setup` 下把“状态、请求、交互入口”放在一起，易读
-- 页面只处理展示和交互，不在这里重写公共请求逻辑
+- 请求只通过模块 API 函数，页面处理加载、空数据、失败三种状态。
+- 文案全部走 `useI18n()` 的 `t(key)`；key 受 `MessageKey` 类型约束，新增文案先在 [messages.ts](../../../web/src/locale/messages.ts) 补中英文，`t` 不做插值，数值单独渲染。
+- 复用 `PageHeader`、`EmptyState`，样式用 CSS Module，不照搬上游 Element Plus / UnoCSS。
 
 ## 常见错误
 
-- 页面里直接写大量请求封装逻辑
-- 组件过大，不拆查询区、表格区、弹窗区
-- 页面状态命名混乱，不区分 `searchInfo`、`tableData`、`form`
+- 页面里直接 `fetch` 或重复实现请求逻辑
+- 硬编码中文或英文文案
+- 组件过大，不拆查询区、列表区、表单区
+- 忽略加载、空数据、失败或权限不足（`isPermissionDenied`）状态
 
 ## 真实参考文件
 
-- `web/src/view/systemTools/apiToken/index.vue`
-- `web/src/view/superAdmin/api/api.vue`
+- [web/src/view/project/ProjectsPage.tsx](../../../web/src/view/project/ProjectsPage.tsx)
+- [web/src/view/system/SystemAuditLogsPage.tsx](../../../web/src/view/system/SystemAuditLogsPage.tsx)
