@@ -1,12 +1,15 @@
 package core
 
 import (
+	"flag"
 	"os"
 	"path/filepath"
 	"runtime"
 	"testing"
 
 	"optimus/server/global"
+
+	"github.com/gin-gonic/gin"
 )
 
 func TestViperLoadsConfigFileAndEnvOverride(t *testing.T) {
@@ -83,4 +86,37 @@ func testProjectPaths(t *testing.T) (string, string) {
 	serverDir := filepath.Dir(coreDir)
 	repoRoot := filepath.Dir(serverDir)
 	return serverDir, repoRoot
+}
+
+func TestGetConfigPathPrefersFlagThenEnvThenGinModeFile(t *testing.T) {
+	dir := t.TempDir()
+	previousWD, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chdir(previousWD) })
+	if err := os.Chdir(dir); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{ConfigDefaultFile, ConfigTestFile} {
+		if err := os.WriteFile(name, []byte("system:\n  addr: 1\n"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	gin.SetMode(gin.TestMode)
+
+	if got := getConfigPath(); got != ConfigTestFile {
+		t.Fatalf("gin test mode: got %q, want %q", got, ConfigTestFile)
+	}
+	t.Setenv(ConfigEnv, "from-env.yaml")
+	if got := getConfigPath(); got != "from-env.yaml" {
+		t.Fatalf("env: got %q", got)
+	}
+	if err := flag.Set("c", "from-flag.yaml"); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = flag.Set("c", "") })
+	if got := getConfigPath(); got != "from-flag.yaml" {
+		t.Fatalf("flag: got %q", got)
+	}
 }

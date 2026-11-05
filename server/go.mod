@@ -14,6 +14,7 @@ require (
 	github.com/songzhibin97/gkit v1.5.0
 	github.com/spf13/viper v1.19.0
 	github.com/stretchr/testify v1.11.1
+	go.uber.org/automaxprocs v1.6.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.46.0
 	golang.org/x/sync v0.19.0

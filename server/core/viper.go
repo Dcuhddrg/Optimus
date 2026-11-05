@@ -1,6 +1,7 @@
 package core
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -9,18 +10,14 @@ import (
 	"optimus/server/config"
 	"optimus/server/global"
 
+	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
 )
 
 const envPrefix = "OPTIMUS"
 
 func Viper() *viper.Viper {
-	configPath, err := resolveDefaultConfigPath()
-	if err != nil {
-		panic(err)
-	}
-
-	cfg, vp, err := loadConfig(configPath)
+	cfg, vp, err := loadConfig(getConfigPath())
 	if err != nil {
 		panic(err)
 	}
@@ -59,15 +56,52 @@ func loadConfig(configPath string) (config.Config, *viper.Viper, error) {
 	return cfg, vp, nil
 }
 
-func resolveDefaultConfigPath() (string, error) {
-	for _, candidate := range []string{
-		"config.yaml",
-		filepath.Join("server", "config.yaml"),
-	} {
-		if _, err := os.Stat(candidate); err == nil {
-			return candidate, nil
-		}
+const (
+	// ConfigEnv names the environment variable selecting the config file.
+	ConfigEnv         = "OPTIMUS_CONFIG"
+	ConfigDefaultFile = "config.yaml"
+	ConfigTestFile    = "config.test.yaml"
+	ConfigDebugFile   = "config.debug.yaml"
+	ConfigReleaseFile = "config.release.yaml"
+)
+
+// getConfigPath selects the config file as GVA: the -c flag, then the
+// OPTIMUS_CONFIG environment variable, then a file for the current gin mode,
+// then config.yaml. Optimus also accepts server/config.yaml when started from
+// the repository root.
+func getConfigPath() string {
+	if flag.Lookup("c") == nil {
+		flag.String("c", "", "choose config file.")
+	}
+	if !flag.Parsed() {
+		flag.Parse()
+	}
+	if config := flag.Lookup("c").Value.String(); config != "" {
+		fmt.Printf("using config file from the -c flag: %s\n", config)
+		return config
+	}
+	if config := os.Getenv(ConfigEnv); config != "" {
+		fmt.Printf("using config file from %s: %s\n", ConfigEnv, config)
+		return config
 	}
 
-	return "", fmt.Errorf("config.yaml not found in current directory or server/config.yaml")
+	var config string
+	switch gin.Mode() {
+	case gin.DebugMode:
+		config = ConfigDebugFile
+	case gin.ReleaseMode:
+		config = ConfigReleaseFile
+	case gin.TestMode:
+		config = ConfigTestFile
+	}
+	if _, err := os.Stat(config); err == nil {
+		fmt.Printf("using config file for gin %s mode: %s\n", gin.Mode(), config)
+		return config
+	}
+	for _, candidate := range []string{ConfigDefaultFile, filepath.Join("server", ConfigDefaultFile)} {
+		if _, err := os.Stat(candidate); err == nil {
+			return candidate
+		}
+	}
+	return ConfigDefaultFile
 }
