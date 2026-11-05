@@ -28,8 +28,8 @@
 ## 产品与实施
 
 - [平台路线图](memory/long-term/platform-roadmap.md)：长期方向与阶段依赖。
-- [设计](design/README.md)：[云资源基础](design/2026-05-13-cloud-resource-foundation-design.md)、[账号资产](design/2026-05-13-cloud-account-asset-registry-design.md)、[项目隔离](design/2026-05-14-multi-project-cloud-isolation-design.md)、[服务门户](design/2026-05-28-service-portal-design.md)、[任务管理](design/2026-06-02-ops-center-tasks-design.md)和[审批链](design/2026-06-04-ticket-approval-chain-design.md)。
-- 实施计划：新计划和任务记在 GitHub Issue；仓库只保留未完成的[审批链计划](design/plans/2026-06-04-ticket-approval-chain.md)。已交付的设计见 [design/archive](design/archive/)，已删除的计划可从 Git 历史找回。
+- [设计](design/README.md)：[云资源基础](design/2026-05-13-cloud-resource-foundation-design.md)、[账号资产](design/2026-05-13-cloud-account-asset-registry-design.md)、[项目隔离](design/2026-05-14-multi-project-cloud-isolation-design.md)、[服务门户](design/2026-05-28-service-portal-design.md)、[任务管理](design/2026-06-02-ops-center-tasks-design.md)和[审批链](design/archive/2026-06-04-ticket-approval-chain-design.md)。
+- 实施计划：新计划和任务记在 GitHub Issue；仍在进行的计划放在 `design/plans/`（目前没有），交付后删除，可从 Git 历史找回。已交付的设计见 [design/archive](design/archive/)。
 - [GitHub Issues](https://github.com/Dcuhddrg/Optimus/issues)：需求、反馈、问题、优先级、进度及验证/验收证据的唯一跟踪入口；交付关联提交与 PR。
 
 文档和 Issue 的维护、状态及证据规则见 [文档维护约定](relations/documentation-workflow.md)。

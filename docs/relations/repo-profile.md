@@ -13,7 +13,7 @@ Optimus 以治理、云资源、运维和成本能力为[长期方向](../memory
 - 统一响应协议（GVA `{code,data,msg}`，见 [ADR-003](../adr/0003-gva-response-protocol.md)）。
 - 审计日志：查询、CSV 导出与定时清理。
 - 云资源：云账号、资产与标签管理。
-- 运维中心：服务门户、工单与任务页面，当前为前端 mock，审批链见 [#4](https://github.com/Dcuhddrg/Optimus/issues/4)。
+- 运维中心：服务门户、工单（含多级审批链展示）与任务页面，当前为前端 mock。
 - 中英文界面切换。
 
 ## API 设计契约

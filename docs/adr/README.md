@@ -13,7 +13,7 @@
 | 账号同步、凭证加密、资产软删除、Provider 注册 | [账号资产设计的 Architecture Decisions](../design/2026-05-13-cloud-account-asset-registry-design.md) | 原文标为 Approved；凭证与同步的实际安全性尚未在本轮验证 |
 | 项目角色、资源归属与请求项目上下文 | [项目隔离设计的 Architecture Decisions](../design/2026-05-14-multi-project-cloud-isolation-design.md) | 复用原文理由；保留 Open Questions，不能推断全部已解决 |
 | 工单完成由任务完成驱动 | [任务管理设计](../design/2026-06-02-ops-center-tasks-design.md) | 取代早期门户设计中的定时自动 done；已抽查核心联动源码，未做完整运行验收 |
-| 多级审批链与当前审批人展示 | [审批链设计](../design/2026-06-04-ticket-approval-chain-design.md) | 已有设计与计划，部分实现；逐级审批目标尚不能替代当前引擎事实 |
+| 多级审批链与当前审批人展示 | [审批链设计](../design/archive/2026-06-04-ticket-approval-chain-design.md) | 已实现并验收（前端 mock，[#4](https://github.com/Dcuhddrg/Optimus/issues/4)）；后端与交互式审批未实现 |
 
 历史 spec 保留当时的业务决定；已删除的 plan 可从 Git 历史找回；其分层及“保留旧结构”的约定不再产生当前豁免，现行要求以 ADR-002 为准。
 
