@@ -74,6 +74,8 @@ func (s *RoleService) UpdateRoleStatus(ctx context.Context, actorID uint, roleID
 	if err != nil {
 		return systemModel.SystemRole{}, err
 	}
+	// Disabled roles stop counting for every holder.
+	InvalidateAllAuthState()
 	recordAudit(ctx, AuditEvent{ActorUserID: actorID, ActorUsername: meta.ActorUsername, Action: "role.status.update", ResourceType: "role", ResourceID: resourceID(roleID), Result: "success", IP: meta.IP, UserAgent: meta.UserAgent})
 	return updated, nil
 }
@@ -86,7 +88,7 @@ func (s *RoleService) UpdateRolePermissions(ctx context.Context, actorID uint, r
 		event.Detail = auditDetails("target_lookup_failed", nil)
 		return err
 	}
-	if role.Code == "admin" && !containsAllCoreAdminPermissions(permissionCodes) {
+	if role.Code == AdminRoleCode && !containsAllSystemPermissions(permissionCodes) {
 		event.Detail = auditDetails("admin_role_protected", nil)
 		return ErrProtectedAdminRole
 	}
@@ -96,32 +98,38 @@ func (s *RoleService) UpdateRolePermissions(ctx context.Context, actorID uint, r
 		return err
 	}
 	before, beforeErr := s.permissionCodesForRole(ctx, roleID)
-	if err := s.replaceRolePermissions(ctx, roleID, permissions); err != nil {
+	err = s.replaceRolePermissions(ctx, roleID, permissions)
+	reloadPending := errors.Is(err, ErrCasbinReloadPending)
+	if err != nil && !reloadPending {
 		event.Detail = auditDetails("update_failed", nil)
 		return err
 	}
+	// Committed (and reloaded unless pending): order is commit, reload Casbin,
+	// invalidate, return (design 3.1).
+	InvalidateAllAuthState()
 	after, afterErr := s.permissionCodesForRole(ctx, roleID)
 	event.Result = "success"
+	reason := "updated"
+	if reloadPending {
+		reason = "updated_reload_pending"
+	}
 	if beforeErr != nil || afterErr != nil {
 		event.Detail = auditDetails("snapshot_unavailable", nil)
 	} else {
-		event.Detail = auditDetails("updated", map[string]auditChange{"permissionCodes": auditSetChange(before, after)})
+		event.Detail = auditDetails(reason, map[string]auditChange{"permissionCodes": auditSetChange(before, after)})
 	}
-	return nil
+	return err
 }
 
-func containsAllCoreAdminPermissions(codes []string) bool {
+// containsAllSystemPermissions: the admin role always holds every system.*
+// permission so the built-in admin can always recover (design 3.4); other
+// modules' permissions stay editable.
+func containsAllSystemPermissions(codes []string) bool {
 	set := make(map[string]bool, len(codes))
 	for _, code := range codes {
 		set[code] = true
 	}
-	for _, required := range []string{
-		"system.users.view",
-		"system.roles.permissions.update",
-		"system.ldap.update",
-		"system.audit.view",
-		"system.audit.export",
-	} {
+	for _, required := range SystemPermissionCodes() {
 		if !set[required] {
 			return false
 		}

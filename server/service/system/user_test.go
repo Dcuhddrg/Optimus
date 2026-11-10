@@ -23,33 +23,6 @@ func TestUserServiceListUsersOmitsPasswordHash(t *testing.T) {
 	require.Equal(t, "admin", result.Items[0].Username)
 }
 
-func TestUserServiceDatabaseWouldHaveAdminCapableUserAfterStatus(t *testing.T) {
-	db := openTestDB(t)
-
-	adminRole := systemModel.SystemRole{Code: "admin", Name: "Administrator", Status: DefaultRoleStatus}
-	require.NoError(t, db.Create(&adminRole).Error)
-
-	user := systemModel.SystemUser{UUID: "u1", Username: "alice", Status: DefaultUserStatus}
-	require.NoError(t, db.Create(&user).Error)
-	require.NoError(t, db.Create(&systemModel.SystemUserRole{UserID: user.ID, RoleID: adminRole.ID}).Error)
-
-	store := (&UserService{})
-
-	// Disabling the only admin user should leave no admin-capable user
-	ok, err := store.wouldHaveAdminCapableUserAfterStatus(context.Background(), user.ID, "disabled")
-	require.NoError(t, err)
-	require.False(t, ok)
-
-	// Another enabled admin exists so disabling user is safe
-	other := systemModel.SystemUser{UUID: "u2", Username: "bob", Status: DefaultUserStatus}
-	require.NoError(t, db.Create(&other).Error)
-	require.NoError(t, db.Create(&systemModel.SystemUserRole{UserID: other.ID, RoleID: adminRole.ID}).Error)
-
-	ok, err = store.wouldHaveAdminCapableUserAfterStatus(context.Background(), user.ID, "disabled")
-	require.NoError(t, err)
-	require.True(t, ok)
-}
-
 func TestUserStatusAuditRecordsSnapshot(t *testing.T) {
 	db := openTestDB(t)
 	role := systemModel.SystemRole{Code: "admin", Name: "admin", Status: "enabled"}
@@ -71,21 +44,53 @@ func TestUserStatusAuditRecordsSnapshot(t *testing.T) {
 	require.NotContains(t, audit.Detail, "DO_NOT_LOG_THIS")
 }
 
-func TestLastAdminStatusFailureIsAudited(t *testing.T) {
+func TestBuiltinAdminCannotBeDisabledOrLoseAdminRole(t *testing.T) {
 	db := openTestDB(t)
-	role := systemModel.SystemRole{Code: "admin", Name: "admin", Status: "enabled"}
-	user := systemModel.SystemUser{OPTIMUS_MODEL: global.OPTIMUS_MODEL{ID: 7}, UUID: "only-admin", Username: "admin", Source: "local", Status: "enabled"}
-	require.NoError(t, db.Create(&role).Error)
-	require.NoError(t, db.Create(&user).Error)
-	require.NoError(t, db.Create(&systemModel.SystemUserRole{UserID: user.ID, RoleID: role.ID}).Error)
-	_, err := (&UserService{}).UpdateUserStatus(context.Background(), 1, 7, "disabled", AuditMeta{})
-	require.ErrorIs(t, err, ErrLastAdminCapableUser)
+	adminRole := systemModel.SystemRole{Code: AdminRoleCode, Name: "admin", Status: "enabled"}
+	userRole := systemModel.SystemRole{Code: "user", Name: "user", Status: "enabled"}
+	require.NoError(t, db.Create(&adminRole).Error)
+	require.NoError(t, db.Create(&userRole).Error)
+	builtin := systemModel.SystemUser{UUID: BuiltinAdminUUID, Username: "admin", Source: "local", Status: "enabled"}
+	require.NoError(t, db.Create(&builtin).Error)
+	require.NoError(t, db.Create(&systemModel.SystemUserRole{UserID: builtin.ID, RoleID: adminRole.ID}).Error)
+
+	_, err := (&UserService{}).UpdateUserStatus(context.Background(), 1, builtin.ID, "disabled", AuditMeta{})
+	require.ErrorIs(t, err, ErrBuiltinAdminProtected)
 	var audit systemModel.SystemAuditLog
 	require.NoError(t, db.Last(&audit).Error)
 	require.Equal(t, "failure", audit.Result)
-	require.Contains(t, audit.Detail, "last_admin_protected")
-	require.NoError(t, db.First(&user, 7).Error)
-	require.Equal(t, "enabled", user.Status)
+	require.Contains(t, audit.Detail, "builtin_admin_protected")
+
+	err = (&UserService{}).UpdateUserRoles(context.Background(), 1, builtin.ID, []uint{userRole.ID}, AuditMeta{})
+	require.ErrorIs(t, err, ErrBuiltinAdminProtected)
+	require.NoError(t, db.Last(&audit).Error)
+	require.Contains(t, audit.Detail, "builtin_admin_protected")
+
+	require.NoError(t, db.First(&builtin, builtin.ID).Error)
+	require.Equal(t, "enabled", builtin.Status)
+	roles, err := queryUserRoles(context.Background(), builtin.ID)
+	require.NoError(t, err)
+	require.Len(t, roles, 1)
+	require.Equal(t, AdminRoleCode, roles[0].Code)
+
+	// Adding roles while keeping admin is allowed.
+	require.NoError(t, (&UserService{}).UpdateUserRoles(context.Background(), 1, builtin.ID, []uint{adminRole.ID, userRole.ID}, AuditMeta{}))
+}
+
+func TestLDAPAdminsCanAllBeDisabledWhileBuiltinAdminRemains(t *testing.T) {
+	db := openTestDB(t)
+	adminRole := systemModel.SystemRole{Code: AdminRoleCode, Name: "admin", Status: "enabled"}
+	require.NoError(t, db.Create(&adminRole).Error)
+	builtin := systemModel.SystemUser{UUID: BuiltinAdminUUID, Username: "admin", Source: "local", Status: "enabled"}
+	ldapAdmin := systemModel.SystemUser{UUID: "ldap:alice", Username: "alice", Source: "ldap", Status: "enabled"}
+	require.NoError(t, db.Create(&builtin).Error)
+	require.NoError(t, db.Create(&ldapAdmin).Error)
+	require.NoError(t, db.Create(&systemModel.SystemUserRole{UserID: builtin.ID, RoleID: adminRole.ID}).Error)
+	require.NoError(t, db.Create(&systemModel.SystemUserRole{UserID: ldapAdmin.ID, RoleID: adminRole.ID}).Error)
+
+	_, err := (&UserService{}).UpdateUserStatus(context.Background(), 1, ldapAdmin.ID, "disabled", AuditMeta{})
+	require.NoError(t, err)
+	require.NoError(t, (&UserService{}).UpdateUserRoles(context.Background(), 1, ldapAdmin.ID, []uint{}, AuditMeta{}))
 }
 
 func TestUserRoleAuditUsesPersistedSnapshot(t *testing.T) {

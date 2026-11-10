@@ -48,11 +48,11 @@ func TestAuditProtocolThroughRealRouter(t *testing.T) {
 			token, err := utils.NewJWT().CreateToken(utils.NewJWT().CreateClaims(utils.BaseClaims{ID: 1, Username: "admin", RoleIDs: []uint{1}, RoleCodes: []string{"admin"}}))
 			require.NoError(t, err)
 			base := strings.TrimRight(prefix, "/")
-			require.Len(t, Routers().Routes(), 38)
+			require.Len(t, Routers().Routes(), 39) // includes /swagger/*any (#73)
 			request := func(path, credential string) *httptest.ResponseRecorder {
 				global.OPTIMUS_DB = db
 				if missing {
-					// The enforcer is cached, so authorization passes; the handler
+					// The enforcer and the user state are cached, so authorization passes; the handler
 					// then finds no database.
 					require.NotNil(t, utils.GetCasbin())
 					global.OPTIMUS_DB = nil

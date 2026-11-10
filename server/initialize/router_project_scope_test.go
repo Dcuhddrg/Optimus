@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strconv"
 	"testing"
 
 	"optimus/server/config"
@@ -39,6 +40,16 @@ func projectScopeRouterDB(t *testing.T, scenario string, allowed bool) (*gorm.DB
 	require.NoError(t, projectService.AutoMigrateProject(db))
 	require.NoError(t, systemService.AutoMigrateSystem(db))
 	setTestDatabase(t, db)
+	// JWTAuth loads the requester's roles from the database on every request
+	// (design 3.1): user 1 holds role 1 (granted below when allowed) and role 7
+	// (granted by tests that need a non-admin role).
+	for _, id := range []uint{1, 7} {
+		require.NoError(t, db.Create(&systemModel.SystemRole{OPTIMUS_MODEL: global.OPTIMUS_MODEL{ID: id}, Code: "role-" + strconv.Itoa(int(id)), Name: "role", Status: systemService.DefaultRoleStatus}).Error)
+	}
+	require.NoError(t, db.Create(&systemModel.SystemUser{OPTIMUS_MODEL: global.OPTIMUS_MODEL{ID: 1}, UUID: "router-test-user", Username: "router-test-user", Source: "local", Status: systemService.DefaultUserStatus}).Error)
+	for _, id := range []uint{1, 7} {
+		require.NoError(t, db.Create(&systemModel.SystemUserRole{UserID: 1, RoleID: id}).Error)
+	}
 	for _, path := range []string{"/system/permissions/tree", "/projects", "/projects/:code", "/cloud/accounts"} {
 		permission := systemModel.SystemPermission{Code: path, Name: path, Type: "api", Method: "GET", Path: path}
 		require.NoError(t, db.Create(&permission).Error)

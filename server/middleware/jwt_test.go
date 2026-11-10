@@ -1,12 +1,15 @@
 package middleware
 
 import (
+	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"optimus/server/config"
 	"optimus/server/global"
+	systemService "optimus/server/service/system"
 	"optimus/server/utils"
 
 	"github.com/gin-gonic/gin"
@@ -110,6 +113,7 @@ func jwtTestEngine(t *testing.T) *gin.Engine {
 	})
 	global.OPTIMUS_CONFIG.JWT = testMiddlewareJWTConfig()
 	global.BlackCache = local_cache.NewCache()
+	stubAuthState(t, systemService.UserAuthState{Exists: true, Status: systemService.DefaultUserStatus, RoleIDs: []uint{1}}, nil)
 
 	engine := gin.New()
 	engine.GET("/private", JWTAuth(), func(c *gin.Context) {
@@ -135,4 +139,66 @@ func testMiddlewareJWTConfig() config.JWT {
 		BufferTime:  "5m",
 		Issuer:      "optimus-test",
 	}
+}
+
+func stubAuthState(t *testing.T, state systemService.UserAuthState, err error) {
+	t.Helper()
+	saved := authStateLoader
+	t.Cleanup(func() { authStateLoader = saved })
+	authStateLoader = func(context.Context, uint) (systemService.UserAuthState, error) { return state, err }
+}
+
+func TestJWTAuthRejectsDisabledUserWith401(t *testing.T) {
+	engine := jwtTestEngine(t)
+	stubAuthState(t, systemService.UserAuthState{Exists: true, Status: "disabled"}, nil)
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/private", nil)
+	req.Header.Set("x-token", testToken(t))
+	engine.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusUnauthorized, w.Code)
+	require.JSONEq(t, `{"code":7,"data":null,"msg":"account is disabled"}`, w.Body.String())
+	require.Contains(t, w.Header().Get("Set-Cookie"), "x-token=;")
+}
+
+func TestJWTAuthRejectsDeletedUserWith401(t *testing.T) {
+	engine := jwtTestEngine(t)
+	stubAuthState(t, systemService.UserAuthState{Exists: false}, nil)
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/private", nil)
+	req.Header.Set("x-token", testToken(t))
+	engine.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusUnauthorized, w.Code)
+}
+
+func TestJWTAuthFailsWithoutLoggingOutWhenStateCannotLoad(t *testing.T) {
+	engine := jwtTestEngine(t)
+	stubAuthState(t, systemService.UserAuthState{}, errors.New("db down"))
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/private", nil)
+	req.Header.Set("x-token", testToken(t))
+	engine.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+	require.JSONEq(t, `{"code":7,"data":{},"msg":"failed to load user state"}`, w.Body.String())
+}
+
+func TestJWTAuthPassesCurrentRolesNotTokenRoles(t *testing.T) {
+	engine := jwtTestEngine(t)
+	stubAuthState(t, systemService.UserAuthState{Exists: true, Status: systemService.DefaultUserStatus, RoleIDs: []uint{42}}, nil)
+	engine.GET("/roles", JWTAuth(), func(c *gin.Context) {
+		roles, _ := c.Get(utils.RoleIDsContextKey)
+		c.JSON(http.StatusOK, gin.H{"roles": roles})
+	})
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/roles", nil)
+	req.Header.Set("x-token", testToken(t))
+	engine.ServeHTTP(w, req)
+
+	require.JSONEq(t, `{"roles":[42]}`, w.Body.String())
 }

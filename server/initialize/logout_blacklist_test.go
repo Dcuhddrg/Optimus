@@ -30,7 +30,7 @@ func TestLogoutRevokesTokenAcrossRestart(t *testing.T) {
 	global.BlackCache = local_cache.NewCache()
 
 	db, _ := projectScopeRouterDB(t, "", true)
-	require.NoError(t, db.Create(&systemModel.SystemRole{OPTIMUS_MODEL: global.OPTIMUS_MODEL{ID: 1}, Code: "ops", Name: "ops", Status: "enabled"}).Error)
+	// Role 1 comes from the fixture.
 	hash, err := utils.BcryptHash("admin-secret")
 	require.NoError(t, err)
 	user := systemModel.SystemUser{UUID: "logout-admin", Username: "admin", DisplayName: "Admin", Source: "local", Status: "enabled", PasswordHash: hash}

@@ -217,6 +217,7 @@ func (s *AuthService) syncLDAPUser(ctx context.Context, ldapUser LDAPUser) (syst
 		if err := s.bindDefaultUserRole(ctx, user.ID); err != nil {
 			return systemModel.SystemUser{}, err
 		}
+		InvalidateUserAuthState(user.ID)
 		return user, nil
 	}
 	return user, global.OPTIMUS_DB.WithContext(ctx).Save(&user).Error

@@ -1,6 +1,6 @@
 # 用户管理设计
 
-- 状态：已批准（用户逐条确认，2026-11-06）；实现状态：未开始。
+- 状态：已批准（用户逐条确认，2026-11-06）；实现状态：3.1、3.4 实现中（[#80](https://github.com/Dcuhddrg/Optimus/issues/80) 第一个 PR），其余未开始。
 - 关联：[#80](https://github.com/Dcuhddrg/Optimus/issues/80)（实施与验收）、[#4](https://github.com/Dcuhddrg/Optimus/issues/4)（审批流，以本设计为前置）、[ADR-005](../adr/0005-ldap-identity-optimus-authorization.md)（身份与授权分工）。
 - 对照基线：gin-vue-admin 本地仓库 `67894b11`（比文档其他处引用的 `cee04b08` 新）。
 

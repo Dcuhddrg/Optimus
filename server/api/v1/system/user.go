@@ -121,7 +121,7 @@ func (h *UserApi) UpdateUserRoles(c *gin.Context) {
 		return
 	}
 	err := svc.UpdateUserRoles(c.Request.Context(), actorID(c), id, req.RoleIDs, auditMeta(c))
-	if errors.Is(err, systemService.ErrLastAdminCapableUser) {
+	if errors.Is(err, systemService.ErrBuiltinAdminProtected) || errors.Is(err, systemService.ErrUserNotFound) {
 		response.FailWithMessage(err.Error(), c)
 		return
 	}
@@ -168,7 +168,7 @@ func writeUserServiceResult(c *gin.Context, user systemResponse.SystemUserSummar
 		response.FailWithMessage(err.Error(), c)
 		return
 	}
-	if errors.Is(err, systemService.ErrLastAdminCapableUser) {
+	if errors.Is(err, systemService.ErrBuiltinAdminProtected) {
 		response.FailWithMessage(err.Error(), c)
 		return
 	}

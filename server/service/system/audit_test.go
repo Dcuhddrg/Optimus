@@ -359,7 +359,7 @@ func TestRolePermissionSnapshotFailuresPreserveMutation(t *testing.T) {
 		t.Run(string(rune('0'+failAt)), func(t *testing.T) {
 			db := openTestDB(t)
 			role := systemModel.SystemRole{Code: "ops", Name: "ops", Status: "enabled"}
-			permission := systemModel.SystemPermission{Code: "write", Name: "write", Type: "api"}
+			permission := systemModel.SystemPermission{Code: "write", Name: "write", Type: "api", Method: "PUT", Path: "/write"}
 			require.NoError(t, db.Create(&role).Error)
 			require.NoError(t, db.Create(&permission).Error)
 			reads := 0

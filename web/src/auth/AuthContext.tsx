@@ -9,6 +9,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 
 import {
+  ACCOUNT_DISABLED_MESSAGE,
   ApiError,
   isPermissionDenied,
   clearStoredToken,
@@ -24,6 +25,8 @@ interface AuthContextValue {
   current: CurrentUserResponse | null;
   loading: boolean;
   sessionError: 'forbidden' | 'unavailable' | null;
+  // Why the last session ended, shown on the login page (design 3.1).
+  loginNotice: 'accountDisabled' | null;
   retrySession: () => void;
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -38,16 +41,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [current, setCurrent] = useState<CurrentUserResponse | null>(null);
   const [loading, setLoading] = useState(Boolean(token));
   const [sessionError, setSessionError] = useState<AuthContextValue['sessionError']>(null);
+  const [loginNotice, setLoginNotice] = useState<AuthContextValue['loginNotice']>(null);
   const [retryCount, setRetryCount] = useState(0);
   const recovery = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    return setUnauthorizedHandler(() => {
+    return setUnauthorizedHandler((message) => {
       recovery.current?.abort();
       setToken(null);
       setCurrent(null);
       setSessionError(null);
       setLoading(false);
+      setLoginNotice(message === ACCOUNT_DISABLED_MESSAGE ? 'accountDisabled' : null);
       navigate('/login', { replace: true });
     });
   }, [navigate]);
@@ -102,6 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function handleLogin(username: string, password: string) {
+    setLoginNotice(null);
     const result = await systemApi.login(username, password);
     recovery.current?.abort();
     setLoading(false);
@@ -136,6 +142,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         current,
         loading,
         sessionError,
+        loginNotice,
         retrySession,
         login: handleLogin,
         logout: handleLogout,

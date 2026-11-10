@@ -53,6 +53,13 @@ describe('session recovery through real requests and route guard', () => {
     expect(fetcher).toHaveBeenCalledTimes(2);
   });
 
+  it('tells a disabled user why on the login page', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('{"code":7,"data":null,"msg":"account is disabled"}', { status: 401 })));
+    await mount();
+    expect(pathname).toBe('/login');
+    expect(auth.loginNotice).toBe('accountDisabled');
+  });
+
   it('expires a confirmed 401 once and sends the user to login', async () => {
     const remove = vi.spyOn(Storage.prototype, 'removeItem');
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('{}', { status: 401 })));
