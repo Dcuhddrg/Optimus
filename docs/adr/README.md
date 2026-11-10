@@ -8,6 +8,7 @@
 | --- | --- | --- |
 | 新旧模块的分层、结构迁移与装配 | [ADR-002](0002-backend-structure-migration.md)、[当前架构约定](../relations/repo-profile.md) | 新旧模块采用统一分层，旧结构不再享有长期豁免 |
 | 前后端响应协议 | [ADR-003](0003-gva-response-protocol.md)、[接口契约](../frontend-backend/boundary.md) | 全部 JSON 接口采用 GVA 协议，取代 #18 原定的 HTTP 4xx/5xx 语义；例外为 CSV、health/ping 和 Recovery 500 |
+| LDAP 管身份、Optimus 管授权；权限改动即时生效 | [ADR-005](0005-ldap-identity-optimus-authorization.md)、[用户管理设计](../design/2026-11-06-user-management-design.md) | 已确认，实施见 [#80](https://github.com/Dcuhddrg/Optimus/issues/80)；与 GVA 默认不检查禁用用户不同 |
 | 插件注册照 GVA v2 | [ADR-004](0004-gva-plugin-registration.md)、[插件开发约束](../modules/plugin-development.md) | 已确认，框架随第一个插件落地 |
 | 后端装配照 GVA（GroupApp、无状态 Service、职责子路由） | [后端分层规则](../modules/backend-layer-rules.md#装配与注册入口)、[GVA 后端迁移设计](../design/2026-11-02-gva-backend-migration-design.md)、[#52](https://github.com/Dcuhddrg/Optimus/issues/52) | 取代 ADR-002 时期的构造注入装配；无状态 Service 由 #52 收敛确认，现行规则以后端分层文档为准 |
 | 账号同步、凭证加密、资产软删除、Provider 注册 | [账号资产设计的 Architecture Decisions](../design/2026-05-13-cloud-account-asset-registry-design.md) | 原文标为 Approved；凭证与同步的实际安全性尚未在本轮验证 |
