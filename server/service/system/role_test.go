@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"strconv"
 	"testing"
+	"time"
 
 	"optimus/server/global"
 	systemModel "optimus/server/model/system"
@@ -210,4 +211,114 @@ func TestListRolesWithPermissionsIncludesCodes(t *testing.T) {
 		}
 	}
 	t.Fatal("ops role missing")
+}
+
+func setRoleLockHooks(t *testing.T, afterAssign func(uint), afterDelete func(uint)) {
+	t.Helper()
+	roleLockTestHooks.afterAssignLock = afterAssign
+	roleLockTestHooks.afterDeleteLock = afterDelete
+	t.Cleanup(func() {
+		roleLockTestHooks.afterAssignLock = nil
+		roleLockTestHooks.afterDeleteLock = nil
+	})
+}
+
+// The assignment commits first: the delete waits for it, then sees the holder.
+func TestDeleteRoleWaitsForConcurrentAssignment(t *testing.T) {
+	f := newAuthStateFixture(t)
+	temp := systemModel.SystemRole{Code: "temp", Name: "temp"}
+	require.NoError(t, f.db.Create(&temp).Error)
+	locked, release := make(chan struct{}), make(chan struct{})
+	setRoleLockHooks(t, func(userID uint) {
+		if userID == f.user.ID {
+			close(locked)
+			<-release
+		}
+	}, nil)
+
+	assigned := make(chan error)
+	go func() {
+		assigned <- (&UserService{}).UpdateUserRoles(context.Background(), 1, f.user.ID, []uint{f.opsRole.ID, temp.ID}, AuditMeta{})
+	}()
+	<-locked
+	roleLockTestHooks.afterAssignLock = nil
+	deleted := make(chan error)
+	go func() { deleted <- (&RoleService{}).DeleteRole(context.Background(), 1, temp.ID, AuditMeta{}) }()
+	select {
+	case err := <-deleted:
+		t.Fatalf("delete returned while the assignment held its lock: %v", err)
+	case <-time.After(300 * time.Millisecond):
+	}
+	close(release)
+	require.NoError(t, <-assigned)
+	require.ErrorIs(t, <-deleted, ErrRoleInUse)
+
+	roles, err := queryUserRoles(context.Background(), f.user.ID)
+	require.NoError(t, err)
+	require.Len(t, roles, 2, "the new assignment survives")
+}
+
+// The delete commits first: the assignment waits, then skips the vanished
+// role instead of leaving a binding to it.
+func TestAssignmentWaitsForConcurrentDeleteAndSkipsDeletedRole(t *testing.T) {
+	f := newAuthStateFixture(t)
+	temp := systemModel.SystemRole{Code: "temp", Name: "temp"}
+	require.NoError(t, f.db.Create(&temp).Error)
+	locked, release := make(chan struct{}), make(chan struct{})
+	setRoleLockHooks(t, nil, func(roleID uint) {
+		if roleID == temp.ID {
+			close(locked)
+			<-release
+		}
+	})
+
+	deleted := make(chan error)
+	go func() { deleted <- (&RoleService{}).DeleteRole(context.Background(), 1, temp.ID, AuditMeta{}) }()
+	<-locked
+	roleLockTestHooks.afterDeleteLock = nil
+	assigned := make(chan error)
+	go func() {
+		assigned <- (&UserService{}).UpdateUserRoles(context.Background(), 1, f.user.ID, []uint{f.opsRole.ID, temp.ID}, AuditMeta{})
+	}()
+	select {
+	case err := <-assigned:
+		t.Fatalf("assignment returned while the delete held its lock: %v", err)
+	case <-time.After(300 * time.Millisecond):
+	}
+	close(release)
+	require.NoError(t, <-deleted)
+	require.NoError(t, <-assigned)
+
+	var dangling int64
+	require.NoError(t, f.db.Model(&systemModel.SystemUserRole{}).Where("role_id = ?", temp.ID).Count(&dangling).Error)
+	require.Zero(t, dangling)
+	roles, err := queryUserRoles(context.Background(), f.user.ID)
+	require.NoError(t, err)
+	require.Len(t, roles, 1)
+	require.Equal(t, f.opsRole.ID, roles[0].ID)
+}
+
+// The user role is found by code when new LDAP employees are created; its code
+// (and admin's) cannot change.
+func TestBuiltinRoleCodesCannotChange(t *testing.T) {
+	f := newAuthStateFixture(t)
+	userRole := systemModel.SystemRole{Code: DefaultUserRoleCode, Name: "user"}
+	require.NoError(t, f.db.Create(&userRole).Error)
+	svc := &RoleService{}
+
+	_, err := svc.UpdateRole(context.Background(), 1, userRole.ID, systemRequest.RoleRequest{Code: "staff", Name: "Staff"}, AuditMeta{})
+	require.ErrorIs(t, err, ErrProtectedRoleCode)
+	_, err = svc.UpdateRole(context.Background(), 1, f.adminRole.ID, systemRequest.RoleRequest{Code: "root", Name: "Root"}, AuditMeta{})
+	require.ErrorIs(t, err, ErrProtectedRoleCode)
+	renamed, err := svc.UpdateRole(context.Background(), 1, userRole.ID, systemRequest.RoleRequest{Code: DefaultUserRoleCode, Name: "Staff"}, AuditMeta{})
+	require.NoError(t, err, "the display name can still change")
+	require.Equal(t, DefaultUserRoleCode, renamed.Code)
+	require.ErrorIs(t, svc.DeleteRole(context.Background(), 1, userRole.ID, AuditMeta{}), ErrProtectedRole)
+
+	created, err := (&AuthService{}).syncLDAPUser(context.Background(), LDAPUser{Username: "newcomer", DisplayName: "Newcomer"})
+	require.NoError(t, err)
+	roles, err := queryUserRoles(context.Background(), created.ID)
+	require.NoError(t, err)
+	require.Len(t, roles, 1)
+	require.Equal(t, DefaultUserRoleCode, roles[0].Code)
 }

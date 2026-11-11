@@ -190,7 +190,7 @@ func (h *RoleApi) PermissionTree(c *gin.Context) {
 }
 
 func writeRoleServiceResult(c *gin.Context, role any, err error) {
-	if errors.Is(err, systemService.ErrRoleNotFound) {
+	if errors.Is(err, systemService.ErrRoleNotFound) || errors.Is(err, systemService.ErrProtectedRoleCode) {
 		response.FailWithMessage(err.Error(), c)
 		return
 	}

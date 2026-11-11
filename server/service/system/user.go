@@ -10,6 +10,7 @@ import (
 	systemResponse "optimus/server/model/system/response"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 var (
@@ -179,10 +180,22 @@ func (s *UserService) writeUserColumns(ctx context.Context, userID uint, columns
 
 func (s *UserService) replaceUserRoles(ctx context.Context, userID uint, roleIDs []uint) error {
 	return global.OPTIMUS_DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Share-lock the roles being bound, so a concurrent DeleteRole (which
+		// takes an exclusive lock) either waits for this commit and then sees
+		// the holder, or commits first and the vanished role is skipped here.
+		existing := []uint{}
+		if len(roleIDs) > 0 {
+			if err := tx.Clauses(clause.Locking{Strength: "SHARE"}).Model(&systemModel.SystemRole{}).Where("id IN ?", roleIDs).Order("id ASC").Pluck("id", &existing).Error; err != nil {
+				return err
+			}
+		}
+		if hook := roleLockTestHooks.afterAssignLock; hook != nil {
+			hook(userID)
+		}
 		if err := tx.Where("user_id = ?", userID).Delete(&systemModel.SystemUserRole{}).Error; err != nil {
 			return err
 		}
-		for _, roleID := range roleIDs {
+		for _, roleID := range existing {
 			if err := tx.Create(&systemModel.SystemUserRole{UserID: userID, RoleID: roleID}).Error; err != nil {
 				return err
 			}

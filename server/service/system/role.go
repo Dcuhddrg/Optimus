@@ -13,13 +13,23 @@ import (
 
 	gormadapter "github.com/casbin/gorm-adapter/v3"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
+
+// roleLockTestHooks pause a transaction right after it took its role locks,
+// for the assignment/deletion interleaving tests.
+var roleLockTestHooks struct {
+	afterAssignLock func(userID uint)
+	afterDeleteLock func(roleID uint)
+}
 
 var (
 	ErrRoleNotFound       = errors.New("role not found")
 	ErrProtectedAdminRole = errors.New("admin role is protected")
 	// ErrProtectedRole: admin and the default user role cannot be deleted.
 	ErrProtectedRole = errors.New("admin and user roles cannot be deleted")
+	// ErrProtectedRoleCode: the admin and user role codes cannot change.
+	ErrProtectedRoleCode = errors.New("built-in role codes cannot be changed")
 	// ErrRoleInUse: remove the role from its users before deleting it.
 	ErrRoleInUse = errors.New("role is still assigned to users; remove it from them first")
 )
@@ -55,8 +65,10 @@ func (s *RoleService) UpdateRole(ctx context.Context, actorID uint, roleID uint,
 	if err != nil {
 		return systemModel.SystemRole{}, err
 	}
-	if role.Code == AdminRoleCode && req.Code != "" && req.Code != AdminRoleCode {
-		return systemModel.SystemRole{}, ErrProtectedAdminRole
+	// Built-in roles are found by code: admin by the admin checks, user when
+	// binding new LDAP employees and by the delete protection.
+	if (role.Code == AdminRoleCode || role.Code == DefaultUserRoleCode) && req.Code != "" && req.Code != role.Code {
+		return systemModel.SystemRole{}, ErrProtectedRoleCode
 	}
 	// admin never carries the approval flag: an administrator who approves
 	// holds the approval role as well (design 3.5).
@@ -98,29 +110,44 @@ func (s *RoleService) DeleteRole(ctx context.Context, actorID uint, roleID uint,
 		event.Detail = auditDetails("protected_role", nil)
 		return ErrProtectedRole
 	}
-	var holders int64
-	if err := global.OPTIMUS_DB.WithContext(ctx).Model(&systemModel.SystemUserRole{}).Where("role_id = ?", roleID).Count(&holders).Error; err != nil {
-		event.Detail = auditDetails("holder_check_failed", nil)
-		return err
-	}
-	if holders > 0 {
-		event.Detail = auditDetails("role_in_use", nil)
-		return ErrRoleInUse
-	}
+	// The holder check and the delete run in one transaction holding an
+	// exclusive lock on the role row. Assignments take a shared lock on the
+	// roles they bind (replaceUserRoles), so the two serialize: an assignment
+	// committed first makes this delete see a holder; a delete committed
+	// first makes the assignment skip the vanished role.
+	inUse := false
 	err = global.OPTIMUS_DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var locked systemModel.SystemRole
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", roleID).First(&locked).Error; err != nil {
+			return err
+		}
+		if hook := roleLockTestHooks.afterDeleteLock; hook != nil {
+			hook(roleID)
+		}
+		var holders int64
+		if err := tx.Clauses(clause.Locking{Strength: "SHARE"}).Model(&systemModel.SystemUserRole{}).Where("role_id = ?", roleID).Count(&holders).Error; err != nil {
+			return err
+		}
+		if holders > 0 {
+			inUse = true
+			return ErrRoleInUse
+		}
 		if err := tx.Where("role_id = ?", roleID).Delete(&systemModel.SystemRolePermission{}).Error; err != nil {
 			return err
 		}
 		if err := tx.Where("ptype = ? AND v0 = ?", "p", strconv.Itoa(int(roleID))).Delete(&gormadapter.CasbinRule{}).Error; err != nil {
 			return err
 		}
-		// Holders were checked above; a binding added concurrently is
-		// removed with the role rather than left dangling.
-		if err := tx.Where("role_id = ?", roleID).Delete(&systemModel.SystemUserRole{}).Error; err != nil {
-			return err
-		}
 		return tx.Delete(&systemModel.SystemRole{}, roleID).Error
 	})
+	if inUse {
+		event.Detail = auditDetails("role_in_use", nil)
+		return ErrRoleInUse
+	}
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		event.Detail = auditDetails("target_lookup_failed", nil)
+		return ErrRoleNotFound
+	}
 	if err != nil {
 		event.Detail = auditDetails("delete_failed", nil)
 		return err
