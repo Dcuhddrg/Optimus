@@ -267,3 +267,28 @@ func TestSeedSystemDataGrantsCatalogAfterFailedStartMySQL(t *testing.T) {
 	require.NoError(t, db.Model(&systemModel.SystemRolePermission{}).Where("role_id = ? AND permission_id = ?", adminRole.ID, dashboard.ID).Count(&grants).Error)
 	require.Equal(t, int64(1), grants)
 }
+
+// A pre-#56 database stores /api/v1-prefixed catalog paths; if an admin
+// system.* grant is also missing, one start must restore it on the
+// unprefixed path that requests are authorized against.
+func TestSeedSystemDataRestoresRevokedGrantOnLegacyPrefixedPathMySQL(t *testing.T) {
+	db := resetTestDB(t)
+	require.NoError(t, systemService.AutoMigrateSystem(db))
+	require.NoError(t, SeedSystemData(db, "admin-secret"))
+	var adminRole systemModel.SystemRole
+	require.NoError(t, db.Where("code = ?", "admin").First(&adminRole).Error)
+	sub := strconv.Itoa(int(adminRole.ID))
+	var usersView systemModel.SystemPermission
+	require.NoError(t, db.Where("code = ?", "system.users.view").First(&usersView).Error)
+	path, method := usersView.Path, usersView.Method
+	require.NoError(t, db.Model(&systemModel.SystemPermission{}).Where("id = ?", usersView.ID).Update("path", utils.DefaultRouterPrefix+path).Error)
+	require.NoError(t, db.Where("ptype = ? AND v0 = ? AND v1 = ?", "p", sub, path).Delete(&gormadapter.CasbinRule{}).Error)
+
+	require.NoError(t, SeedSystemData(db, "admin-secret"))
+
+	var restored, prefixed int64
+	require.NoError(t, db.Model(&gormadapter.CasbinRule{}).Where("ptype = ? AND v0 = ? AND v1 = ? AND v2 = ?", "p", sub, path, method).Count(&restored).Error)
+	require.NoError(t, db.Model(&gormadapter.CasbinRule{}).Where("ptype = ? AND v1 LIKE ?", "p", utils.DefaultRouterPrefix+"/%").Count(&prefixed).Error)
+	require.Equal(t, int64(1), restored)
+	require.Zero(t, prefixed)
+}

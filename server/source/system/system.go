@@ -72,6 +72,12 @@ func SeedSystemData(db *gorm.DB, initialAdminPassword string) error {
 	if err := seedRoles(db); err != nil {
 		return err
 	}
+	// Normalize legacy /api/v1-prefixed catalog paths first: grants written
+	// below copy the catalog path into casbin_rule, and requests are
+	// authorized on the unprefixed path.
+	if err := migrateAPIGrantsToCasbin(db); err != nil {
+		return err
+	}
 	// Repairs are only reported for an existing admin; a fresh install
 	// creates and grants everything without being a repair.
 	repairs := []string{}
@@ -84,9 +90,6 @@ func SeedSystemData(db *gorm.DB, initialAdminPassword string) error {
 		}
 		return seedAdminRolePermissions(tx, createdPermissions, &repairs)
 	}); err != nil {
-		return err
-	}
-	if err := migrateAPIGrantsToCasbin(db); err != nil {
 		return err
 	}
 	created, err := seedAdminUser(db, initialAdminPassword, &repairs)
