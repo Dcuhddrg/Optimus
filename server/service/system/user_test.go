@@ -143,6 +143,8 @@ func registerBeforeUserUpdate(t *testing.T, db *gorm.DB, fn func()) {
 
 func TestProfileUpdateDoesNotRestoreConcurrentDisable(t *testing.T) {
 	f := newAuthStateFixture(t)
+	// Profile edits apply to local accounts; LDAP profiles are read-only.
+	require.NoError(t, f.db.Model(&f.user).Update("source", "local").Error)
 	registerBeforeUserUpdate(t, f.db, func() {
 		_, err := (&UserService{}).UpdateUserStatus(context.Background(), 1, f.user.ID, "disabled", AuditMeta{})
 		require.NoError(t, err)
@@ -163,8 +165,11 @@ func TestLDAPLoginSyncDoesNotRestoreConcurrentDisable(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	synced, err := (&AuthService{}).syncLDAPUser(context.Background(), LDAPUser{Username: f.user.Username, DisplayName: "Alice", Email: "alice@example.com"})
-	require.NoError(t, err)
+	bindExternalID(t, f.db, f.user.ID, "id-alice")
+	entry := dirEntry(f.user.Username, "id-alice")
+	entry.DisplayName = "Alice"
+	synced, failure := syncAs(t, newFakeDirectory(entry), f.user.Username)
+	require.Nil(t, failure)
 	require.Equal(t, "disabled", synced.Status, "login decides on the re-read status")
 
 	var stored systemModel.SystemUser

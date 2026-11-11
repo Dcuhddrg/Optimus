@@ -10,13 +10,23 @@ import (
 	systemRequest "optimus/server/model/system/request"
 	systemResponse "optimus/server/model/system/response"
 	"optimus/server/utils"
+	ldapUtil "optimus/server/utils/ldap"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
 var (
 	ErrInvalidCredentials = errors.New("invalid credentials")
 	ErrUserDisabled       = errors.New("user disabled")
+
+	// LDAP login refusals (design 3.3); the messages reach the login page.
+	ErrLDAPAccountConflict   = errors.New("account conflict, contact an administrator")
+	ErrLDAPBindingPending    = errors.New("account is awaiting administrator confirmation, contact an administrator")
+	ErrLDAPIdentityMissing   = errors.New("directory identity is missing, contact an administrator")
+	ErrLDAPIdentityAnomaly   = errors.New("directory identity is inconsistent, contact an administrator")
+	ErrLDAPDuplicateUsername = errors.New("the directory has duplicate accounts with this username, contact an administrator")
+	ErrLDAPDirectoryChanging = errors.New("the directory is changing, please retry later")
 )
 
 type AuthService struct{}
@@ -57,15 +67,20 @@ func (s *AuthService) loginLDAP(ctx context.Context, req systemRequest.LoginRequ
 		s.writeAudit(ctx, loginFailure(req.Username, meta, 0, "ldap_config_unavailable"))
 		return systemResponse.LoginResult{}, ErrInvalidCredentials
 	}
-	ldapUser, err := newLDAPClient().Authenticate(ctx, ldapConnectionConfig(cfg), req.Username, req.Password)
+	conn := ldapConnectionConfig(cfg)
+	client := newLDAPClient()
+	// Outside the write-back lock: password check plus the identity read
+	// before and after the bind (design 3.3, write ordering step 1).
+	entry, err := client.Authenticate(ctx, conn, req.Username, req.Password)
 	if err != nil {
-		s.writeAudit(ctx, loginFailure(req.Username, meta, 0, "ldap_authentication_failed"))
-		return systemResponse.LoginResult{}, ErrInvalidCredentials
+		reason, userErr := ldapAuthenticationFailure(err)
+		s.writeAudit(ctx, loginFailure(req.Username, meta, 0, reason))
+		return systemResponse.LoginResult{}, userErr
 	}
-	user, err := s.syncLDAPUser(ctx, ldapUser)
-	if err != nil {
-		s.writeAudit(ctx, loginFailure(req.Username, meta, 0, "user_sync_failed"))
-		return systemResponse.LoginResult{}, err
+	user, failure := s.syncLDAPUser(ctx, client, conn, req.Username, entry)
+	if failure != nil {
+		s.writeAudit(ctx, loginFailure(req.Username, meta, failure.userID, failure.reason))
+		return systemResponse.LoginResult{}, failure.err
 	}
 	if user.Status != DefaultUserStatus {
 		s.writeAudit(ctx, loginFailure(req.Username, meta, user.ID, "user_disabled"))
@@ -76,6 +91,27 @@ func (s *AuthService) loginLDAP(ctx context.Context, req systemRequest.LoginRequ
 		s.writeAudit(ctx, loginFailure(req.Username, meta, user.ID, "session_issue_failed"))
 	}
 	return result, err
+}
+
+// ldapAuthenticationFailure maps a directory authentication error to the
+// audit reason and the error shown to the user.
+func ldapAuthenticationFailure(err error) (string, error) {
+	switch {
+	case errors.Is(err, ldapUtil.ErrDuplicateUsername):
+		return "ldap_duplicate_username", ErrLDAPDuplicateUsername
+	case errors.Is(err, ldapUtil.ErrMissingIdentity):
+		return "ldap_identity_missing", ErrLDAPIdentityMissing
+	case errors.Is(err, ldapUtil.ErrDuplicateIdentity):
+		return "ldap_identity_duplicate", ErrLDAPIdentityAnomaly
+	case errors.Is(err, ldapUtil.ErrMissingVersion):
+		return "ldap_version_missing", ErrLDAPIdentityAnomaly
+	case errors.Is(err, ldapUtil.ErrEntryChanged):
+		return "ldap_entry_changed", ErrLDAPDirectoryChanging
+	case errors.Is(err, ldapUtil.ErrInvalidLoginFilter):
+		return "ldap_config_invalid", ErrInvalidCredentials
+	default:
+		return "ldap_authentication_failed", ErrInvalidCredentials
+	}
 }
 
 func (s *AuthService) issueLoginResult(ctx context.Context, user systemModel.SystemUser, meta AuditMeta) (systemResponse.LoginResult, error) {
@@ -158,6 +194,8 @@ func summarizeUser(user systemModel.SystemUser) systemResponse.SystemUserSummary
 		Username:    user.Username,
 		DisplayName: user.DisplayName,
 		Email:       user.Email,
+		Department:  user.Department,
+		Bound:       user.ExternalID != nil,
 		Source:      user.Source,
 		Status:      user.Status,
 	}
@@ -194,53 +232,121 @@ func (s *AuthService) getLDAPConfig(ctx context.Context) (systemModel.SystemLDAP
 	return cfg, err
 }
 
-func (s *AuthService) syncLDAPUser(ctx context.Context, ldapUser LDAPUser) (systemModel.SystemUser, error) {
-	var user systemModel.SystemUser
-	err := global.OPTIMUS_DB.WithContext(ctx).Where("username = ?", ldapUser.Username).First(&user).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
-		return systemModel.SystemUser{}, err
-	}
-	if err == gorm.ErrRecordNotFound {
-		user = systemModel.SystemUser{
-			UUID:     "ldap:" + ldapUser.Username,
-			Username: ldapUser.Username,
-			Source:   "ldap",
-			Status:   DefaultUserStatus,
-		}
-	}
-	user.DisplayName = ldapUser.DisplayName
-	user.Email = ldapUser.Email
-	if err == gorm.ErrRecordNotFound {
-		if err := global.OPTIMUS_DB.WithContext(ctx).Create(&user).Error; err != nil {
-			return systemModel.SystemUser{}, err
-		}
-		if err := s.bindDefaultUserRole(ctx, user.ID); err != nil {
-			return systemModel.SystemUser{}, err
-		}
-		InvalidateUserAuthState(user.ID)
-		return user, nil
-	}
-	// Only the synced profile columns: a full-row Save would restore a status
-	// an administrator disabled after this read.
-	if err := global.OPTIMUS_DB.WithContext(ctx).Model(&systemModel.SystemUser{}).Where("id = ?", user.ID).
-		Updates(map[string]any{"display_name": user.DisplayName, "email": user.Email}).Error; err != nil {
-		return systemModel.SystemUser{}, err
-	}
-	// Re-read so login decides on the current status, not the earlier read.
-	var current systemModel.SystemUser
-	if err := global.OPTIMUS_DB.WithContext(ctx).Where("id = ?", user.ID).First(&current).Error; err != nil {
-		return systemModel.SystemUser{}, err
-	}
-	return current, nil
+type ldapLoginFailure struct {
+	reason string
+	err    error
+	userID uint
 }
 
-func (s *AuthService) bindDefaultUserRole(ctx context.Context, userID uint) error {
+// syncLDAPUser writes the directory entry back under the LDAP write-back lock
+// (design 3.3). It re-reads the entry inside the lock; the identity must
+// still be the one whose password was verified, otherwise the login is
+// refused instead of continuing as whoever holds the username now. Accounts
+// are matched by ExternalID, never by username.
+func (s *AuthService) syncLDAPUser(ctx context.Context, client ldapUtil.Client, conn LDAPConnectionConfig, loginName string, verified LDAPUser) (systemModel.SystemUser, *ldapLoginFailure) {
+	ldapWriteBack.Lock()
+	defer ldapWriteBack.Unlock()
+
+	current, err := client.LookupUsername(ctx, conn, loginName)
+	switch {
+	case errors.Is(err, ldapUtil.ErrUserNotFound), errors.Is(err, ldapUtil.ErrDuplicateUsername):
+		return systemModel.SystemUser{}, &ldapLoginFailure{reason: "ldap_entry_changed", err: ErrLDAPDirectoryChanging}
+	case err != nil:
+		return systemModel.SystemUser{}, &ldapLoginFailure{reason: "ldap_reread_failed", err: ErrInvalidCredentials}
+	case current.ExternalID != verified.ExternalID:
+		return systemModel.SystemUser{}, &ldapLoginFailure{reason: "ldap_entry_changed", err: ErrLDAPDirectoryChanging}
+	}
+	username := current.Username
+	if username == "" {
+		username = loginName
+	}
+	profile := map[string]any{"username": username, "display_name": current.DisplayName, "email": current.Email}
+	if conn.DepartmentAttr != "" {
+		profile["department"] = current.Department
+	}
+
+	db := global.OPTIMUS_DB.WithContext(ctx)
+	var user systemModel.SystemUser
+	err = db.Where("external_id = ?", current.ExternalID).First(&user).Error
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return systemModel.SystemUser{}, &ldapLoginFailure{reason: "user_sync_failed", err: err}
+	}
+	if err == nil {
+		// Same identity: a renamed username follows the directory, roles and
+		// projects stay. The new name must not belong to another account.
+		if user.Username != username {
+			var taken int64
+			if err := db.Model(&systemModel.SystemUser{}).Where("username = ? AND id <> ?", username, user.ID).Count(&taken).Error; err != nil {
+				return systemModel.SystemUser{}, &ldapLoginFailure{reason: "user_sync_failed", err: err, userID: user.ID}
+			}
+			if taken > 0 {
+				return systemModel.SystemUser{}, &ldapLoginFailure{reason: "ldap_identity_conflict", err: ErrLDAPAccountConflict, userID: user.ID}
+			}
+		}
+		// Only the synced profile columns: a full-row Save would restore a
+		// status an administrator disabled after the read.
+		if err := db.Model(&systemModel.SystemUser{}).Where("id = ?", user.ID).Updates(profile).Error; err != nil {
+			return systemModel.SystemUser{}, &ldapLoginFailure{reason: "user_sync_failed", err: err, userID: user.ID}
+		}
+		// Re-read so login decides on the current status, not the earlier read.
+		var updated systemModel.SystemUser
+		if err := db.Where("id = ?", user.ID).First(&updated).Error; err != nil {
+			return systemModel.SystemUser{}, &ldapLoginFailure{reason: "user_sync_failed", err: err, userID: user.ID}
+		}
+		return updated, nil
+	}
+
+	var byName systemModel.SystemUser
+	err = db.Where("username = ?", username).First(&byName).Error
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return systemModel.SystemUser{}, &ldapLoginFailure{reason: "user_sync_failed", err: err}
+	}
+	if err == nil {
+		// A legacy LDAP account is bound only after an admin confirms it is
+		// the same person; the username alone does not prove that.
+		if byName.Source == "ldap" && byName.ExternalID == nil {
+			return systemModel.SystemUser{}, &ldapLoginFailure{reason: "ldap_binding_pending", err: ErrLDAPBindingPending, userID: byName.ID}
+		}
+		// Same username, different identity: another person.
+		return systemModel.SystemUser{}, &ldapLoginFailure{reason: "ldap_identity_conflict", err: ErrLDAPAccountConflict, userID: byName.ID}
+	}
+
+	externalID := current.ExternalID
+	created := systemModel.SystemUser{
+		UUID:        uuid.NewString(),
+		Username:    username,
+		DisplayName: current.DisplayName,
+		Email:       current.Email,
+		Department:  current.Department,
+		ExternalID:  &externalID,
+		Source:      "ldap",
+		Status:      DefaultUserStatus,
+	}
+	if conn.DepartmentAttr == "" {
+		created.Department = ""
+	}
+	err = db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(&created).Error; err != nil {
+			return err
+		}
+		return bindDefaultUserRole(tx, created.ID)
+	})
+	if err != nil {
+		return systemModel.SystemUser{}, &ldapLoginFailure{reason: "user_sync_failed", err: err}
+	}
+	InvalidateUserAuthState(created.ID)
+	return created, nil
+}
+
+// bindDefaultUserRole binds the default role to a newly created account,
+// once (design 3.3 D5).
+func bindDefaultUserRole(db *gorm.DB, userID uint) error {
 	var role systemModel.SystemRole
-	if err := global.OPTIMUS_DB.WithContext(ctx).Where("code = ?", DefaultUserRoleCode).First(&role).Error; err != nil {
+	if err := db.Where("code = ?", DefaultUserRoleCode).First(&role).Error; err != nil {
 		return err
 	}
 	userRole := systemModel.SystemUserRole{UserID: userID, RoleID: role.ID}
-	return global.OPTIMUS_DB.WithContext(ctx).Where("user_id = ? AND role_id = ?", userID, role.ID).FirstOrCreate(&userRole).Error
+	return db.Where("user_id = ? AND role_id = ?", userID, role.ID).FirstOrCreate(&userRole).Error
 }
 
 func queryUserRoles(ctx context.Context, userID uint) ([]systemModel.SystemRoleSummary, error) {

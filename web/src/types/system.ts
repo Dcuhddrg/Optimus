@@ -4,6 +4,11 @@ export interface SystemUser {
   username: string;
   displayName: string;
   email: string;
+  // LDAP value as is; display only (design 3.3 D4).
+  department?: string;
+  // Bound to a directory identity; a legacy LDAP account without it awaits
+  // admin-confirmed binding and cannot sign in.
+  bound?: boolean;
   source: 'local' | 'ldap' | string;
   status: 'enabled' | 'disabled' | string;
   roles?: string[];
@@ -54,6 +59,11 @@ export interface LDAPConfig {
   usernameAttr: string;
   displayNameAttr: string;
   emailAttr: string;
+  // One of IDENTITY_ATTRIBUTES; fixed while boundUsers > 0.
+  idAttr: string;
+  // Empty: departments are not synced.
+  departmentAttr: string;
+  boundUsers?: number;
 }
 
 export interface AuditLog {

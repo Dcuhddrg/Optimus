@@ -8,6 +8,7 @@ import (
 	systemResponse "optimus/server/model/system/response"
 
 	systemService "optimus/server/service/system"
+	ldapUtil "optimus/server/utils/ldap"
 
 	"github.com/gin-gonic/gin"
 )
@@ -60,7 +61,13 @@ func (h *LDAPApi) UpdateLDAPConfig(c *gin.Context) {
 	}
 	cfg, err := svc.SaveConfig(c.Request.Context(), actorID(c), req, auditMeta(c))
 	if err != nil {
-		response.FailWithMessage("failed to save ldap config", c)
+		var locked systemService.IdentityAttrLockedError
+		switch {
+		case errors.As(err, &locked), errors.Is(err, systemService.ErrInvalidIdentityAttr), errors.Is(err, ldapUtil.ErrInvalidLoginFilter):
+			response.FailWithMessage(err.Error(), c)
+		default:
+			response.FailWithMessage("failed to save ldap config", c)
+		}
 		return
 	}
 	response.OkWithData(cfg, c)
@@ -87,7 +94,8 @@ func (h *LDAPApi) TestLDAPConfig(c *gin.Context) {
 		return
 	}
 	result, err := svc.TestConfig(c.Request.Context(), actorID(c), req, auditMeta(c))
-	if errors.Is(err, systemService.ErrInvalidLDAPConfig) {
+	if errors.Is(err, systemService.ErrInvalidLDAPConfig) || errors.Is(err, systemService.ErrInvalidIdentityAttr) || errors.Is(err, ldapUtil.ErrInvalidLoginFilter) ||
+		errors.Is(err, ldapUtil.ErrNoUsersInScope) || errors.Is(err, ldapUtil.ErrSampleMissingIdentity) {
 		response.FailWithMessage(err.Error(), c)
 		return
 	}

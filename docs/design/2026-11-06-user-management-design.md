@@ -1,6 +1,6 @@
 # 用户管理设计
 
-- 状态：已批准（用户逐条确认，2026-11-06）；实现状态：3.1、3.4 已实现（[#82](https://github.com/Dcuhddrg/Optimus/pull/82)）；3.2、3.5 实现中（[#80](https://github.com/Dcuhddrg/Optimus/issues/80) 第二个 PR），其余未开始。
+- 状态：已批准（用户逐条确认，2026-11-06）；实现状态：3.1、3.4 已实现（[#82](https://github.com/Dcuhddrg/Optimus/pull/82)）；3.2、3.5 已实现（[#83](https://github.com/Dcuhddrg/Optimus/pull/83)）；3.3 的目录身份部分（`ExternalID`、过滤条件校验、登录身份与版本核对、写回锁、测试连接修复）实现中（[#80](https://github.com/Dcuhddrg/Optimus/issues/80) 第三个 PR），全量同步与第三方人员未开始。
 - 关联：[#80](https://github.com/Dcuhddrg/Optimus/issues/80)（实施与验收）、[#4](https://github.com/Dcuhddrg/Optimus/issues/4)（审批流，以本设计为前置）、[ADR-005](../adr/0005-ldap-identity-optimus-authorization.md)（身份与授权分工）。
 - 对照基线：gin-vue-admin 本地仓库 `67894b11`（比文档其他处引用的 `cee04b08` 新）。
 
@@ -171,7 +171,7 @@ GVA 的 `middleware/jwt.go` 里有"已登录用户被禁用就让 token 失效"�
      
      这项检查防的是正常运维中的竞态：用户名或 DN 在登录过程中被删除重建、分给了别人。白名单里的标识由服务器生成，不会重复使用，所以只要中间这个 DN 被删除重建过，绑定后就读不到 A。条目改名、移动都会更新条目版本，所以"先把 A 移出原 DN、把 B 移入，用 B 的密码绑定，再把 B 移走、A 移回"这种构造，前后读到的标识虽然都是 A，条目版本却变了，同样会被拒绝。通过上述核对的 A，就是"通过密码验证的那个条目的标识"。
 
-     **信任边界与部署前提**：LDAP 绑定只认 DN，协议本身没有把认证结果与 `entryUUID` 绑定的机制，上面的核对只能缩小而不能消除风险。剩下的情况都需要目录写权限，因此作为部署前提写进上线检查清单：
+     **信任边界与部署前提**：LDAP 绑定只认 DN，协议本身没有把认证结果与 `entryUUID` 绑定的机制，上面的核对只能缩小而不能消除风险。剩下的情况都需要目录写权限，因此作为部署前提写进[上线检查清单](../relations/engineering-workflow.md#上线检查清单)：
      - 能改名、移动用户条目（`modrdn`、对条目的 `write`）的账号，必须同时能重置这些用户的密码。这样两种能力等价：能构造上述攻击的人，本来就能直接重置密码冒充任何人，被视为可信。
      - 上线前人工核对目录 ACL（OpenLDAP 在 `cn=config` 的 `olcAccess` 中），并在测试 LDAP 上核对一次。Optimus 无法通用地读取目录 ACL，不做自动校验。
      - 已知剩余限制：在只有秒精度 `modifyTimestamp` 的服务器上，如果在同一秒内完成"移走、移回"，并且 A 恰好在这一秒内本来也被修改过，版本可能看起来没变；从备份恢复目录导致旧标识和旧版本回来。两者都需要目录写权限，在信任边界之内处理。

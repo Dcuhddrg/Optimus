@@ -79,14 +79,9 @@ func TestAuthServiceDatabaseSyncLDAPUserCreatesDefaultRole(t *testing.T) {
 	userRole := systemModel.SystemRole{Code: "user", Name: "User"}
 	require.NoError(t, db.Create(&userRole).Error)
 
-	store := (&AuthService{})
-	user, err := store.syncLDAPUser(context.Background(), LDAPUser{
-		Username:    "alice",
-		DisplayName: "Alice",
-		Email:       "alice@example.com",
-	})
+	user, failure := syncAs(t, newFakeDirectory(dirEntry("alice", "id-alice")), "alice")
 
-	require.NoError(t, err)
+	require.Nil(t, failure)
 	require.Equal(t, "alice", user.Username)
 	require.Equal(t, "ldap", user.Source)
 

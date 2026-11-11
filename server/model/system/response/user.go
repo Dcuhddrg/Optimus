@@ -6,6 +6,8 @@ type SystemUserSummary struct {
 	Username    string `json:"username"`
 	DisplayName string `json:"displayName"`
 	Email       string `json:"email"`
+	Department  string `json:"department"`
+	Bound       bool   `json:"bound"`
 	Source      string `json:"source"`
 	Status      string `json:"status"`
 }

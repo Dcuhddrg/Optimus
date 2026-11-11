@@ -2121,6 +2121,10 @@
                 "bindPassword": {
                     "type": "string"
                 },
+                "departmentAttr": {
+                    "description": "DepartmentAttr nil keeps the saved value; \"\" stops syncing departments.",
+                    "type": "string"
+                },
                 "displayNameAttr": {
                     "type": "string"
                 },
@@ -2129,6 +2133,9 @@
                 },
                 "enabled": {
                     "type": "boolean"
+                },
+                "idAttr": {
+                    "type": "string"
                 },
                 "url": {
                     "type": "string"
@@ -2153,10 +2160,16 @@
                 "bindPassword": {
                     "type": "string"
                 },
+                "departmentAttr": {
+                    "type": "string"
+                },
                 "displayNameAttr": {
                     "type": "string"
                 },
                 "emailAttr": {
+                    "type": "string"
+                },
+                "idAttr": {
                     "type": "string"
                 },
                 "url": {
@@ -2432,6 +2445,13 @@
                 "bindPassword": {
                     "type": "string"
                 },
+                "boundUsers": {
+                    "description": "BoundUsers counts accounts bound to a directory identity; while it is\nnon-zero, IDAttr cannot change.",
+                    "type": "integer"
+                },
+                "departmentAttr": {
+                    "type": "string"
+                },
                 "displayNameAttr": {
                     "type": "string"
                 },
@@ -2443,6 +2463,9 @@
                 },
                 "hasBindPassword": {
                     "type": "boolean"
+                },
+                "idAttr": {
+                    "type": "string"
                 },
                 "url": {
                     "type": "string"
@@ -2622,6 +2645,12 @@
         "response.SystemUserSummary": {
             "type": "object",
             "properties": {
+                "bound": {
+                    "type": "boolean"
+                },
+                "department": {
+                    "type": "string"
+                },
                 "displayName": {
                     "type": "string"
                 },
@@ -2648,6 +2677,12 @@
         "response.UserListItem": {
             "type": "object",
             "properties": {
+                "bound": {
+                    "type": "boolean"
+                },
+                "department": {
+                    "type": "string"
+                },
                 "displayName": {
                     "type": "string"
                 },

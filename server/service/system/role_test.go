@@ -315,8 +315,8 @@ func TestBuiltinRoleCodesCannotChange(t *testing.T) {
 	require.Equal(t, DefaultUserRoleCode, renamed.Code)
 	require.ErrorIs(t, svc.DeleteRole(context.Background(), 1, userRole.ID, AuditMeta{}), ErrProtectedRole)
 
-	created, err := (&AuthService{}).syncLDAPUser(context.Background(), LDAPUser{Username: "newcomer", DisplayName: "Newcomer"})
-	require.NoError(t, err)
+	created, failure := syncAs(t, newFakeDirectory(dirEntry("newcomer", "id-newcomer")), "newcomer")
+	require.Nil(t, failure)
 	roles, err := queryUserRoles(context.Background(), created.ID)
 	require.NoError(t, err)
 	require.Len(t, roles, 1)

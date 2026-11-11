@@ -24,11 +24,11 @@ func TestPublicDTOJSONContracts(t *testing.T) {
 		value any
 		want  string
 	}{
-		{"user", systemResponse.SystemUserSummary{}, `{"id":0,"uuid":"","username":"","displayName":"","email":"","source":"","status":""}`},
-		{"currentUser", systemResponse.CurrentUserResult{}, `{"user":{"id":0,"uuid":"","username":"","displayName":"","email":"","source":"","status":""},"roles":null,"menuPermissions":null}`},
+		{"user", systemResponse.SystemUserSummary{}, `{"id":0,"uuid":"","username":"","displayName":"","email":"","department":"","bound":false,"source":"","status":""}`},
+		{"currentUser", systemResponse.CurrentUserResult{}, `{"user":{"id":0,"uuid":"","username":"","displayName":"","email":"","department":"","bound":false,"source":"","status":""},"roles":null,"menuPermissions":null}`},
 		{"users", systemResponse.UserListResult{Items: []systemResponse.UserListItem{}}, `{"items":[],"total":0}`},
 		{"roles", systemResponse.RoleListResult{Items: []systemModel.SystemRole{}}, `{"items":[],"total":0}`},
-		{"ldap", systemResponse.LDAPConfigResult{}, `{"enabled":false,"url":"","baseDn":"","bindDn":"","hasBindPassword":false,"userFilter":"","usernameAttr":"","displayNameAttr":"","emailAttr":""}`},
+		{"ldap", systemResponse.LDAPConfigResult{}, `{"enabled":false,"url":"","baseDn":"","bindDn":"","hasBindPassword":false,"userFilter":"","usernameAttr":"","displayNameAttr":"","emailAttr":"","idAttr":"","departmentAttr":"","boundUsers":0}`},
 		{"audit", systemResponse.AuditListData{List: []systemModel.AuditLogEntry{}}, `{"list":[],"total":0,"page":0,"pageSize":0}`},
 		{"assetPage", cloudResponse.AssetPage{Items: []cloudResponse.AssetView{}}, `{"items":[],"total":0,"page":0,"pageSize":0}`},
 		{"account", cloudResponse.AccountView{}, `{"id":0,"projectId":0,"name":"","provider":"","accountId":"","credentialType":"","credential":"","tags":null,"status":"","lastSyncedAt":null}`},

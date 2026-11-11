@@ -48,12 +48,17 @@ definitions:
         type: string
       bindPassword:
         type: string
+      departmentAttr:
+        description: DepartmentAttr nil keeps the saved value; "" stops syncing departments.
+        type: string
       displayNameAttr:
         type: string
       emailAttr:
         type: string
       enabled:
         type: boolean
+      idAttr:
+        type: string
       url:
         type: string
       userFilter:
@@ -69,9 +74,13 @@ definitions:
         type: string
       bindPassword:
         type: string
+      departmentAttr:
+        type: string
       displayNameAttr:
         type: string
       emailAttr:
+        type: string
+      idAttr:
         type: string
       url:
         type: string
@@ -250,6 +259,13 @@ definitions:
         type: string
       bindPassword:
         type: string
+      boundUsers:
+        description: |-
+          BoundUsers counts accounts bound to a directory identity; while it is
+          non-zero, IDAttr cannot change.
+        type: integer
+      departmentAttr:
+        type: string
       displayNameAttr:
         type: string
       emailAttr:
@@ -258,6 +274,8 @@ definitions:
         type: boolean
       hasBindPassword:
         type: boolean
+      idAttr:
+        type: string
       url:
         type: string
       userFilter:
@@ -376,6 +394,10 @@ definitions:
     type: object
   response.SystemUserSummary:
     properties:
+      bound:
+        type: boolean
+      department:
+        type: string
       displayName:
         type: string
       email:
@@ -393,6 +415,10 @@ definitions:
     type: object
   response.UserListItem:
     properties:
+      bound:
+        type: boolean
+      department:
+        type: string
       displayName:
         type: string
       email:

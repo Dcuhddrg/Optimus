@@ -2129,6 +2129,10 @@ const docTemplate = `{
                 "bindPassword": {
                     "type": "string"
                 },
+                "departmentAttr": {
+                    "description": "DepartmentAttr nil keeps the saved value; \"\" stops syncing departments.",
+                    "type": "string"
+                },
                 "displayNameAttr": {
                     "type": "string"
                 },
@@ -2137,6 +2141,9 @@ const docTemplate = `{
                 },
                 "enabled": {
                     "type": "boolean"
+                },
+                "idAttr": {
+                    "type": "string"
                 },
                 "url": {
                     "type": "string"
@@ -2161,10 +2168,16 @@ const docTemplate = `{
                 "bindPassword": {
                     "type": "string"
                 },
+                "departmentAttr": {
+                    "type": "string"
+                },
                 "displayNameAttr": {
                     "type": "string"
                 },
                 "emailAttr": {
+                    "type": "string"
+                },
+                "idAttr": {
                     "type": "string"
                 },
                 "url": {
@@ -2440,6 +2453,13 @@ const docTemplate = `{
                 "bindPassword": {
                     "type": "string"
                 },
+                "boundUsers": {
+                    "description": "BoundUsers counts accounts bound to a directory identity; while it is\nnon-zero, IDAttr cannot change.",
+                    "type": "integer"
+                },
+                "departmentAttr": {
+                    "type": "string"
+                },
                 "displayNameAttr": {
                     "type": "string"
                 },
@@ -2451,6 +2471,9 @@ const docTemplate = `{
                 },
                 "hasBindPassword": {
                     "type": "boolean"
+                },
+                "idAttr": {
+                    "type": "string"
                 },
                 "url": {
                     "type": "string"
@@ -2630,6 +2653,12 @@ const docTemplate = `{
         "response.SystemUserSummary": {
             "type": "object",
             "properties": {
+                "bound": {
+                    "type": "boolean"
+                },
+                "department": {
+                    "type": "string"
+                },
                 "displayName": {
                     "type": "string"
                 },
@@ -2656,6 +2685,12 @@ const docTemplate = `{
         "response.UserListItem": {
             "type": "object",
             "properties": {
+                "bound": {
+                    "type": "boolean"
+                },
+                "department": {
+                    "type": "string"
+                },
                 "displayName": {
                     "type": "string"
                 },
