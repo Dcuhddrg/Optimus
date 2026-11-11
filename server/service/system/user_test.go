@@ -3,6 +3,7 @@ package system
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"testing"
 
 	"optimus/server/global"
@@ -162,12 +163,42 @@ func TestLDAPLoginSyncDoesNotRestoreConcurrentDisable(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	_, err := (&AuthService{}).syncLDAPUser(context.Background(), LDAPUser{Username: f.user.Username, DisplayName: "Alice", Email: "alice@example.com"})
+	synced, err := (&AuthService{}).syncLDAPUser(context.Background(), LDAPUser{Username: f.user.Username, DisplayName: "Alice", Email: "alice@example.com"})
 	require.NoError(t, err)
+	require.Equal(t, "disabled", synced.Status, "login decides on the re-read status")
 
 	var stored systemModel.SystemUser
 	require.NoError(t, f.db.First(&stored, f.user.ID).Error)
 	require.Equal(t, "disabled", stored.Status)
 	require.Equal(t, "Alice", stored.DisplayName)
+	require.False(t, loadState(t, f.user.ID).Enabled())
+}
+
+// The status UPDATE commits but re-reading the row fails (request cancelled,
+// connection lost): the cache must still be invalidated, or a cached
+// "enabled" keeps the disabled user's token working.
+func TestStatusWriteInvalidatesCacheEvenIfRereadFails(t *testing.T) {
+	f := newAuthStateFixture(t)
+	require.True(t, loadState(t, f.user.ID).Enabled()) // cached as enabled
+	updated := false
+	require.NoError(t, f.db.Callback().Update().After("gorm:update").Register("test:mark_updated", func(tx *gorm.DB) {
+		if tx.Statement.Table == "sys_users" {
+			updated = true
+		}
+	}))
+	require.NoError(t, f.db.Callback().Query().Before("gorm:query").Register("test:fail_reread", func(tx *gorm.DB) {
+		if updated && tx.Statement.Table == "sys_users" {
+			tx.AddError(errors.New("connection lost"))
+		}
+	}))
+	t.Cleanup(func() {
+		_ = f.db.Callback().Update().Remove("test:mark_updated")
+		_ = f.db.Callback().Query().Remove("test:fail_reread")
+	})
+
+	_, err := (&UserService{}).UpdateUserStatus(context.Background(), 1, f.user.ID, "disabled", AuditMeta{})
+	require.Error(t, err)
+
+	updated = false
 	require.False(t, loadState(t, f.user.ID).Enabled())
 }

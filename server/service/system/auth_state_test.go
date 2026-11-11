@@ -243,3 +243,33 @@ func TestConcurrentCasbinReloadsEndWithLatestPolicy(t *testing.T) {
 	require.NoError(t, <-second)
 	require.True(t, enforce(t, f.opsRole.ID, "/system/users", "GET"))
 }
+
+// Catalog entries and their first grant commit together, so a failure in
+// between leaves nothing behind and the retry grants everything.
+func TestSeedPermissionsGrantingNewToAdminRetriesAfterFailure(t *testing.T) {
+	f := newAuthStateFixture(t)
+	catalog := []systemModel.SystemPermission{
+		{Code: "demo.menu", Name: "demo", Type: "menu", Path: "/demo"},
+		{Code: "demo.view", Name: "view demo", Type: "api", Method: "GET", Path: "/demo"},
+	}
+	fail := true
+	require.NoError(t, f.db.Callback().Create().Before("gorm:create").Register("test:fail_grant", func(tx *gorm.DB) {
+		if fail && tx.Statement.Table == "casbin_rule" {
+			tx.AddError(errors.New("grant failed"))
+		}
+	}))
+	t.Cleanup(func() { _ = f.db.Callback().Create().Remove("test:fail_grant") })
+
+	require.Error(t, SeedPermissionsGrantingNewToAdmin(f.db, catalog))
+	var count int64
+	require.NoError(t, f.db.Model(&systemModel.SystemPermission{}).Where("code LIKE ?", "demo.%").Count(&count).Error)
+	require.Zero(t, count, "catalog entries roll back with the failed grant")
+
+	fail = false
+	require.NoError(t, SeedPermissionsGrantingNewToAdmin(f.db, catalog))
+	var menu systemModel.SystemPermission
+	require.NoError(t, f.db.Where("code = ?", "demo.menu").First(&menu).Error)
+	require.NoError(t, f.db.Model(&systemModel.SystemRolePermission{}).Where("role_id = ? AND permission_id = ?", f.adminRole.ID, menu.ID).Count(&count).Error)
+	require.Equal(t, int64(1), count)
+	require.True(t, enforce(t, f.adminRole.ID, "/demo", "GET"))
+}

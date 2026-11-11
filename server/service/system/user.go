@@ -71,12 +71,19 @@ func (s *UserService) UpdateUserStatus(ctx context.Context, actorID uint, userID
 		return systemResponse.SystemUserSummary{}, ErrBuiltinAdminProtected
 	}
 	before := user.Status
-	updated, err := s.updateUserColumns(ctx, user.ID, map[string]any{"status": status})
-	if err != nil {
+	if err := s.writeUserColumns(ctx, user.ID, map[string]any{"status": status}); err != nil {
 		event.Detail = auditDetails("update_failed", nil)
 		return systemResponse.SystemUserSummary{}, err
 	}
+	// Committed: invalidate before anything else can fail, so a disable
+	// takes effect even if re-reading the row below fails.
 	InvalidateUserAuthState(userID)
+	updated, err := s.findUserByID(ctx, userID)
+	if err != nil {
+		event.Result = "success"
+		event.Detail = auditDetails("snapshot_unavailable", nil)
+		return systemResponse.SystemUserSummary{}, err
+	}
 	event.Result = "success"
 	event.Detail = auditDetails("updated", map[string]auditChange{"status": {Before: before, After: updated.Status}})
 	return summarizeUser(updated), nil
@@ -160,10 +167,14 @@ func (s *UserService) findUserByID(ctx context.Context, id uint) (systemModel.Sy
 // stored afterwards. Never Save a whole user read earlier: concurrent writes
 // to other columns (status, roles' holders) would be overwritten.
 func (s *UserService) updateUserColumns(ctx context.Context, userID uint, columns map[string]any) (systemModel.SystemUser, error) {
-	if err := global.OPTIMUS_DB.WithContext(ctx).Model(&systemModel.SystemUser{}).Where("id = ?", userID).Updates(columns).Error; err != nil {
+	if err := s.writeUserColumns(ctx, userID, columns); err != nil {
 		return systemModel.SystemUser{}, err
 	}
 	return s.findUserByID(ctx, userID)
+}
+
+func (s *UserService) writeUserColumns(ctx context.Context, userID uint, columns map[string]any) error {
+	return global.OPTIMUS_DB.WithContext(ctx).Model(&systemModel.SystemUser{}).Where("id = ?", userID).Updates(columns).Error
 }
 
 func (s *UserService) replaceUserRoles(ctx context.Context, userID uint, roleIDs []uint) error {

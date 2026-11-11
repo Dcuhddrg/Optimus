@@ -222,8 +222,16 @@ func (s *AuthService) syncLDAPUser(ctx context.Context, ldapUser LDAPUser) (syst
 	}
 	// Only the synced profile columns: a full-row Save would restore a status
 	// an administrator disabled after this read.
-	return user, global.OPTIMUS_DB.WithContext(ctx).Model(&systemModel.SystemUser{}).Where("id = ?", user.ID).
-		Updates(map[string]any{"display_name": user.DisplayName, "email": user.Email}).Error
+	if err := global.OPTIMUS_DB.WithContext(ctx).Model(&systemModel.SystemUser{}).Where("id = ?", user.ID).
+		Updates(map[string]any{"display_name": user.DisplayName, "email": user.Email}).Error; err != nil {
+		return systemModel.SystemUser{}, err
+	}
+	// Re-read so login decides on the current status, not the earlier read.
+	var current systemModel.SystemUser
+	if err := global.OPTIMUS_DB.WithContext(ctx).Where("id = ?", user.ID).First(&current).Error; err != nil {
+		return systemModel.SystemUser{}, err
+	}
+	return current, nil
 }
 
 func (s *AuthService) bindDefaultUserRole(ctx context.Context, userID uint) error {

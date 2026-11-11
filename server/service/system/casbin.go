@@ -174,6 +174,20 @@ func SeedPermissionCatalog(db *gorm.DB, catalog []systemModel.SystemPermission) 
 	return created, nil
 }
 
+// SeedPermissionsGrantingNewToAdmin creates missing catalog entries and grants
+// the newly created ones to the admin role in one transaction: if the grant
+// fails, the entries are rolled back and the next start treats them as new
+// again.
+func SeedPermissionsGrantingNewToAdmin(db *gorm.DB, catalog []systemModel.SystemPermission) error {
+	return db.Transaction(func(tx *gorm.DB) error {
+		created, err := SeedPermissionCatalog(tx, catalog)
+		if err != nil {
+			return err
+		}
+		return GrantToAdminRole(tx, created)
+	})
+}
+
 // GrantToAdminRole grants permissions to the admin role, if it exists.
 func GrantToAdminRole(db *gorm.DB, permissions []systemModel.SystemPermission) error {
 	if len(permissions) == 0 {

@@ -1,6 +1,7 @@
 package system
 
 import (
+	"errors"
 	"os"
 	"strconv"
 	"testing"
@@ -239,4 +240,30 @@ func TestSeedSystemDataKeepsRevokedNonSystemPermissionsMySQL(t *testing.T) {
 	var grants int64
 	require.NoError(t, db.Model(&systemModel.SystemRolePermission{}).Where("role_id = ? AND permission_id = ?", adminRole.ID, dashboard.ID).Count(&grants).Error)
 	require.Zero(t, grants)
+}
+
+// Startup fails between creating the catalog and granting it; the next start
+// still grants the non-system permissions to the admin role.
+func TestSeedSystemDataGrantsCatalogAfterFailedStartMySQL(t *testing.T) {
+	db := resetTestDB(t)
+	require.NoError(t, systemService.AutoMigrateSystem(db))
+	fail := true
+	require.NoError(t, db.Callback().Create().Before("gorm:create").Register("test:fail_first_grant", func(tx *gorm.DB) {
+		if fail && tx.Statement.Table == "casbin_rule" {
+			tx.AddError(errors.New("grant failed"))
+		}
+	}))
+	t.Cleanup(func() { _ = db.Callback().Create().Remove("test:fail_first_grant") })
+
+	require.Error(t, SeedSystemData(db, "admin-secret"))
+	fail = false
+	require.NoError(t, SeedSystemData(db, "admin-secret"))
+
+	var adminRole systemModel.SystemRole
+	require.NoError(t, db.Where("code = ?", "admin").First(&adminRole).Error)
+	var dashboard systemModel.SystemPermission
+	require.NoError(t, db.Where("code = ?", "dashboard.view").First(&dashboard).Error)
+	var grants int64
+	require.NoError(t, db.Model(&systemModel.SystemRolePermission{}).Where("role_id = ? AND permission_id = ?", adminRole.ID, dashboard.ID).Count(&grants).Error)
+	require.Equal(t, int64(1), grants)
 }

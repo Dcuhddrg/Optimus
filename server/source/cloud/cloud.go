@@ -84,11 +84,7 @@ func SeedCloudData(db *gorm.DB) error {
 	}
 	// Grant the admin role only permissions introduced by this run, so a
 	// revoked permission stays revoked across restarts.
-	created, err := systemService.SeedPermissionCatalog(db, cloudService.DefaultCloudPermissions())
-	if err != nil {
-		return err
-	}
-	return systemService.GrantToAdminRole(db, created)
+	return systemService.SeedPermissionsGrantingNewToAdmin(db, cloudService.DefaultCloudPermissions())
 }
 
 // BackfillCloudProjectScope migrates legacy cloud accounts into the default project.

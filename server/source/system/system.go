@@ -72,16 +72,23 @@ func SeedSystemData(db *gorm.DB, initialAdminPassword string) error {
 	if err := seedRoles(db); err != nil {
 		return err
 	}
-	createdPermissions, err := systemService.SeedPermissionCatalog(db, systemService.DefaultSystemPermissions())
-	if err != nil {
+	// Repairs are only reported for an existing admin; a fresh install
+	// creates and grants everything without being a repair.
+	repairs := []string{}
+	// Catalog entries and their first grant commit together: if startup
+	// fails in between, the next start still sees them as new and grants them.
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		createdPermissions, err := systemService.SeedPermissionCatalog(tx, systemService.DefaultSystemPermissions())
+		if err != nil {
+			return err
+		}
+		return seedAdminRolePermissions(tx, createdPermissions, &repairs)
+	}); err != nil {
 		return err
 	}
 	if err := migrateAPIGrantsToCasbin(db); err != nil {
 		return err
 	}
-	// Repairs are only reported for an existing admin; a fresh install
-	// creates and grants everything without being a repair.
-	repairs := []string{}
 	created, err := seedAdminUser(db, initialAdminPassword, &repairs)
 	if err != nil {
 		return err
@@ -90,9 +97,6 @@ func SeedSystemData(db *gorm.DB, initialAdminPassword string) error {
 		repairs = nil
 	}
 	if err := seedAdminUserRole(db, &repairs); err != nil {
-		return err
-	}
-	if err := seedAdminRolePermissions(db, createdPermissions, &repairs); err != nil {
 		return err
 	}
 	if created {
