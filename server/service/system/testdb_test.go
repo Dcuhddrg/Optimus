@@ -44,6 +44,8 @@ func openTestDB(t *testing.T) *gorm.DB {
 	t.Cleanup(func() { global.OPTIMUS_DB = previous; utils.ResetCasbin() })
 	global.OPTIMUS_DB = db
 	utils.ResetCasbin()
+	InvalidateAllAuthState()
+	t.Cleanup(InvalidateAllAuthState)
 	return db
 }
 

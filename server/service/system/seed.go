@@ -2,6 +2,7 @@ package system
 
 import (
 	"errors"
+	"strings"
 
 	systemModel "optimus/server/model/system"
 
@@ -11,8 +12,15 @@ import (
 
 const (
 	DefaultAdminUsername = "admin"
-	DefaultUserStatus    = "enabled"
-	DefaultRoleStatus    = "enabled"
+	// BuiltinAdminUUID identifies the built-in local admin account, the
+	// permanent fallback administrator (design 3.4). Identify it by UUID, not
+	// by username.
+	BuiltinAdminUUID = "00000000-0000-0000-0000-000000000001"
+	// AdminRoleCode is the built-in role that always holds every system.*
+	// permission.
+	AdminRoleCode     = "admin"
+	DefaultUserStatus = "enabled"
+	DefaultRoleStatus = "enabled"
 )
 
 func AutoMigrateSystem(db *gorm.DB) error {
@@ -38,6 +46,18 @@ func DefaultSystemRoles() []systemModel.SystemRole {
 		{Code: "admin", Name: "Administrator", Description: "Full system administrator", Status: DefaultRoleStatus},
 		{Code: "user", Name: "User", Description: "Default LDAP user role", Status: DefaultRoleStatus},
 	}
+}
+
+// SystemPermissionCodes lists the system.* catalog codes the admin role must
+// always hold.
+func SystemPermissionCodes() []string {
+	codes := []string{}
+	for _, permission := range DefaultSystemPermissions() {
+		if strings.HasPrefix(permission.Code, "system.") {
+			codes = append(codes, permission.Code)
+		}
+	}
+	return codes
 }
 
 func DefaultSystemPermissions() []systemModel.SystemPermission {

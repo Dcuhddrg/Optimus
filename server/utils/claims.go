@@ -11,6 +11,10 @@ import (
 
 const ClaimsContextKey = "claims"
 
+// RoleIDsContextKey holds the requester's current role IDs, loaded per request
+// by JWTAuth. Authorization uses these, not the token's RoleIDs (display only).
+const RoleIDsContextKey = "roleIds"
+
 // TokenHeader is the request header and cookie name carrying the JWT, as in GVA.
 const TokenHeader = "x-token"
 
@@ -18,7 +22,7 @@ type BaseClaims struct {
 	UUID      string   `json:"uuid"`
 	ID        uint     `json:"id"`
 	Username  string   `json:"username"`
-	RoleIDs   []uint   `json:"roleIds"`
+	RoleIDs   []uint   `json:"roleIds"` // snapshot at login, display only; see RoleIDsContextKey
 	RoleCodes []string `json:"roleCodes"`
 }
 

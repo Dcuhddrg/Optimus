@@ -82,36 +82,9 @@ func SeedCloudData(db *gorm.DB) error {
 	if db == nil {
 		return errors.New("db is nil")
 	}
-	if err := seedCloudPermissions(db); err != nil {
-		return err
-	}
-	return seedAdminCloudPermissions(db)
-}
-
-func seedCloudPermissions(db *gorm.DB) error {
-	for _, p := range cloudService.DefaultCloudPermissions() {
-		if err := db.Where("code = ?", p.Code).FirstOrCreate(&p).Error; err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func seedAdminCloudPermissions(db *gorm.DB) error {
-	var adminRole systemModel.SystemRole
-	if err := db.Where("code = ?", "admin").First(&adminRole).Error; err != nil {
-		return err
-	}
-	for _, p := range cloudService.DefaultCloudPermissions() {
-		var perm systemModel.SystemPermission
-		if err := db.Where("code = ?", p.Code).First(&perm).Error; err != nil {
-			return err
-		}
-		if err := systemService.GrantPermissions(db, adminRole.ID, []systemModel.SystemPermission{perm}); err != nil {
-			return err
-		}
-	}
-	return nil
+	// Grant the admin role only permissions introduced by this run, so a
+	// revoked permission stays revoked across restarts.
+	return systemService.SeedPermissionsGrantingNewToAdmin(db, cloudService.DefaultCloudPermissions())
 }
 
 // BackfillCloudProjectScope migrates legacy cloud accounts into the default project.

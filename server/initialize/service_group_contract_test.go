@@ -59,9 +59,9 @@ func TestRealRouterReadsCurrentGroupAuthorizer(t *testing.T) {
 	}
 }
 
-// Keep the existing typed-nil authorizer recovery behavior in this structural
-// batch. Changing missing-database authorization policy is a separate fix.
-func TestMissingDatabaseAuthorizerPreservesRecoveryStatus(t *testing.T) {
+// Without a database JWTAuth cannot load the user's current state, so it fails
+// closed with a business error instead of reaching the authorizer (design 3.1).
+func TestMissingDatabaseFailsClosedBeforeAuthorization(t *testing.T) {
 	saved, cfg := *service.ServiceGroupApp, global.OPTIMUS_CONFIG
 	t.Cleanup(func() { *service.ServiceGroupApp = saved; global.OPTIMUS_CONFIG = cfg })
 	global.OPTIMUS_CONFIG.System.RouterPrefix = "/api/v1"
@@ -73,14 +73,15 @@ func TestMissingDatabaseAuthorizerPreservesRecoveryStatus(t *testing.T) {
 	req.Header.Set("x-token", token)
 	w := httptest.NewRecorder()
 	Routers().ServeHTTP(w, req)
-	require.Equal(t, 500, w.Code)
-	require.Empty(t, w.Body.String())
+	require.Equal(t, 200, w.Code)
+	require.JSONEq(t, `{"code":7,"data":{},"msg":"failed to load user state"}`, w.Body.String())
 }
 
 func setTestDatabase(t *testing.T, db *gorm.DB) {
 	t.Helper()
 	previousDB := global.OPTIMUS_DB
-	t.Cleanup(func() { global.OPTIMUS_DB = previousDB; utils.ResetCasbin() })
+	t.Cleanup(func() { global.OPTIMUS_DB = previousDB; utils.ResetCasbin(); systemService.InvalidateAllAuthState() })
 	global.OPTIMUS_DB = db
 	utils.ResetCasbin()
+	systemService.InvalidateAllAuthState()
 }

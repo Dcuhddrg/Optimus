@@ -72,10 +72,10 @@
 ```
 
 - **业务结果一律 HTTP 200**：参数错误、权限不足、资源不存在、冲突、服务不可用等都是 HTTP 200 + code 7。后端用 `Ok`/`OkWithMessage`/`OkWithData`/`OkWithDetailed`/`Fail`/`FailWithMessage`/`FailWithDetailed`，不直接 `c.JSON` 写业务结果。
-- **HTTP 401 只表示未认证**：JWT 缺失、格式错误或过期时由 `NoAuth` 返回。
+- **HTTP 401 只表示未认证**：JWT 缺失、格式错误或过期时由 `NoAuth` 返回。JWT 中间件每个请求都会读取用户的当前状态和角色（[用户管理设计 3.1](../design/2026-11-06-user-management-design.md#31-权限即时生效d1)），账号已停用返回 `msg: "account is disabled"`、账号不存在返回 `msg: "account does not exist"`，同样是 401；前端据 `account is disabled` 在登录页提示账号已停用。
 - **HTTP 500 只表示未处理的 panic**：Recovery 中间件中止请求，不返回正文。`/health` 在启动降级时返回 503，见第 7 节。
 - 前端：HTTP 200 且 code 0 才算成功；HTTP 200 + code 7 是业务失败；JSON 解析失败或字段缺失是协议错误，不冒充正常数据。
-- 权限不足由 Casbin 中间件返回 `msg: "permission denied"`；前端用 `isPermissionDenied()` 识别，不再依赖 HTTP 403。其他分支不依赖 msg 文案。
+- 权限不足由 Casbin 中间件返回 `msg: "permission denied"`；Casbin 策略重载失败、尚未恢复期间返回 `msg: "permission system is syncing, please retry later"`（HTTP 200 + code 7，不注销）；前端用 `isPermissionDenied()` 识别，不再依赖 HTTP 403。其他分支不依赖 msg 文案。
 
 ## 5. 集合、分页与字段
 

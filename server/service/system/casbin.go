@@ -1,12 +1,21 @@
 package system
 
 import (
+	"errors"
+	"fmt"
+	"log"
 	"strconv"
+	"sync/atomic"
+	"time"
+
+	"optimus/server/global"
 
 	systemModel "optimus/server/model/system"
 	"optimus/server/utils"
 
+	"github.com/casbin/casbin/v3"
 	gormadapter "github.com/casbin/gorm-adapter/v3"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -44,13 +53,71 @@ func (casbinService *CasbinService) AddPolicies(db *gorm.DB, roleID uint, casbin
 	return nil
 }
 
-// FreshCasbin reloads policies into the cached enforcer, as GVA.
+// ErrCasbinReloadPending means the policy change is committed but the
+// in-memory enforcer could not be reloaded yet. Authorization fails closed
+// until a background retry succeeds.
+var ErrCasbinReloadPending = errors.New("permissions saved; policy reload pending")
+
+var (
+	casbinRetrying     atomic.Bool
+	casbinRetryInitial = time.Second
+	casbinRetryMax     = 30 * time.Second
+)
+
+// FreshCasbin reloads all policies from casbin_rule after a committed change,
+// as GVA. On failure it starts a background retry and returns
+// ErrCasbinReloadPending; requests needing API permissions are rejected until
+// the retry succeeds (design 3.1).
 func (casbinService *CasbinService) FreshCasbin() error {
-	e := utils.GetCasbin()
-	if e == nil {
-		return nil
+	if err := utils.ReloadCasbin(); err != nil {
+		logCasbinError("casbin policy reload failed; failing closed until retry succeeds", err)
+		startCasbinRetry()
+		return fmt.Errorf("%w: %v", ErrCasbinReloadPending, err)
 	}
-	return e.LoadPolicy()
+	return nil
+}
+
+// Enforcer returns the enforcer to authorize with, or false while the policy
+// is stale. A stale or never-loaded policy also (re)starts the retry loop.
+func (casbinService *CasbinService) Enforcer() (*casbin.SyncedEnforcer, bool) {
+	// GetCasbin loads the policy on first use; a failed load marks it stale.
+	if e := utils.GetCasbin(); e != nil && !utils.CasbinPolicyStale() {
+		return e, true
+	}
+	startCasbinRetry()
+	return nil, false
+}
+
+func startCasbinRetry() {
+	if !casbinRetrying.CompareAndSwap(false, true) {
+		return
+	}
+	go func() {
+		defer casbinRetrying.Store(false)
+		delay := casbinRetryInitial
+		for {
+			time.Sleep(delay)
+			if err := utils.ReloadCasbin(); err == nil {
+				InvalidateAllAuthState()
+				if logger := global.OPTIMUS_LOG; logger != nil {
+					logger.Info("casbin policy reload recovered")
+				}
+				return
+			}
+			delay *= 2
+			if delay > casbinRetryMax {
+				delay = casbinRetryMax
+			}
+		}
+	}()
+}
+
+func logCasbinError(msg string, err error) {
+	if logger := global.OPTIMUS_LOG; logger != nil {
+		logger.Error(msg, zap.Error(err))
+		return
+	}
+	log.Printf("%s: %v", msg, err)
 }
 
 // APIPolicies maps API-type catalog permissions to Casbin policies.
@@ -86,4 +153,52 @@ func apiPermissionCodesForRole(db *gorm.DB, roleID uint) ([]string, error) {
 		Joins("JOIN casbin_rule AS r ON r.ptype = 'p' AND r.v0 = ? AND r.v1 = p.path AND r.v2 = p.method", strconv.Itoa(int(roleID))).
 		Where("p.type = ?", "api").Order("p.code").Pluck("p.code", &codes).Error
 	return codes, err
+}
+
+// SeedPermissionCatalog creates missing catalog entries and returns those
+// created by this call. Seeds grant only these to the admin role, so a
+// permission an administrator revoked is not granted back on restart; the
+// admin role's system.* permissions are restored separately (design 3.4).
+func SeedPermissionCatalog(db *gorm.DB, catalog []systemModel.SystemPermission) ([]systemModel.SystemPermission, error) {
+	created := []systemModel.SystemPermission{}
+	for _, permission := range catalog {
+		p := permission
+		result := db.Where("code = ?", p.Code).FirstOrCreate(&p)
+		if result.Error != nil {
+			return nil, result.Error
+		}
+		if result.RowsAffected > 0 {
+			created = append(created, p)
+		}
+	}
+	return created, nil
+}
+
+// SeedPermissionsGrantingNewToAdmin creates missing catalog entries and grants
+// the newly created ones to the admin role in one transaction: if the grant
+// fails, the entries are rolled back and the next start treats them as new
+// again.
+func SeedPermissionsGrantingNewToAdmin(db *gorm.DB, catalog []systemModel.SystemPermission) error {
+	return db.Transaction(func(tx *gorm.DB) error {
+		created, err := SeedPermissionCatalog(tx, catalog)
+		if err != nil {
+			return err
+		}
+		return GrantToAdminRole(tx, created)
+	})
+}
+
+// GrantToAdminRole grants permissions to the admin role, if it exists.
+func GrantToAdminRole(db *gorm.DB, permissions []systemModel.SystemPermission) error {
+	if len(permissions) == 0 {
+		return nil
+	}
+	var adminRole systemModel.SystemRole
+	if err := db.Where("code = ?", AdminRoleCode).First(&adminRole).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil
+		}
+		return err
+	}
+	return GrantPermissions(db, adminRole.ID, permissions)
 }

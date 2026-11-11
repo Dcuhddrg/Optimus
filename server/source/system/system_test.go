@@ -1,6 +1,7 @@
 package system
 
 import (
+	"errors"
 	"os"
 	"strconv"
 	"testing"
@@ -141,4 +142,153 @@ func TestMigrateAPIGrantsToCasbinUpgradesLegacyGrants(t *testing.T) {
 		require.Equal(t, "/system/users/:id", policies[0].V1)
 		require.Equal(t, "PUT", policies[0].V2)
 	}
+}
+
+// Rules before #80 allowed disabling the built-in admin while other admins
+// existed; startup restores it as the permanent fallback (design 3.4).
+func TestSeedSystemDataRepairsBuiltinAdminMySQL(t *testing.T) {
+	db := resetTestDB(t)
+	require.NoError(t, systemService.AutoMigrateSystem(db))
+	require.NoError(t, SeedSystemData(db, "admin-secret"))
+	var audits int64
+	require.NoError(t, db.Model(&systemModel.SystemAuditLog{}).Where("action = ?", "system.admin.repair").Count(&audits).Error)
+	require.Zero(t, audits, "a fresh install is not a repair")
+
+	var admin systemModel.SystemUser
+	require.NoError(t, db.Where("uuid = ?", systemService.BuiltinAdminUUID).First(&admin).Error)
+	var adminRole systemModel.SystemRole
+	require.NoError(t, db.Where("code = ?", "admin").First(&adminRole).Error)
+	var usersView systemModel.SystemPermission
+	require.NoError(t, db.Where("code = ?", "system.users.menu").First(&usersView).Error)
+
+	require.NoError(t, db.Model(&admin).Update("status", "disabled").Error)
+	require.NoError(t, db.Where("user_id = ? AND role_id = ?", admin.ID, adminRole.ID).Delete(&systemModel.SystemUserRole{}).Error)
+	require.NoError(t, db.Where("role_id = ? AND permission_id = ?", adminRole.ID, usersView.ID).Delete(&systemModel.SystemRolePermission{}).Error)
+	require.NoError(t, db.Where("ptype = ? AND v0 = ? AND v1 = ? AND v2 = ?", "p", strconv.Itoa(int(adminRole.ID)), "/system/users/:id/roles", "PUT").Delete(&gormadapter.CasbinRule{}).Error)
+
+	require.NoError(t, SeedSystemData(db, "ignored"))
+
+	require.NoError(t, db.First(&admin, admin.ID).Error)
+	require.Equal(t, "enabled", admin.Status)
+	var binding int64
+	require.NoError(t, db.Model(&systemModel.SystemUserRole{}).Where("user_id = ? AND role_id = ?", admin.ID, adminRole.ID).Count(&binding).Error)
+	require.Equal(t, int64(1), binding)
+	var restoredMenu, restoredAPI int64
+	require.NoError(t, db.Model(&systemModel.SystemRolePermission{}).Where("role_id = ? AND permission_id = ?", adminRole.ID, usersView.ID).Count(&restoredMenu).Error)
+	require.NoError(t, db.Model(&gormadapter.CasbinRule{}).Where("ptype = ? AND v0 = ? AND v1 = ? AND v2 = ?", "p", strconv.Itoa(int(adminRole.ID)), "/system/users/:id/roles", "PUT").Count(&restoredAPI).Error)
+	require.Equal(t, int64(1), restoredMenu)
+	require.Equal(t, int64(1), restoredAPI)
+
+	var audit systemModel.SystemAuditLog
+	require.NoError(t, db.Where("action = ?", "system.admin.repair").First(&audit).Error)
+	require.Contains(t, audit.Detail, "re-enabled")
+	require.Contains(t, audit.Detail, "admin role restored")
+	require.Contains(t, audit.Detail, "system.users.menu")
+	require.Contains(t, audit.Detail, "system.users.roles.update")
+	require.True(t, utils.BcryptCheck("admin-secret", admin.PasswordHash), "repair keeps the existing password")
+}
+
+// Seeds always used the fixed UUID, but a manually edited database may hold a
+// local admin with another UUID; it is adopted as the built-in admin.
+func TestSeedSystemDataAdoptsLegacyLocalAdminMySQL(t *testing.T) {
+	db := resetTestDB(t)
+	require.NoError(t, systemService.AutoMigrateSystem(db))
+	require.NoError(t, SeedSystemData(db, "admin-secret"))
+	require.NoError(t, db.Model(&systemModel.SystemUser{}).Where("uuid = ?", systemService.BuiltinAdminUUID).
+		Updates(map[string]any{"uuid": "legacy-admin-uuid", "status": "disabled"}).Error)
+
+	require.NoError(t, SeedSystemData(db, "ignored"))
+
+	var admin systemModel.SystemUser
+	require.NoError(t, db.Where("username = ?", "admin").First(&admin).Error)
+	require.Equal(t, systemService.BuiltinAdminUUID, admin.UUID)
+	require.Equal(t, "enabled", admin.Status)
+	var count int64
+	require.NoError(t, db.Model(&systemModel.SystemUser{}).Where("username = ?", "admin").Count(&count).Error)
+	require.Equal(t, int64(1), count)
+	var audit systemModel.SystemAuditLog
+	require.NoError(t, db.Where("action = ?", "system.admin.repair").First(&audit).Error)
+	require.Contains(t, audit.Detail, "adopted legacy local admin")
+	require.Contains(t, audit.Detail, "re-enabled")
+}
+
+func TestSeedSystemDataRefusesNonLocalAdminMySQL(t *testing.T) {
+	db := resetTestDB(t)
+	require.NoError(t, systemService.AutoMigrateSystem(db))
+	require.NoError(t, db.Create(&systemModel.SystemUser{UUID: "ldap:admin", Username: "admin", Source: "ldap", Status: "enabled"}).Error)
+
+	err := SeedSystemData(db, "admin-secret")
+
+	require.ErrorContains(t, err, "blocks the built-in admin")
+	require.ErrorContains(t, err, "UPDATE sys_users SET username")
+}
+
+// Permissions revoked from the admin role stay revoked after a restart;
+// only system.* is restored.
+func TestSeedSystemDataKeepsRevokedNonSystemPermissionsMySQL(t *testing.T) {
+	db := resetTestDB(t)
+	require.NoError(t, systemService.AutoMigrateSystem(db))
+	require.NoError(t, SeedSystemData(db, "admin-secret"))
+	var adminRole systemModel.SystemRole
+	require.NoError(t, db.Where("code = ?", "admin").First(&adminRole).Error)
+	var dashboard systemModel.SystemPermission
+	require.NoError(t, db.Where("code = ?", "dashboard.view").First(&dashboard).Error)
+	require.NoError(t, db.Where("role_id = ? AND permission_id = ?", adminRole.ID, dashboard.ID).Delete(&systemModel.SystemRolePermission{}).Error)
+
+	require.NoError(t, SeedSystemData(db, "admin-secret"))
+
+	var grants int64
+	require.NoError(t, db.Model(&systemModel.SystemRolePermission{}).Where("role_id = ? AND permission_id = ?", adminRole.ID, dashboard.ID).Count(&grants).Error)
+	require.Zero(t, grants)
+}
+
+// Startup fails between creating the catalog and granting it; the next start
+// still grants the non-system permissions to the admin role.
+func TestSeedSystemDataGrantsCatalogAfterFailedStartMySQL(t *testing.T) {
+	db := resetTestDB(t)
+	require.NoError(t, systemService.AutoMigrateSystem(db))
+	fail := true
+	require.NoError(t, db.Callback().Create().Before("gorm:create").Register("test:fail_first_grant", func(tx *gorm.DB) {
+		if fail && tx.Statement.Table == "casbin_rule" {
+			tx.AddError(errors.New("grant failed"))
+		}
+	}))
+	t.Cleanup(func() { _ = db.Callback().Create().Remove("test:fail_first_grant") })
+
+	require.Error(t, SeedSystemData(db, "admin-secret"))
+	fail = false
+	require.NoError(t, SeedSystemData(db, "admin-secret"))
+
+	var adminRole systemModel.SystemRole
+	require.NoError(t, db.Where("code = ?", "admin").First(&adminRole).Error)
+	var dashboard systemModel.SystemPermission
+	require.NoError(t, db.Where("code = ?", "dashboard.view").First(&dashboard).Error)
+	var grants int64
+	require.NoError(t, db.Model(&systemModel.SystemRolePermission{}).Where("role_id = ? AND permission_id = ?", adminRole.ID, dashboard.ID).Count(&grants).Error)
+	require.Equal(t, int64(1), grants)
+}
+
+// A pre-#56 database stores /api/v1-prefixed catalog paths; if an admin
+// system.* grant is also missing, one start must restore it on the
+// unprefixed path that requests are authorized against.
+func TestSeedSystemDataRestoresRevokedGrantOnLegacyPrefixedPathMySQL(t *testing.T) {
+	db := resetTestDB(t)
+	require.NoError(t, systemService.AutoMigrateSystem(db))
+	require.NoError(t, SeedSystemData(db, "admin-secret"))
+	var adminRole systemModel.SystemRole
+	require.NoError(t, db.Where("code = ?", "admin").First(&adminRole).Error)
+	sub := strconv.Itoa(int(adminRole.ID))
+	var usersView systemModel.SystemPermission
+	require.NoError(t, db.Where("code = ?", "system.users.view").First(&usersView).Error)
+	path, method := usersView.Path, usersView.Method
+	require.NoError(t, db.Model(&systemModel.SystemPermission{}).Where("id = ?", usersView.ID).Update("path", utils.DefaultRouterPrefix+path).Error)
+	require.NoError(t, db.Where("ptype = ? AND v0 = ? AND v1 = ?", "p", sub, path).Delete(&gormadapter.CasbinRule{}).Error)
+
+	require.NoError(t, SeedSystemData(db, "admin-secret"))
+
+	var restored, prefixed int64
+	require.NoError(t, db.Model(&gormadapter.CasbinRule{}).Where("ptype = ? AND v0 = ? AND v1 = ? AND v2 = ?", "p", sub, path, method).Count(&restored).Error)
+	require.NoError(t, db.Model(&gormadapter.CasbinRule{}).Where("ptype = ? AND v1 LIKE ?", "p", utils.DefaultRouterPrefix+"/%").Count(&prefixed).Error)
+	require.Equal(t, int64(1), restored)
+	require.Zero(t, prefixed)
 }

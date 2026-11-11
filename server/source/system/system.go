@@ -3,13 +3,18 @@ package system
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"strconv"
 	"strings"
 
 	systemModel "optimus/server/model/system"
 	systemService "optimus/server/service/system"
 	"optimus/server/utils"
 
+	gormadapter "github.com/casbin/gorm-adapter/v3"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -67,19 +72,40 @@ func SeedSystemData(db *gorm.DB, initialAdminPassword string) error {
 	if err := seedRoles(db); err != nil {
 		return err
 	}
-	if err := seedPermissions(db); err != nil {
-		return err
-	}
+	// Normalize legacy /api/v1-prefixed catalog paths first: grants written
+	// below copy the catalog path into casbin_rule, and requests are
+	// authorized on the unprefixed path.
 	if err := migrateAPIGrantsToCasbin(db); err != nil {
 		return err
 	}
-	if err := seedAdminUser(db, initialAdminPassword); err != nil {
+	// Repairs are only reported for an existing admin; a fresh install
+	// creates and grants everything without being a repair.
+	repairs := []string{}
+	// Catalog entries and their first grant commit together: if startup
+	// fails in between, the next start still sees them as new and grants them.
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		createdPermissions, err := systemService.SeedPermissionCatalog(tx, systemService.DefaultSystemPermissions())
+		if err != nil {
+			return err
+		}
+		return seedAdminRolePermissions(tx, createdPermissions, &repairs)
+	}); err != nil {
 		return err
 	}
-	if err := seedAdminUserRole(db); err != nil {
+	created, err := seedAdminUser(db, initialAdminPassword, &repairs)
+	if err != nil {
 		return err
 	}
-	return seedAdminRolePermissions(db)
+	if created {
+		repairs = nil
+	}
+	if err := seedAdminUserRole(db, &repairs); err != nil {
+		return err
+	}
+	if created {
+		return nil
+	}
+	return recordBuiltinAdminRepairs(db, repairs)
 }
 
 func seedRoles(db *gorm.DB) error {
@@ -91,68 +117,179 @@ func seedRoles(db *gorm.DB) error {
 	return nil
 }
 
-func seedPermissions(db *gorm.DB) error {
-	for _, permission := range systemService.DefaultSystemPermissions() {
-		if err := db.Where("code = ?", permission.Code).FirstOrCreate(&permission).Error; err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func seedAdminUser(db *gorm.DB, initialAdminPassword string) error {
+// seedAdminUser creates the built-in admin, or re-enables it: it is the
+// permanent fallback administrator, and rules before #80 allowed disabling it
+// while other admins existed (design 3.4).
+func seedAdminUser(db *gorm.DB, initialAdminPassword string, repairs *[]string) (created bool, err error) {
 	var existing systemModel.SystemUser
-	err := db.Where("username = ?", systemService.DefaultAdminUsername).First(&existing).Error
+	err = db.Where("uuid = ?", systemService.BuiltinAdminUUID).First(&existing).Error
 	if err == nil {
-		return nil
+		if existing.Status != systemService.DefaultUserStatus {
+			if err := db.Model(&systemModel.SystemUser{}).Where("id = ?", existing.ID).Update("status", systemService.DefaultUserStatus).Error; err != nil {
+				return false, err
+			}
+			*repairs = append(*repairs, "re-enabled")
+		}
+		return false, nil
 	}
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		return err
+		return false, err
+	}
+	// A row named admin with another UUID can only come from manual edits.
+	// A local one is the built-in admin: adopt it by giving it the fixed UUID
+	// (UUIDs are never used to look users up, so its sessions stay valid).
+	// Anything else would shadow the built-in admin: refuse to start.
+	if err := db.Where("username = ?", systemService.DefaultAdminUsername).First(&existing).Error; err == nil {
+		if existing.Source != "local" {
+			return false, fmt.Errorf("account %q (id %d) has source %q and blocks the built-in admin; rename it, e.g. UPDATE sys_users SET username = 'admin-%s' WHERE id = %d, then restart", existing.Username, existing.ID, existing.Source, existing.Source, existing.ID)
+		}
+		columns := map[string]any{"uuid": systemService.BuiltinAdminUUID}
+		*repairs = append(*repairs, "adopted legacy local admin (uuid "+existing.UUID+")")
+		if existing.Status != systemService.DefaultUserStatus {
+			columns["status"] = systemService.DefaultUserStatus
+			*repairs = append(*repairs, "re-enabled")
+		}
+		return false, db.Model(&systemModel.SystemUser{}).Where("id = ?", existing.ID).Updates(columns).Error
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return false, err
 	}
 
 	hash, err := utils.BcryptHash(initialAdminPassword)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	admin := systemModel.SystemUser{
-		UUID:         "00000000-0000-0000-0000-000000000001",
+		UUID:         systemService.BuiltinAdminUUID,
 		Username:     systemService.DefaultAdminUsername,
 		DisplayName:  "Administrator",
 		Source:       "local",
 		Status:       systemService.DefaultUserStatus,
 		PasswordHash: hash,
 	}
-	return db.Create(&admin).Error
+	return true, db.Create(&admin).Error
 }
 
-func seedAdminUserRole(db *gorm.DB) error {
+func seedAdminUserRole(db *gorm.DB, repairs *[]string) error {
 	var admin systemModel.SystemUser
-	if err := db.Where("username = ?", systemService.DefaultAdminUsername).First(&admin).Error; err != nil {
+	if err := db.Where("uuid = ?", systemService.BuiltinAdminUUID).First(&admin).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil
+		}
 		return err
 	}
 
 	var adminRole systemModel.SystemRole
-	if err := db.Where("code = ?", "admin").First(&adminRole).Error; err != nil {
+	if err := db.Where("code = ?", systemService.AdminRoleCode).First(&adminRole).Error; err != nil {
 		return err
 	}
 
 	userRole := systemModel.SystemUserRole{UserID: admin.ID, RoleID: adminRole.ID}
-	return db.Where("user_id = ? AND role_id = ?", admin.ID, adminRole.ID).FirstOrCreate(&userRole).Error
+	result := db.Where("user_id = ? AND role_id = ?", admin.ID, adminRole.ID).FirstOrCreate(&userRole)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected > 0 {
+		*repairs = append(*repairs, "admin role restored")
+	}
+	return nil
 }
 
-func seedAdminRolePermissions(db *gorm.DB) error {
+// seedAdminRolePermissions keeps every system.* permission on the admin role
+// (missing ones are reported as repairs) and grants other permissions only
+// when this run introduced them: permissions an administrator revoked from
+// the admin role stay revoked across restarts (design 3.4).
+func seedAdminRolePermissions(db *gorm.DB, created []systemModel.SystemPermission, repairs *[]string) error {
 	var adminRole systemModel.SystemRole
-	if err := db.Where("code = ?", "admin").First(&adminRole).Error; err != nil {
+	if err := db.Where("code = ?", systemService.AdminRoleCode).First(&adminRole).Error; err != nil {
 		return err
 	}
 
+	var systemPermissions []systemModel.SystemPermission
+	if err := db.Where("code LIKE ?", "system.%").Find(&systemPermissions).Error; err != nil {
+		return err
+	}
+	missing, err := missingSystemGrants(db, adminRole.ID)
+	if err != nil {
+		return err
+	}
+	// A permission introduced by this run is granted for the first time, not
+	// restored.
+	isNew := map[string]bool{}
+	for _, permission := range created {
+		isNew[permission.Code] = true
+	}
+	restored := []string{}
+	for _, code := range missing {
+		if !isNew[code] {
+			restored = append(restored, code)
+		}
+	}
+	missing = restored
+	if err := systemService.GrantPermissions(db, adminRole.ID, append(systemPermissions, created...)); err != nil {
+		return err
+	}
+	if len(missing) > 0 {
+		*repairs = append(*repairs, "system permissions restored: "+strings.Join(missing, ","))
+	}
+	return nil
+}
+
+// missingSystemGrants lists system.* permissions the role lacks: menus in
+// sys_role_permissions, APIs in casbin_rule.
+func missingSystemGrants(db *gorm.DB, roleID uint) ([]string, error) {
 	var permissions []systemModel.SystemPermission
-	if err := db.Find(&permissions).Error; err != nil {
+	if err := db.Where("code LIKE ?", "system.%").Order("sort ASC").Find(&permissions).Error; err != nil {
+		return nil, err
+	}
+	missing := []string{}
+	for _, permission := range permissions {
+		var count int64
+		var err error
+		if permission.Type == "api" {
+			err = db.Model(&gormadapter.CasbinRule{}).Where("ptype = ? AND v0 = ? AND v1 = ? AND v2 = ?", "p", strconv.Itoa(int(roleID)), permission.Path, permission.Method).Count(&count).Error
+		} else {
+			err = db.Model(&systemModel.SystemRolePermission{}).Where("role_id = ? AND permission_id = ?", roleID, permission.ID).Count(&count).Error
+		}
+		if err != nil {
+			return nil, err
+		}
+		if count == 0 {
+			missing = append(missing, permission.Code)
+		}
+	}
+	return missing, nil
+}
+
+// recordBuiltinAdminRepairs audits and loudly logs any repair of the built-in
+// admin: if it had been disabled because of a weak password, that password
+// works again, so operators must confirm it.
+func recordBuiltinAdminRepairs(db *gorm.DB, repairs []string) error {
+	if len(repairs) == 0 {
+		return nil
+	}
+	var admin systemModel.SystemUser
+	if err := db.Where("uuid = ?", systemService.BuiltinAdminUUID).First(&admin).Error; err != nil {
 		return err
 	}
-
-	return systemService.GrantPermissions(db, adminRole.ID, permissions)
+	detail, _ := json.Marshal(map[string]any{"version": 1, "reason": "builtin_admin_repaired", "repairs": repairs})
+	if err := db.Create(&systemModel.SystemAuditLog{
+		Action:       "system.admin.repair",
+		ResourceType: "user",
+		ResourceID:   strconv.Itoa(int(admin.ID)),
+		Result:       "success",
+		Detail:       string(detail),
+	}).Error; err != nil {
+		return err
+	}
+	msg := "built-in admin repaired at startup"
+	for _, repair := range repairs {
+		if repair == "re-enabled" {
+			msg += "; it had been disabled, confirm its password"
+		}
+	}
+	zap.L().Warn(msg, zap.Strings("repairs", repairs))
+	return nil
 }
 
 // migrateAPIGrantsToCasbin upgrades databases written before #56: API catalog

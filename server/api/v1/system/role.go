@@ -154,6 +154,10 @@ func (h *RoleApi) UpdateRolePermissions(c *gin.Context) {
 		response.FailWithMessage(err.Error(), c)
 		return
 	}
+	if errors.Is(err, systemService.ErrCasbinReloadPending) {
+		response.FailWithMessage("permissions saved; reloading, please confirm later", c)
+		return
+	}
 	if err != nil {
 		response.FailWithMessage("failed to update role permissions", c)
 		return

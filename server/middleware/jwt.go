@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"errors"
 	"strconv"
 	"time"
@@ -8,6 +9,7 @@ import (
 	"optimus/server/global"
 	"optimus/server/model/common/response"
 	"optimus/server/service"
+	systemService "optimus/server/service/system"
 	"optimus/server/utils"
 
 	"github.com/gin-gonic/gin"
@@ -15,6 +17,15 @@ import (
 )
 
 var jwtService = service.ServiceGroupApp.SystemServiceGroup.JwtService
+
+// AccountDisabledMessage is the 401 msg for a disabled user's session; the
+// frontend shows it on the login page.
+const AccountDisabledMessage = "account is disabled"
+
+// authStateLoader loads the user's current status and roles; tests replace it.
+var authStateLoader = func(ctx context.Context, userID uint) (systemService.UserAuthState, error) {
+	return service.ServiceGroupApp.SystemServiceGroup.AuthStateService.LoadUserAuthState(ctx, userID)
+}
 
 // JWTAuth authenticates the x-token header or cookie, rejects revoked tokens
 // and refreshes tokens inside their buffer window, as GVA.
@@ -47,7 +58,29 @@ func JWTAuth() gin.HandlerFunc {
 			return
 		}
 
+		// Authorize against the user's current status and roles, not the
+		// token's snapshot, so changes apply on the next request (design 3.1).
+		state, err := authStateLoader(c.Request.Context(), claims.BaseClaims.ID)
+		if err != nil {
+			response.FailWithMessage("failed to load user state", c)
+			c.Abort()
+			return
+		}
+		if !state.Exists {
+			response.NoAuth("account does not exist", c)
+			utils.ClearToken(c)
+			c.Abort()
+			return
+		}
+		if !state.Enabled() {
+			response.NoAuth(AccountDisabledMessage, c)
+			utils.ClearToken(c)
+			c.Abort()
+			return
+		}
+
 		c.Set(utils.ClaimsContextKey, claims)
+		c.Set(utils.RoleIDsContextKey, state.RoleIDs)
 		if claims.ExpiresAt.Unix()-time.Now().Unix() < claims.BufferTime {
 			dr, _ := utils.ParseDuration(global.OPTIMUS_CONFIG.JWT.ExpiresTime)
 			claims.ExpiresAt = jwt.NewNumericDate(time.Now().Add(dr))

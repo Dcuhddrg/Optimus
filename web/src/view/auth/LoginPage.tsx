@@ -9,7 +9,7 @@ import styles from './LoginPage.module.css';
 export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login } = useAuth();
+  const { login, loginNotice } = useAuth();
   const { t } = useI18n();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -104,6 +104,7 @@ export function LoginPage() {
                 />
                 <small className={styles.hint}>{t('auth.passwordHint')}</small>
               </label>
+              {loginNotice && !error && !showFallbackError ? <p className={styles.error} role="alert">{t('auth.accountDisabled')}</p> : null}
               {error || showFallbackError ? (
                 <p className={styles.error}>
                   {showFallbackError ? t('auth.loginFailed') : error}

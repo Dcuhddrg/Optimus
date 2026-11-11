@@ -24,5 +24,11 @@ func InitializeData(db *gorm.DB) error {
 	}
 	ctx := context.WithValue(context.Background(), "db", db)
 	ctx = context.WithValue(ctx, "adminPassword", global.OPTIMUS_CONFIG.System.AdminInitialPassword)
-	return systemService.InitDBServiceApp.InitDB(ctx)
+	if err := systemService.InitDBServiceApp.InitDB(ctx); err != nil {
+		return err
+	}
+	// Load the Casbin policy before serving. A failure is not fatal: requests
+	// needing API permissions fail closed while a background retry runs.
+	_ = systemService.CasbinServiceApp.FreshCasbin()
+	return nil
 }

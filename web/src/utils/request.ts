@@ -1,7 +1,11 @@
 const TOKEN_KEY = 'optimus.token';
 const PROJECT_CODE_KEY = 'optimus.currentProjectCode';
 
-let onUnauthorized: (() => void) | undefined;
+// Server msg on HTTP 401 for a disabled user's session (middleware.AccountDisabledMessage).
+export const ACCOUNT_DISABLED_MESSAGE = 'account is disabled';
+
+// Receives the server's 401 msg, e.g. ACCOUNT_DISABLED_MESSAGE.
+let onUnauthorized: ((message?: string) => void) | undefined;
 let currentProjectCode: string | null = window.localStorage.getItem(PROJECT_CODE_KEY);
 
 export function getStoredToken() {
@@ -29,7 +33,7 @@ export function setStoredProjectCode(code: string | null) {
   window.localStorage.removeItem(PROJECT_CODE_KEY);
 }
 
-export function setUnauthorizedHandler(handler: () => void) {
+export function setUnauthorizedHandler(handler: (message?: string) => void) {
   onUnauthorized = handler;
   return () => {
     if (onUnauthorized === handler) onUnauthorized = undefined;
@@ -84,22 +88,23 @@ async function requestResponse(path: string, options: RequestOptions, accept: st
     setStoredToken(newToken);
   }
 
-  // A cancelled request or a response for an older token cannot expire the current session.
-  if (response.status === 401 && token && token === getStoredToken() && !options.signal?.aborted) {
-    clearStoredToken();
-    onUnauthorized?.();
-  }
-
   if (!response.ok) {
     let message = `Request failed with ${response.status}`;
+    let serverMessage: string | undefined;
     let code: number | undefined;
     try {
       const data = JSON.parse(await response.text());
-      if (typeof data?.msg === 'string') message = data.msg;
-      else if (typeof data?.message === 'string') message = data.message;
+      if (typeof data?.msg === 'string') serverMessage = data.msg;
+      else if (typeof data?.message === 'string') serverMessage = data.message;
+      if (serverMessage) message = serverMessage;
       if (Number.isInteger(data?.code)) code = data.code;
     } catch {
       // Non-JSON error bodies still retain their HTTP status.
+    }
+    // A cancelled request or a response for an older token cannot expire the current session.
+    if (response.status === 401 && token && token === getStoredToken() && !options.signal?.aborted) {
+      clearStoredToken();
+      onUnauthorized?.(serverMessage);
     }
     throw new ApiError(message, response.status, 'http', code);
   }
