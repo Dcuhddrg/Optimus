@@ -40,7 +40,11 @@ export function SystemUsersPage() {
           <div className={styles.row} key={user.id}>
             <div>
               <strong>{user.displayName || user.username}</strong>
-              <p>{user.username} · {getUserSourceLabel(user.source, locale)}</p>
+              <p>
+                {user.username} · {getUserSourceLabel(user.source, locale)}
+                {user.department ? ` · ${user.department}` : null}
+                {user.source === 'ldap' && !user.bound ? ` · ${t('system.users.pendingBinding')}` : null}
+              </p>
             </div>
             <div>
               {user.roles?.length

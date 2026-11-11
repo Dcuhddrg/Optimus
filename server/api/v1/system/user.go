@@ -168,7 +168,7 @@ func writeUserServiceResult(c *gin.Context, user systemResponse.SystemUserSummar
 		response.FailWithMessage(err.Error(), c)
 		return
 	}
-	if errors.Is(err, systemService.ErrBuiltinAdminProtected) {
+	if errors.Is(err, systemService.ErrBuiltinAdminProtected) || errors.Is(err, systemService.ErrLDAPProfileReadOnly) {
 		response.FailWithMessage(err.Error(), c)
 		return
 	}

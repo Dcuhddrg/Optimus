@@ -17,6 +17,8 @@ var (
 	ErrUserNotFound = errors.New("user not found")
 	// ErrBuiltinAdminProtected: the built-in admin account must stay enabled
 	// and keep the admin role, so the system always has an administrator.
+	// ErrLDAPProfileReadOnly rejects profile edits of an LDAP account.
+	ErrLDAPProfileReadOnly   = errors.New("profile fields of an LDAP account come from the directory and cannot be edited")
 	ErrBuiltinAdminProtected = errors.New("built-in admin must stay enabled with the admin role")
 )
 
@@ -48,6 +50,11 @@ func (s *UserService) UpdateUser(ctx context.Context, actorID uint, userID uint,
 	user, err := s.findUserByID(ctx, userID)
 	if err != nil {
 		return systemResponse.SystemUserSummary{}, err
+	}
+	// LDAP is the source of truth for an LDAP account's profile (design 3.3).
+	if user.Source == "ldap" {
+		recordAudit(ctx, AuditEvent{ActorUserID: actorID, ActorUsername: meta.ActorUsername, Action: "user.update", ResourceType: "user", ResourceID: resourceID(userID), Result: "failure", IP: meta.IP, UserAgent: meta.UserAgent, Detail: auditDetails("ldap_profile_read_only", nil)})
+		return systemResponse.SystemUserSummary{}, ErrLDAPProfileReadOnly
 	}
 	// Write only the edited columns: a full-row Save of this earlier read
 	// would restore a status disabled in the meantime.

@@ -35,7 +35,7 @@
 
 基础命令见 [根规则验证章节](../../AGENT.MD#验证)。以下步骤按任务触发；部署地址和代理契约统一以 [当前架构](repo-profile.md) 为准。
 
-后端持久化及部分业务、权限测试需要 `OPTIMUS_TEST_MYSQL_DSN`；未设置时这些测试会跳过，普通 `go test ./...` 不能证明数据库行为。使用专门的临时 MySQL 数据库设置该变量后运行 `cd server && go test -count=1 -p 1 ./...`。测试会删除并重建表，不能指向应用或共享数据库；`-p 1` 避免不同包并发重置同一测试库。记录数据库测试的实际结果和跳过项。
+后端持久化及部分业务、权限测试需要 `OPTIMUS_TEST_MYSQL_DSN`；未设置时这些测试会跳过，普通 `go test ./...` 不能证明数据库行为。使用专门的临时 MySQL 数据库设置该变量后运行 `cd server && go test -count=1 -p 1 -timeout 30m ./...`（`service/system` 包串行跑完要 10 分钟以上，超过 go test 默认的 10 分钟超时）。测试会删除并重建表，不能指向应用或共享数据库；`-p 1` 避免不同包并发重置同一测试库。记录数据库测试的实际结果和跳过项。
 
 ### 依赖准备
 
@@ -61,3 +61,12 @@ docker compose -f deploy/docker-compose/docker-compose.yml up -d
 ### 文档和规则
 
 检查目标文件存在、章节与引用关系正确、内容符合任务边界，且未误改无关文件；运行 `git diff --check`。链接检查或构建通过均不能代替业务验收。
+
+## 上线检查清单
+
+上线前逐项人工确认，结果记在对应 Issue。
+
+- **内置 admin 密码**：确认内置 `admin` 的密码已更换为强密码。启动时若修复过内置 admin（日志提示"内置 admin 已恢复"），旧密码会重新可用，见[用户管理设计 3.4](../design/2026-11-06-user-management-design.md#34-停用规则q4)。
+- **LDAP 目录 ACL（信任边界）**：能改名、移动用户条目（`modrdn`、对条目的 `write`）的账号，必须同时能重置这些用户的密码；Optimus 的绑定账号对整个目录的用户条目有读权限，包括 `id_attr`（默认 `entryUUID`）、`entryCSN`/`modifyTimestamp`、`createTimestamp`。OpenLDAP 在 `cn=config` 的 `olcAccess` 中核对，并在测试 LDAP 上核对一次。Optimus 不自动校验 ACL。见[用户管理设计 3.3](../design/2026-11-06-user-management-design.md#33-从-ldap-同步用户d2-至-d6)"写入顺序"。
+- **LDAP 配置**：在 LDAP 配置页"测试连接"通过（同步范围内至少一个用户，且能读到目录标识）。
+- **存量 LDAP 账号绑定**：存量 LDAP 账号没有绑定目录标识前不能登录。上线前执行一次同步并完成"待绑定"确认。

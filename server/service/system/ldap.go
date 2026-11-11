@@ -3,7 +3,7 @@ package system
 import (
 	"context"
 	"errors"
-	"strings"
+	"fmt"
 
 	"optimus/server/global"
 	systemModel "optimus/server/model/system"
@@ -14,7 +14,24 @@ import (
 	"gorm.io/gorm"
 )
 
-var ErrInvalidLDAPConfig = errors.New("invalid ldap config")
+var (
+	ErrInvalidLDAPConfig = errors.New("invalid ldap config")
+	// ErrInvalidIdentityAttr rejects an id_attr outside the whitelist.
+	ErrInvalidIdentityAttr = errors.New("identity attribute must be one of entryUUID, nsUniqueId, ipaUniqueID")
+)
+
+// IdentityAttrLockedError rejects changing id_attr while accounts are bound:
+// their identities would be looked up under the wrong attribute.
+type IdentityAttrLockedError struct{ Bound int64 }
+
+func (e IdentityAttrLockedError) Error() string {
+	return fmt.Sprintf("%d accounts are bound to a directory identity; the identity attribute cannot be changed", e.Bound)
+}
+
+const (
+	defaultIDAttr         = "entryUUID"
+	defaultDepartmentAttr = "departmentNumber"
+)
 
 type LDAPService struct{}
 
@@ -31,12 +48,29 @@ func (s *LDAPService) GetConfig(ctx context.Context) (systemResponse.LDAPConfigR
 	if err != nil {
 		return systemResponse.LDAPConfigResult{}, err
 	}
-	return ldapConfigResult(cfg), nil
+	bound, err := countBoundUsers(global.OPTIMUS_DB.WithContext(ctx))
+	if err != nil {
+		return systemResponse.LDAPConfigResult{}, err
+	}
+	if cfg.ID == 0 {
+		// Nothing saved yet: return the design defaults, so a first save
+		// does not turn an absent value into an explicit "not synced".
+		cfg.IDAttr = defaultIDAttr
+		cfg.DepartmentAttr = defaultDepartmentAttr
+	}
+	result := ldapConfigResult(cfg)
+	result.BoundUsers = bound
+	return result, nil
 }
 
 func (s *LDAPService) SaveConfig(ctx context.Context, actorID uint, req systemRequest.LDAPConfigRequest, meta AuditMeta) (systemResponse.LDAPConfigResult, error) {
 	event := failedAudit(actorID, meta, "ldap.config.update", "ldap", 0)
 	defer func() { recordAudit(ctx, event) }()
+	// Logins bind identities under this lock; holding it keeps the bound count
+	// and the id_attr change consistent.
+	ldapWriteBack.Lock()
+	defer ldapWriteBack.Unlock()
+
 	current, currentErr := s.getLDAPConfig(ctx)
 	cfg := systemModel.SystemLDAPConfig{
 		OPTIMUS_MODEL:   global.OPTIMUS_MODEL{ID: current.ID},
@@ -49,9 +83,36 @@ func (s *LDAPService) SaveConfig(ctx context.Context, actorID uint, req systemRe
 		UsernameAttr:    req.UsernameAttr,
 		DisplayNameAttr: req.DisplayNameAttr,
 		EmailAttr:       req.EmailAttr,
+		IDAttr:          req.IDAttr,
+		DepartmentAttr:  current.DepartmentAttr,
+		Version:         current.Version + 1,
 	}
 	if cfg.BindPassword == "" {
 		cfg.BindPassword = current.BindPassword
+	}
+	if cfg.IDAttr == "" {
+		cfg.IDAttr = current.IDAttr
+	}
+	if cfg.IDAttr == "" {
+		cfg.IDAttr = defaultIDAttr
+	}
+	if req.DepartmentAttr != nil {
+		cfg.DepartmentAttr = *req.DepartmentAttr
+	} else if current.ID == 0 {
+		cfg.DepartmentAttr = defaultDepartmentAttr
+	}
+	if err := validateLDAPConfig(cfg); err != nil {
+		event.Detail = auditDetails("invalid_config", nil)
+		return systemResponse.LDAPConfigResult{}, err
+	}
+	bound, err := countBoundUsers(global.OPTIMUS_DB.WithContext(ctx))
+	if err != nil {
+		event.Detail = auditDetails("update_failed", nil)
+		return systemResponse.LDAPConfigResult{}, err
+	}
+	if bound > 0 && (currentErr != nil || current.IDAttr != cfg.IDAttr) {
+		event.Detail = auditDetails("identity_attr_locked", map[string]auditChange{"boundUsers": {Before: bound, After: bound}})
+		return systemResponse.LDAPConfigResult{}, IdentityAttrLockedError{Bound: bound}
 	}
 	saved, err := s.saveLDAPConfig(ctx, cfg)
 	if err != nil {
@@ -66,11 +127,33 @@ func (s *LDAPService) SaveConfig(ctx context.Context, actorID uint, req systemRe
 		event.Detail = auditDetails("updated", map[string]auditChange{
 			"enabled":             {Before: current.Enabled, After: saved.Enabled},
 			"connectionChanged":   {Before: false, After: current.URL != saved.URL || current.BaseDN != saved.BaseDN || current.BindDN != saved.BindDN},
-			"mappingChanged":      {Before: false, After: current.UserFilter != saved.UserFilter || current.UsernameAttr != saved.UsernameAttr || current.DisplayNameAttr != saved.DisplayNameAttr || current.EmailAttr != saved.EmailAttr},
+			"mappingChanged":      {Before: false, After: current.UserFilter != saved.UserFilter || current.UsernameAttr != saved.UsernameAttr || current.DisplayNameAttr != saved.DisplayNameAttr || current.EmailAttr != saved.EmailAttr || current.DepartmentAttr != saved.DepartmentAttr},
+			"idAttr":              {Before: current.IDAttr, After: saved.IDAttr},
 			"bindPasswordChanged": {Before: false, After: current.BindPassword != saved.BindPassword},
 		})
 	}
-	return ldapConfigResult(saved), nil
+	result := ldapConfigResult(saved)
+	result.BoundUsers = bound
+	return result, nil
+}
+
+// validateLDAPConfig checks the identity attribute and, for an enabled or
+// filled-in config, the login filter structure (design 3.3 D3).
+func validateLDAPConfig(cfg systemModel.SystemLDAPConfig) error {
+	if !ldapUtil.IsIdentityAttribute(cfg.IDAttr) {
+		return ErrInvalidIdentityAttr
+	}
+	if !cfg.Enabled && cfg.UserFilter == "" {
+		return nil
+	}
+	_, err := ldapUtil.ValidateLoginFilter(cfg.UserFilter, cfg.UsernameAttr)
+	return err
+}
+
+func countBoundUsers(db *gorm.DB) (int64, error) {
+	var bound int64
+	err := db.Model(&systemModel.SystemUser{}).Where("external_id IS NOT NULL").Count(&bound).Error
+	return bound, err
 }
 
 func (s *LDAPService) TestConfig(ctx context.Context, actorID uint, req systemRequest.LDAPTestRequest, meta AuditMeta) (systemResponse.LDAPTestResult, error) {
@@ -82,8 +165,15 @@ func (s *LDAPService) TestConfig(ctx context.Context, actorID uint, req systemRe
 		return systemResponse.LDAPTestResult{}, err
 	}
 	if err := newLDAPClient().Test(ctx, cfg); err != nil {
+		reason := "connection_test_failed"
+		switch {
+		case errors.Is(err, ldapUtil.ErrNoUsersInScope):
+			reason = "no_users_in_scope"
+		case errors.Is(err, ldapUtil.ErrSampleMissingIdentity):
+			reason = "identity_unreadable"
+		}
 		event := failedAudit(actorID, meta, "ldap.test.failure", "ldap", 0)
-		event.Detail = auditDetails("connection_test_failed", nil)
+		event.Detail = auditDetails(reason, nil)
 		recordAudit(ctx, event)
 		return systemResponse.LDAPTestResult{}, err
 	}
@@ -92,8 +182,15 @@ func (s *LDAPService) TestConfig(ctx context.Context, actorID uint, req systemRe
 }
 
 func (s *LDAPService) connectionConfig(ctx context.Context, req systemRequest.LDAPTestRequest) (LDAPConnectionConfig, error) {
-	if !strings.Contains(req.UserFilter, "{username}") {
-		return LDAPConnectionConfig{}, ErrInvalidLDAPConfig
+	idAttr := req.IDAttr
+	if idAttr == "" {
+		idAttr = defaultIDAttr
+	}
+	if !ldapUtil.IsIdentityAttribute(idAttr) {
+		return LDAPConnectionConfig{}, ErrInvalidIdentityAttr
+	}
+	if _, err := ldapUtil.ValidateLoginFilter(req.UserFilter, req.UsernameAttr); err != nil {
+		return LDAPConnectionConfig{}, err
 	}
 	password := req.BindPassword
 	if req.UseSavedBindPassword {
@@ -115,6 +212,8 @@ func (s *LDAPService) connectionConfig(ctx context.Context, req systemRequest.LD
 		UsernameAttr:    req.UsernameAttr,
 		DisplayNameAttr: req.DisplayNameAttr,
 		EmailAttr:       req.EmailAttr,
+		DepartmentAttr:  req.DepartmentAttr,
+		IDAttr:          idAttr,
 	}, nil
 }
 
@@ -129,6 +228,8 @@ func ldapConfigResult(cfg systemModel.SystemLDAPConfig) systemResponse.LDAPConfi
 		UsernameAttr:    cfg.UsernameAttr,
 		DisplayNameAttr: cfg.DisplayNameAttr,
 		EmailAttr:       cfg.EmailAttr,
+		IDAttr:          cfg.IDAttr,
+		DepartmentAttr:  cfg.DepartmentAttr,
 	}
 }
 
@@ -142,6 +243,8 @@ func ldapConnectionConfig(cfg systemModel.SystemLDAPConfig) LDAPConnectionConfig
 		UsernameAttr:    cfg.UsernameAttr,
 		DisplayNameAttr: cfg.DisplayNameAttr,
 		EmailAttr:       cfg.EmailAttr,
+		DepartmentAttr:  cfg.DepartmentAttr,
+		IDAttr:          cfg.IDAttr,
 	}
 }
 
@@ -156,8 +259,18 @@ func (s *LDAPService) getLDAPConfig(ctx context.Context) (systemModel.SystemLDAP
 
 func (s *LDAPService) saveLDAPConfig(ctx context.Context, cfg systemModel.SystemLDAPConfig) (systemModel.SystemLDAPConfig, error) {
 	if cfg.ID == 0 {
-		err := global.OPTIMUS_DB.WithContext(ctx).Create(&cfg).Error
-		return cfg, err
+		department := cfg.DepartmentAttr
+		if err := global.OPTIMUS_DB.WithContext(ctx).Create(&cfg).Error; err != nil {
+			return cfg, err
+		}
+		// Create skips a zero value for a column with a default; keep an
+		// explicit empty department_attr ("not synced").
+		if department == "" {
+			cfg.DepartmentAttr = ""
+			err := global.OPTIMUS_DB.WithContext(ctx).Model(&cfg).Update("department_attr", "").Error
+			return cfg, err
+		}
+		return cfg, nil
 	}
 	err := global.OPTIMUS_DB.WithContext(ctx).Omit("CreatedAt").Save(&cfg).Error
 	return cfg, err

@@ -17,7 +17,13 @@ const emptyConfig: LDAPConfig = {
   usernameAttr: 'uid',
   displayNameAttr: 'cn',
   emailAttr: 'mail',
+  idAttr: 'entryUUID',
+  departmentAttr: 'departmentNumber',
 };
+
+// Directory-generated unique identifiers (design 3.3); AD's binary objectGUID
+// is not supported yet.
+const IDENTITY_ATTRIBUTES = ['entryUUID', 'nsUniqueId', 'ipaUniqueID'];
 
 export function SystemLdapPage() {
   const { t } = useI18n();
@@ -29,6 +35,8 @@ export function SystemLdapPage() {
   useEffect(() => {
     void getLDAPConfig().then((result) => setConfig({ ...emptyConfig, ...result, bindPassword: '' }));
   }, []);
+
+  const idAttrLocked = (config.boundUsers ?? 0) > 0;
 
   function update<K extends keyof LDAPConfig>(key: K, value: LDAPConfig[K]) {
     setConfig((current) => ({ ...current, [key]: value }));
@@ -117,6 +125,7 @@ export function SystemLdapPage() {
               value={config.userFilter}
               onChange={(event) => update('userFilter', event.target.value)}
             />
+            <small>{t('system.ldap.userFilterHint')}</small>
           </label>
           <label className={styles.field}>
             <span>{t('system.ldap.usernameAttributeLabel')}</span>
@@ -137,6 +146,27 @@ export function SystemLdapPage() {
           <label className={styles.field}>
             <span>{t('system.ldap.emailAttributeLabel')}</span>
             <input placeholder={t('system.ldap.emailAttrPlaceholder')} value={config.emailAttr} onChange={(event) => update('emailAttr', event.target.value)} />
+          </label>
+          <label className={styles.field}>
+            <span>{t('system.ldap.departmentAttributeLabel')}</span>
+            <input
+              placeholder={t('system.ldap.departmentAttrPlaceholder')}
+              value={config.departmentAttr}
+              onChange={(event) => update('departmentAttr', event.target.value)}
+            />
+          </label>
+          <label className={styles.field}>
+            <span>{t('system.ldap.idAttributeLabel')}</span>
+            <select value={config.idAttr} disabled={idAttrLocked} onChange={(event) => update('idAttr', event.target.value)}>
+              {IDENTITY_ATTRIBUTES.map((attr) => (
+                <option key={attr} value={attr}>{attr}</option>
+              ))}
+            </select>
+            <small>
+              {idAttrLocked
+                ? t('system.ldap.idAttributeLocked').replace('{count}', String(config.boundUsers))
+                : t('system.ldap.idAttributeHint')}
+            </small>
           </label>
         </div>
 

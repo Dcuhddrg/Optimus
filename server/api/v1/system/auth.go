@@ -47,6 +47,12 @@ func (h *AuthApi) Login(c *gin.Context) {
 		if errors.Is(err, systemService.ErrUserDisabled) {
 			message = "account is disabled"
 		}
+		for _, refusal := range []error{systemService.ErrLDAPAccountConflict, systemService.ErrLDAPBindingPending, systemService.ErrLDAPIdentityMissing,
+			systemService.ErrLDAPIdentityAnomaly, systemService.ErrLDAPDuplicateUsername, systemService.ErrLDAPDirectoryChanging} {
+			if errors.Is(err, refusal) {
+				message = refusal.Error()
+			}
+		}
 		response.FailWithMessage(message, c)
 		return
 	}

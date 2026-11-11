@@ -11,6 +11,11 @@ type LDAPConfigResult struct {
 	UsernameAttr    string `json:"usernameAttr"`
 	DisplayNameAttr string `json:"displayNameAttr"`
 	EmailAttr       string `json:"emailAttr"`
+	IDAttr          string `json:"idAttr"`
+	DepartmentAttr  string `json:"departmentAttr"`
+	// BoundUsers counts accounts bound to a directory identity; while it is
+	// non-zero, IDAttr cannot change.
+	BoundUsers int64 `json:"boundUsers"`
 }
 
 type LDAPTestResult struct {

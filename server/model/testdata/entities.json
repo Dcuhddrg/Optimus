@@ -1056,6 +1056,21 @@
         "type": "time.Time",
         "unique": false
       },
+      "department_attr": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "departmentNumber",
+        "hasDefault": true,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 64,
+        "type": "string",
+        "unique": false
+      },
       "display_name_attr": {
         "autoCreate": 0,
         "autoIncrement": false,
@@ -1114,6 +1129,21 @@
         "scale": 0,
         "size": 64,
         "type": "uint",
+        "unique": false
+      },
+      "id_attr": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "entryUUID",
+        "hasDefault": true,
+        "notNull": true,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 64,
+        "type": "string",
         "unique": false
       },
       "updated_at": {
@@ -1175,6 +1205,21 @@
         "size": 64,
         "type": "string",
         "unique": false
+      },
+      "version": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "uint",
+        "default": "0",
+        "hasDefault": true,
+        "notNull": true,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 64,
+        "type": "uint64",
+        "unique": false
       }
     },
     "indexes": {},
@@ -1182,10 +1227,12 @@
       "baseDn": "",
       "bindDn": "",
       "createdAt": "0001-01-01T00:00:00Z",
+      "departmentAttr": "",
       "displayNameAttr": "",
       "emailAttr": "",
       "enabled": false,
       "id": 0,
+      "idAttr": "",
       "updatedAt": "0001-01-01T00:00:00Z",
       "url": "",
       "userFilter": "",
@@ -1735,6 +1782,21 @@
         "type": "time.Time",
         "unique": false
       },
+      "department": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 128,
+        "type": "string",
+        "unique": false
+      },
       "display_name": {
         "autoCreate": 0,
         "autoIncrement": false,
@@ -1763,6 +1825,21 @@
         "scale": 0,
         "size": 255,
         "type": "string",
+        "unique": false
+      },
+      "external_id": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 255,
+        "type": "*string",
         "unique": false
       },
       "id": {
@@ -1887,6 +1964,15 @@
       }
     },
     "indexes": {
+      "idx_sys_users_external_id": {
+        "class": "UNIQUE",
+        "fields": [
+          "external_id"
+        ],
+        "option": "",
+        "type": "",
+        "where": ""
+      },
       "idx_sys_users_source": {
         "class": "",
         "fields": [
@@ -1926,8 +2012,10 @@
     },
     "json": {
       "createdAt": "0001-01-01T00:00:00Z",
+      "department": "",
       "displayName": "",
       "email": "",
+      "externalId": null,
       "id": 0,
       "lastLoginAt": null,
       "source": "",

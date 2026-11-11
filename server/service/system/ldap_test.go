@@ -45,6 +45,10 @@ func (failingLDAPClient) Authenticate(context.Context, LDAPConnectionConfig, str
 	return LDAPUser{}, errors.New("DO_NOT_LOG_THIS")
 }
 
+func (failingLDAPClient) LookupUsername(context.Context, LDAPConnectionConfig, string) (LDAPUser, error) {
+	return LDAPUser{}, errors.New("DO_NOT_LOG_THIS")
+}
+
 func TestLDAPSnapshotFailureStillSavesConfig(t *testing.T) {
 	db := openTestDB(t)
 	require.NoError(t, db.Callback().Query().Before("gorm:query").Register("test:fail_ldap_read", func(tx *gorm.DB) {
@@ -53,7 +57,7 @@ func TestLDAPSnapshotFailureStillSavesConfig(t *testing.T) {
 		}
 	}))
 	svc := newLDAPServiceForTest(t, &fakeLDAPClientUC{})
-	_, err := svc.SaveConfig(context.Background(), 1, systemRequest.LDAPConfigRequest{Enabled: true, BindPassword: "SECRET"}, AuditMeta{})
+	_, err := svc.SaveConfig(context.Background(), 1, systemRequest.LDAPConfigRequest{Enabled: true, BindPassword: "SECRET", UserFilter: "(uid={username})", UsernameAttr: "uid"}, AuditMeta{})
 	require.NoError(t, err)
 	var audit systemModel.SystemAuditLog
 	require.NoError(t, db.Last(&audit).Error)
@@ -66,7 +70,7 @@ func TestLDAPConnectionFailureAuditOmitsSecrets(t *testing.T) {
 	db := openTestDB(t)
 	svc := newLDAPServiceForTest(t, failingLDAPClient{})
 	_, err := svc.TestConfig(context.Background(), 1, systemRequest.LDAPTestRequest{
-		URL: "ldap://test", BindPassword: "PASSWORD_SECRET", UserFilter: "(uid={username})",
+		URL: "ldap://test", BindPassword: "PASSWORD_SECRET", UserFilter: "(uid={username})", UsernameAttr: "uid",
 	}, AuditMeta{})
 	require.Error(t, err)
 	var audit systemModel.SystemAuditLog
@@ -82,7 +86,7 @@ func TestLDAPConfigAuditOmitsSecrets(t *testing.T) {
 	require.NoError(t, db.Create(&systemModel.SystemLDAPConfig{BindPassword: "OLD_SECRET", URL: "ldap://old.test"}).Error)
 	svc := newLDAPServiceForTest(t, &fakeLDAPClientUC{})
 	_, err := svc.SaveConfig(context.Background(), 1, systemRequest.LDAPConfigRequest{
-		Enabled: true, URL: "ldap://user:URL_SECRET@new.test", BindPassword: "NEW_SECRET",
+		Enabled: true, URL: "ldap://user:URL_SECRET@new.test", BindPassword: "NEW_SECRET", UserFilter: "(uid={username})", UsernameAttr: "uid",
 	}, AuditMeta{})
 	require.NoError(t, err)
 	var audit systemModel.SystemAuditLog
@@ -102,6 +106,10 @@ func (c *fakeLDAPClientUC) Test(_ context.Context, cfg LDAPConnectionConfig) err
 }
 
 func (c *fakeLDAPClientUC) Authenticate(context.Context, LDAPConnectionConfig, string, string) (LDAPUser, error) {
+	return LDAPUser{}, errors.New("not used")
+}
+
+func (c *fakeLDAPClientUC) LookupUsername(context.Context, LDAPConnectionConfig, string) (LDAPUser, error) {
 	return LDAPUser{}, errors.New("not used")
 }
 

@@ -7,10 +7,17 @@ import (
 
 type SystemUser struct {
 	global.OPTIMUS_MODEL
-	UUID         string     `gorm:"size:64;uniqueIndex;not null" json:"uuid"`
-	Username     string     `gorm:"size:128;uniqueIndex;not null" json:"username"`
-	DisplayName  string     `gorm:"size:128" json:"displayName"`
-	Email        string     `gorm:"size:255" json:"email"`
+	UUID        string `gorm:"size:64;uniqueIndex;not null" json:"uuid"`
+	Username    string `gorm:"size:128;uniqueIndex;not null" json:"username"`
+	DisplayName string `gorm:"size:128" json:"displayName"`
+	Email       string `gorm:"size:255" json:"email"`
+	// Department is the LDAP value as is; display and filtering only, never
+	// used for authorization.
+	Department string `gorm:"size:128" json:"department"`
+	// ExternalID is the immutable directory identity (id_attr) an LDAP account
+	// is matched by; empty for local accounts and for legacy LDAP accounts
+	// awaiting admin-confirmed binding.
+	ExternalID   *string    `gorm:"size:255;uniqueIndex" json:"externalId"`
 	Source       string     `gorm:"size:32;not null;index" json:"source"`
 	Status       string     `gorm:"size:32;not null;index" json:"status"`
 	PasswordHash string     `gorm:"size:255" json:"-"`
@@ -83,6 +90,13 @@ type SystemLDAPConfig struct {
 	UsernameAttr    string `gorm:"size:64" json:"usernameAttr"`
 	DisplayNameAttr string `gorm:"size:64" json:"displayNameAttr"`
 	EmailAttr       string `gorm:"size:64" json:"emailAttr"`
+	// IDAttr is the identity attribute, one of ldap.IdentityAttributes.
+	IDAttr string `gorm:"size:64;not null;default:entryUUID" json:"idAttr"`
+	// DepartmentAttr is the department attribute; empty means not synced.
+	DepartmentAttr string `gorm:"size:64;default:departmentNumber" json:"departmentAttr"`
+	// Version increases on every save. A login records it before the
+	// password check and refuses to write back if it changed meanwhile.
+	Version uint64 `gorm:"not null;default:0" json:"-"`
 }
 
 func (SystemLDAPConfig) TableName() string {

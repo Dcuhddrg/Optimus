@@ -10,6 +10,9 @@ type LDAPConfigRequest struct {
 	UsernameAttr    string `json:"usernameAttr"`
 	DisplayNameAttr string `json:"displayNameAttr"`
 	EmailAttr       string `json:"emailAttr"`
+	IDAttr          string `json:"idAttr"`
+	// DepartmentAttr nil keeps the saved value; "" stops syncing departments.
+	DepartmentAttr *string `json:"departmentAttr"`
 }
 
 type LDAPTestRequest struct {
@@ -22,4 +25,6 @@ type LDAPTestRequest struct {
 	UsernameAttr         string `json:"usernameAttr"`
 	DisplayNameAttr      string `json:"displayNameAttr"`
 	EmailAttr            string `json:"emailAttr"`
+	IDAttr               string `json:"idAttr"`
+	DepartmentAttr       string `json:"departmentAttr"`
 }
