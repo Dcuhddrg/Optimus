@@ -19,8 +19,9 @@ import (
 // roleLockTestHooks pause a transaction right after it took its role locks,
 // for the assignment/deletion interleaving tests.
 var roleLockTestHooks struct {
-	afterAssignLock func(userID uint)
-	afterDeleteLock func(roleID uint)
+	afterAssignLock     func(userID uint)
+	afterDeleteLock     func(roleID uint)
+	afterPermissionLock func(roleID uint)
 }
 
 var (
@@ -209,6 +210,10 @@ func (s *RoleService) UpdateRolePermissions(ctx context.Context, actorID uint, r
 	before, beforeErr := s.permissionCodesForRole(ctx, roleID)
 	err = s.replaceRolePermissions(ctx, roleID, permissions)
 	reloadPending := errors.Is(err, ErrCasbinReloadPending)
+	if errors.Is(err, ErrRoleNotFound) {
+		event.Detail = auditDetails("target_lookup_failed", nil)
+		return err
+	}
 	if err != nil && !reloadPending {
 		event.Detail = auditDetails("update_failed", nil)
 		return err
@@ -275,6 +280,21 @@ func (s *RoleService) permissionsByCodes(ctx context.Context, codes []string) ([
 // grants as Casbin policies (GVA UpdateCasbin), then reloads the enforcer.
 func (s *RoleService) replaceRolePermissions(ctx context.Context, roleID uint, permissions []systemModel.SystemPermission) error {
 	err := global.OPTIMUS_DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Share-lock the role and re-confirm it exists: a concurrent
+		// DeleteRole holds an exclusive lock, so either it waits for this
+		// commit (and then removes these grants with the role), or it
+		// committed first and this update finds the role gone instead of
+		// writing grants and Casbin policies for a deleted role.
+		var locked systemModel.SystemRole
+		if err := tx.Clauses(clause.Locking{Strength: "SHARE"}).Where("id = ?", roleID).First(&locked).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return ErrRoleNotFound
+			}
+			return err
+		}
+		if hook := roleLockTestHooks.afterPermissionLock; hook != nil {
+			hook(roleID)
+		}
 		if err := tx.Where("role_id = ?", roleID).Delete(&systemModel.SystemRolePermission{}).Error; err != nil {
 			return err
 		}

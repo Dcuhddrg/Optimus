@@ -121,7 +121,7 @@ func (h *UserApi) UpdateUserRoles(c *gin.Context) {
 		return
 	}
 	err := svc.UpdateUserRoles(c.Request.Context(), actorID(c), id, req.RoleIDs, auditMeta(c))
-	if errors.Is(err, systemService.ErrBuiltinAdminProtected) || errors.Is(err, systemService.ErrUserNotFound) {
+	if errors.Is(err, systemService.ErrBuiltinAdminProtected) || errors.Is(err, systemService.ErrUserNotFound) || errors.Is(err, systemService.ErrRoleNotFound) {
 		response.FailWithMessage(err.Error(), c)
 		return
 	}

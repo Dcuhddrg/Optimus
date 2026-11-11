@@ -113,7 +113,7 @@ func TestUserRoleAuditUsesPersistedSnapshot(t *testing.T) {
 	for _, pair := range []systemModel.SystemUserRole{{UserID: admin.ID, RoleID: 1}, {UserID: target.ID, RoleID: 1}, {UserID: target.ID, RoleID: 2}} {
 		require.NoError(t, db.Create(&pair).Error)
 	}
-	require.NoError(t, (&UserService{}).UpdateUserRoles(context.Background(), 1, 7, []uint{2, 3, 999}, AuditMeta{}))
+	require.NoError(t, (&UserService{}).UpdateUserRoles(context.Background(), 1, 7, []uint{2, 3, 3}, AuditMeta{}))
 	var audit systemModel.SystemAuditLog
 	require.NoError(t, db.Last(&audit).Error)
 	var detail map[string]any
@@ -201,4 +201,26 @@ func TestStatusWriteInvalidatesCacheEvenIfRereadFails(t *testing.T) {
 
 	updated = false
 	require.False(t, loadState(t, f.user.ID).Enabled())
+}
+
+// A requested role that does not exist rejects the whole assignment; the
+// user's roles stay as they were instead of being replaced by a subset.
+func TestUpdateUserRolesRejectsMissingRoleAndKeepsBindings(t *testing.T) {
+	f := newAuthStateFixture(t)
+
+	err := (&UserService{}).UpdateUserRoles(context.Background(), 1, f.user.ID, []uint{9999}, AuditMeta{})
+	require.ErrorIs(t, err, ErrRoleNotFound)
+	err = (&UserService{}).UpdateUserRoles(context.Background(), 1, f.user.ID, []uint{f.adminRole.ID, 9999}, AuditMeta{})
+	require.ErrorIs(t, err, ErrRoleNotFound)
+
+	roles, err := queryUserRoles(context.Background(), f.user.ID)
+	require.NoError(t, err)
+	require.Len(t, roles, 1)
+	require.Equal(t, f.opsRole.ID, roles[0].ID)
+	var audit systemModel.SystemAuditLog
+	require.NoError(t, f.db.Last(&audit).Error)
+	require.Equal(t, "failure", audit.Result)
+	require.Contains(t, audit.Detail, "role_not_found")
+	// Clearing all roles on purpose still works.
+	require.NoError(t, (&UserService{}).UpdateUserRoles(context.Background(), 1, f.user.ID, []uint{}, AuditMeta{}))
 }

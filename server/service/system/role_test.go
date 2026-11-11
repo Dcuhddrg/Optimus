@@ -258,9 +258,9 @@ func TestDeleteRoleWaitsForConcurrentAssignment(t *testing.T) {
 	require.Len(t, roles, 2, "the new assignment survives")
 }
 
-// The delete commits first: the assignment waits, then skips the vanished
-// role instead of leaving a binding to it.
-func TestAssignmentWaitsForConcurrentDeleteAndSkipsDeletedRole(t *testing.T) {
+// The delete commits first: the assignment waits, then finds the role gone
+// and is rejected, leaving the user's existing roles untouched.
+func TestAssignmentWaitsForConcurrentDeleteAndIsRejected(t *testing.T) {
 	f := newAuthStateFixture(t)
 	temp := systemModel.SystemRole{Code: "temp", Name: "temp"}
 	require.NoError(t, f.db.Create(&temp).Error)
@@ -287,7 +287,7 @@ func TestAssignmentWaitsForConcurrentDeleteAndSkipsDeletedRole(t *testing.T) {
 	}
 	close(release)
 	require.NoError(t, <-deleted)
-	require.NoError(t, <-assigned)
+	require.ErrorIs(t, <-assigned, ErrRoleNotFound)
 
 	var dangling int64
 	require.NoError(t, f.db.Model(&systemModel.SystemUserRole{}).Where("role_id = ?", temp.ID).Count(&dangling).Error)
@@ -321,4 +321,82 @@ func TestBuiltinRoleCodesCannotChange(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, roles, 1)
 	require.Equal(t, DefaultUserRoleCode, roles[0].Code)
+}
+
+// The delete commits first: the permission update waits, then finds the role
+// gone and writes no grants or policies for it.
+func TestPermissionUpdateWaitsForConcurrentDeleteAndIsRejected(t *testing.T) {
+	f := newAuthStateFixture(t)
+	seedUsersViewPermission(t, f.db)
+	temp := systemModel.SystemRole{Code: "temp", Name: "temp"}
+	require.NoError(t, f.db.Create(&temp).Error)
+	locked, release := make(chan struct{}), make(chan struct{})
+	setRoleLockHooks(t, nil, func(roleID uint) {
+		if roleID == temp.ID {
+			close(locked)
+			<-release
+		}
+	})
+
+	deleted := make(chan error)
+	go func() { deleted <- (&RoleService{}).DeleteRole(context.Background(), 1, temp.ID, AuditMeta{}) }()
+	<-locked
+	roleLockTestHooks.afterDeleteLock = nil
+	updated := make(chan error)
+	go func() {
+		updated <- (&RoleService{}).UpdateRolePermissions(context.Background(), 1, temp.ID, []string{"system.users.view", "system.users.menu"}, AuditMeta{})
+	}()
+	select {
+	case err := <-updated:
+		t.Fatalf("permission update returned while the delete held its lock: %v", err)
+	case <-time.After(300 * time.Millisecond):
+	}
+	close(release)
+	require.NoError(t, <-deleted)
+	require.ErrorIs(t, <-updated, ErrRoleNotFound)
+
+	var grants, policies int64
+	require.NoError(t, f.db.Model(&systemModel.SystemRolePermission{}).Where("role_id = ?", temp.ID).Count(&grants).Error)
+	require.NoError(t, f.db.Model(&gormadapter.CasbinRule{}).Where("v0 = ?", strconv.Itoa(int(temp.ID))).Count(&policies).Error)
+	require.Zero(t, grants+policies)
+}
+
+// The permission update commits first: the delete waits, then removes the
+// role together with the grants just written.
+func TestDeleteRoleWaitsForConcurrentPermissionUpdate(t *testing.T) {
+	f := newAuthStateFixture(t)
+	seedUsersViewPermission(t, f.db)
+	temp := systemModel.SystemRole{Code: "temp", Name: "temp"}
+	require.NoError(t, f.db.Create(&temp).Error)
+	locked, release := make(chan struct{}), make(chan struct{})
+	roleLockTestHooks.afterPermissionLock = func(roleID uint) {
+		if roleID == temp.ID {
+			close(locked)
+			<-release
+		}
+	}
+	t.Cleanup(func() { roleLockTestHooks.afterPermissionLock = nil })
+
+	updated := make(chan error)
+	go func() {
+		updated <- (&RoleService{}).UpdateRolePermissions(context.Background(), 1, temp.ID, []string{"system.users.view", "system.users.menu"}, AuditMeta{})
+	}()
+	<-locked
+	roleLockTestHooks.afterPermissionLock = nil
+	deleted := make(chan error)
+	go func() { deleted <- (&RoleService{}).DeleteRole(context.Background(), 1, temp.ID, AuditMeta{}) }()
+	select {
+	case err := <-deleted:
+		t.Fatalf("delete returned while the permission update held its lock: %v", err)
+	case <-time.After(300 * time.Millisecond):
+	}
+	close(release)
+	require.NoError(t, <-updated)
+	require.NoError(t, <-deleted)
+
+	var grants, policies int64
+	require.NoError(t, f.db.Model(&systemModel.SystemRolePermission{}).Where("role_id = ?", temp.ID).Count(&grants).Error)
+	require.NoError(t, f.db.Model(&gormadapter.CasbinRule{}).Where("v0 = ?", strconv.Itoa(int(temp.ID))).Count(&policies).Error)
+	require.Zero(t, grants+policies)
+	require.False(t, enforce(t, temp.ID, "/system/users", "GET"))
 }

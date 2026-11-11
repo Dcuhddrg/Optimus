@@ -368,3 +368,46 @@ func TestSeedSystemDataRemovesRetiredRoleStatusPermissionMySQL(t *testing.T) {
 	var deletePermission systemModel.SystemPermission
 	require.NoError(t, db.Where("code = ?", "system.roles.delete").First(&deletePermission).Error)
 }
+
+// Upgrading a database that already has a role with a preset approval code:
+// the role is adopted once (approval flag set, permissions and holders kept,
+// audited), and a later manual change of the flag survives restarts.
+func TestMigrateSystemSchemaAdoptsExistingPresetCodeOnceMySQL(t *testing.T) {
+	db := resetTestDB(t)
+	require.NoError(t, systemService.AutoMigrateSystem(db))
+	require.NoError(t, db.Exec("ALTER TABLE `sys_roles` DROP COLUMN `approvable`").Error)
+	require.NoError(t, db.Exec("INSERT INTO `sys_roles` (`code`, `name`, `description`, `created_at`, `updated_at`) VALUES ('security-approver', 'Legacy security', '', NOW(), NOW())").Error)
+	var legacy struct{ ID uint }
+	require.NoError(t, db.Table("sys_roles").Select("id").Where("code = ?", "security-approver").Scan(&legacy).Error)
+	alice := systemModel.SystemUser{UUID: "u-alice", Username: "alice", Source: "ldap", Status: "enabled"}
+	require.NoError(t, db.Create(&alice).Error)
+	require.NoError(t, db.Create(&systemModel.SystemUserRole{UserID: alice.ID, RoleID: legacy.ID}).Error)
+	require.NoError(t, systemService.CasbinServiceApp.AddPolicies(db, legacy.ID, []systemService.CasbinInfo{{Path: "/system/users", Method: "GET"}}))
+
+	require.NoError(t, MigrateSystemSchema(db))
+	require.NoError(t, SeedSystemData(db, "admin-secret"))
+
+	var role systemModel.SystemRole
+	require.NoError(t, db.Where("code = ?", "security-approver").First(&role).Error)
+	require.Equal(t, legacy.ID, role.ID, "the existing role is adopted, not duplicated")
+	require.True(t, role.Approvable)
+	require.Equal(t, "Legacy security", role.Name)
+	var holders, policies int64
+	require.NoError(t, db.Model(&systemModel.SystemUserRole{}).Where("role_id = ?", role.ID).Count(&holders).Error)
+	require.NoError(t, db.Model(&gormadapter.CasbinRule{}).Where("v0 = ?", strconv.Itoa(int(role.ID))).Count(&policies).Error)
+	require.Equal(t, int64(1), holders)
+	require.Equal(t, int64(1), policies, "no destructive cleanup")
+	var audit systemModel.SystemAuditLog
+	require.NoError(t, db.Where("action = ?", "role.preset.adopt").First(&audit).Error)
+	require.Contains(t, audit.Detail, `"permissions":1`)
+	var dept systemModel.SystemRole
+	require.NoError(t, db.Where("code = ?", "dept-head-approver").First(&dept).Error)
+	require.True(t, dept.Approvable, "a missing preset is created by the seed")
+
+	// The admin clears the flag; later starts do not adopt again.
+	require.NoError(t, db.Model(&role).Update("approvable", false).Error)
+	require.NoError(t, MigrateSystemSchema(db))
+	require.NoError(t, SeedSystemData(db, "admin-secret"))
+	require.NoError(t, db.First(&role, role.ID).Error)
+	require.False(t, role.Approvable)
+}
