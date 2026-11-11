@@ -118,7 +118,7 @@ func TestSeedSystemDataDoesNotOverwriteRolePermissionEditsMySQL(t *testing.T) {
 // /api/v1-prefixed paths; startup moves them to casbin_rule, idempotently.
 func TestMigrateAPIGrantsToCasbinUpgradesLegacyGrants(t *testing.T) {
 	db := resetAndMigrateTestDB(t)
-	role := systemModel.SystemRole{Code: "legacy", Name: "legacy", Status: "enabled"}
+	role := systemModel.SystemRole{Code: "legacy", Name: "legacy"}
 	require.NoError(t, db.Create(&role).Error)
 	api := systemModel.SystemPermission{Code: "legacy.users", Name: "users", Type: "api", Method: "PUT", Path: "/api/v1/system/users/:id"}
 	menu := systemModel.SystemPermission{Code: "legacy.menu", Name: "menu", Type: "menu", Path: "/system/users"}
@@ -291,4 +291,80 @@ func TestSeedSystemDataRestoresRevokedGrantOnLegacyPrefixedPathMySQL(t *testing.
 	require.NoError(t, db.Model(&gormadapter.CasbinRule{}).Where("ptype = ? AND v1 LIKE ?", "p", utils.DefaultRouterPrefix+"/%").Count(&prefixed).Error)
 	require.Equal(t, int64(1), restored)
 	require.Zero(t, prefixed)
+}
+
+// Upgrade from a database with role status: users lose only bindings to
+// disabled roles (which granted nothing), each audited, then the column goes.
+func TestMigrateRemoveRoleStatusUnbindsDisabledRolesMySQL(t *testing.T) {
+	db := resetTestDB(t)
+	require.NoError(t, systemService.AutoMigrateSystem(db))
+	require.NoError(t, db.Exec("ALTER TABLE `sys_roles` ADD COLUMN `status` varchar(32) NOT NULL DEFAULT 'enabled'").Error)
+	active := systemModel.SystemRole{Code: "ops", Name: "ops"}
+	disabled := systemModel.SystemRole{Code: "legacy", Name: "legacy"}
+	require.NoError(t, db.Create(&active).Error)
+	require.NoError(t, db.Create(&disabled).Error)
+	require.NoError(t, db.Exec("UPDATE `sys_roles` SET `status` = 'disabled' WHERE id = ?", disabled.ID).Error)
+	alice := systemModel.SystemUser{UUID: "u-alice", Username: "alice", Source: "ldap", Status: "enabled"}
+	bob := systemModel.SystemUser{UUID: "u-bob", Username: "bob", Source: "ldap", Status: "enabled"}
+	require.NoError(t, db.Create(&alice).Error)
+	require.NoError(t, db.Create(&bob).Error)
+	for _, binding := range []systemModel.SystemUserRole{{UserID: alice.ID, RoleID: active.ID}, {UserID: alice.ID, RoleID: disabled.ID}, {UserID: bob.ID, RoleID: disabled.ID}} {
+		require.NoError(t, db.Create(&binding).Error)
+	}
+
+	require.NoError(t, MigrateRemoveRoleStatus(db))
+
+	require.False(t, db.Migrator().HasColumn(&systemModel.SystemRole{}, "status"))
+	var aliceRoles, bobRoles []uint
+	require.NoError(t, db.Model(&systemModel.SystemUserRole{}).Where("user_id = ?", alice.ID).Pluck("role_id", &aliceRoles).Error)
+	require.NoError(t, db.Model(&systemModel.SystemUserRole{}).Where("user_id = ?", bob.ID).Pluck("role_id", &bobRoles).Error)
+	require.Equal(t, []uint{active.ID}, aliceRoles, "effective roles unchanged")
+	require.Empty(t, bobRoles)
+	var audits []systemModel.SystemAuditLog
+	require.NoError(t, db.Where("action = ?", "user.roles.migrate").Order("resource_id ASC").Find(&audits).Error)
+	require.Len(t, audits, 2)
+	require.Contains(t, audits[0].Detail, `"roleCode":"legacy"`)
+	var roles int64
+	require.NoError(t, db.Model(&systemModel.SystemRole{}).Count(&roles).Error)
+	require.Equal(t, int64(2), roles, "the disabled role itself is kept")
+
+	require.NoError(t, MigrateRemoveRoleStatus(db), "idempotent")
+}
+
+func TestSeedSystemDataCreatesApprovalRolesWithoutPermissionsMySQL(t *testing.T) {
+	db := resetTestDB(t)
+	require.NoError(t, systemService.AutoMigrateSystem(db))
+	require.NoError(t, SeedSystemData(db, "admin-secret"))
+
+	for _, code := range []string{"security-approver", "dept-head-approver"} {
+		var role systemModel.SystemRole
+		require.NoError(t, db.Where("code = ?", code).First(&role).Error)
+		require.True(t, role.Approvable, code)
+		var grants, policies int64
+		require.NoError(t, db.Model(&systemModel.SystemRolePermission{}).Where("role_id = ?", role.ID).Count(&grants).Error)
+		require.NoError(t, db.Model(&gormadapter.CasbinRule{}).Where("v0 = ?", strconv.Itoa(int(role.ID))).Count(&policies).Error)
+		require.Zero(t, grants+policies, code)
+	}
+	var admin systemModel.SystemRole
+	require.NoError(t, db.Where("code = ?", "admin").First(&admin).Error)
+	require.False(t, admin.Approvable)
+}
+
+func TestSeedSystemDataRemovesRetiredRoleStatusPermissionMySQL(t *testing.T) {
+	db := resetTestDB(t)
+	require.NoError(t, systemService.AutoMigrateSystem(db))
+	require.NoError(t, SeedSystemData(db, "admin-secret"))
+	retired := systemModel.SystemPermission{Code: "system.roles.status.update", Name: "Update role status", Type: "api", Method: "PATCH", Path: "/system/roles/:id/status"}
+	require.NoError(t, db.Create(&retired).Error)
+	require.NoError(t, systemService.CasbinServiceApp.AddPolicies(db, 1, []systemService.CasbinInfo{{Path: retired.Path, Method: retired.Method}}))
+
+	require.NoError(t, SeedSystemData(db, "admin-secret"))
+
+	var count int64
+	require.NoError(t, db.Model(&systemModel.SystemPermission{}).Where("code = ?", retired.Code).Count(&count).Error)
+	require.Zero(t, count)
+	require.NoError(t, db.Model(&gormadapter.CasbinRule{}).Where("v1 = ? AND v2 = ?", retired.Path, retired.Method).Count(&count).Error)
+	require.Zero(t, count)
+	var deletePermission systemModel.SystemPermission
+	require.NoError(t, db.Where("code = ?", "system.roles.delete").First(&deletePermission).Error)
 }

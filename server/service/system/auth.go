@@ -236,7 +236,7 @@ func (s *AuthService) syncLDAPUser(ctx context.Context, ldapUser LDAPUser) (syst
 
 func (s *AuthService) bindDefaultUserRole(ctx context.Context, userID uint) error {
 	var role systemModel.SystemRole
-	if err := global.OPTIMUS_DB.WithContext(ctx).Where("code = ?", "user").First(&role).Error; err != nil {
+	if err := global.OPTIMUS_DB.WithContext(ctx).Where("code = ?", DefaultUserRoleCode).First(&role).Error; err != nil {
 		return err
 	}
 	userRole := systemModel.SystemUserRole{UserID: userID, RoleID: role.ID}
@@ -249,7 +249,7 @@ func queryUserRoles(ctx context.Context, userID uint) ([]systemModel.SystemRoleS
 		Table((&systemModel.SystemRole{}).TableName()+" AS roles").
 		Select("roles.id, roles.code, roles.name").
 		Joins("JOIN sys_user_roles user_roles ON user_roles.role_id = roles.id").
-		Where("user_roles.user_id = ? AND roles.status = ?", userID, DefaultRoleStatus).
+		Where("user_roles.user_id = ?", userID).
 		Order("roles.id ASC").
 		Scan(&roles).Error
 	return roles, err

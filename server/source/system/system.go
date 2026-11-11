@@ -36,7 +36,10 @@ func (i *initSystem) MigrateTable(ctx context.Context) (context.Context, error) 
 	if !ok {
 		return ctx, systemService.ErrMissingDBContext
 	}
-	return ctx, systemService.AutoMigrateSystem(db)
+	if err := systemService.AutoMigrateSystem(db); err != nil {
+		return ctx, err
+	}
+	return ctx, MigrateRemoveRoleStatus(db)
 }
 
 func (i *initSystem) TableCreated(ctx context.Context) bool {
@@ -70,6 +73,9 @@ func SeedSystemData(db *gorm.DB, initialAdminPassword string) error {
 		initialAdminPassword = defaultAdminPassword
 	}
 	if err := seedRoles(db); err != nil {
+		return err
+	}
+	if err := removeRetiredPermissions(db); err != nil {
 		return err
 	}
 	// Normalize legacy /api/v1-prefixed catalog paths first: grants written
@@ -325,6 +331,81 @@ func migrateAPIGrantsToCasbin(db *gorm.DB) error {
 			}
 			if err := tx.Delete(&systemModel.SystemRolePermission{}, grant.ID).Error; err != nil {
 				return err
+			}
+		}
+		return nil
+	})
+}
+
+// MigrateRemoveRoleStatus drops the role status column, as GVA has none
+// (design 3.2). Users first lose their bindings to disabled roles, so every
+// user keeps exactly the permissions they effectively had: a disabled role
+// granted nothing. Each unbinding is audited and logged. It runs before
+// serving and is idempotent: a crash before the column drop leaves disabled
+// roles without holders and the next start finishes the job.
+func MigrateRemoveRoleStatus(db *gorm.DB) error {
+	if !db.Migrator().HasColumn(&systemModel.SystemRole{}, "status") {
+		return nil
+	}
+	var disabled []struct {
+		ID   uint
+		Code string
+	}
+	if err := db.Table("sys_roles").Select("id, code").Where("status <> ?", "enabled").Scan(&disabled).Error; err != nil {
+		return err
+	}
+	for _, role := range disabled {
+		var userIDs []uint
+		if err := db.Model(&systemModel.SystemUserRole{}).Where("role_id = ?", role.ID).Order("user_id ASC").Pluck("user_id", &userIDs).Error; err != nil {
+			return err
+		}
+		if err := db.Transaction(func(tx *gorm.DB) error {
+			for _, userID := range userIDs {
+				detail, _ := json.Marshal(map[string]any{"version": 1, "reason": "disabled_role_unbound", "roleId": role.ID, "roleCode": role.Code})
+				if err := tx.Create(&systemModel.SystemAuditLog{
+					Action:       "user.roles.migrate",
+					ResourceType: "user",
+					ResourceID:   strconv.Itoa(int(userID)),
+					Result:       "success",
+					Detail:       string(detail),
+				}).Error; err != nil {
+					return err
+				}
+			}
+			return tx.Where("role_id = ?", role.ID).Delete(&systemModel.SystemUserRole{}).Error
+		}); err != nil {
+			return err
+		}
+		zap.L().Info("role status migration: unbound users from disabled role", zap.String("role", role.Code), zap.Uints("users", userIDs))
+	}
+	if err := db.Exec("ALTER TABLE `sys_roles` DROP COLUMN `status`").Error; err != nil {
+		return err
+	}
+	zap.L().Info("role status migration: dropped sys_roles.status", zap.Int("disabledRoles", len(disabled)))
+	return nil
+}
+
+// removeRetiredPermissions deletes catalog entries the product no longer
+// has, with their menu grants and Casbin policies.
+func removeRetiredPermissions(db *gorm.DB) error {
+	return db.Transaction(func(tx *gorm.DB) error {
+		for _, retired := range systemService.RetiredSystemPermissions() {
+			var ids []uint
+			if err := tx.Model(&systemModel.SystemPermission{}).Where("code = ?", retired.Code).Pluck("id", &ids).Error; err != nil {
+				return err
+			}
+			if len(ids) > 0 {
+				if err := tx.Where("permission_id IN ?", ids).Delete(&systemModel.SystemRolePermission{}).Error; err != nil {
+					return err
+				}
+				if err := tx.Where("id IN ?", ids).Delete(&systemModel.SystemPermission{}).Error; err != nil {
+					return err
+				}
+			}
+			if retired.Type == "api" {
+				if err := tx.Where("ptype = ? AND v1 = ? AND v2 = ?", "p", retired.Path, retired.Method).Delete(&gormadapter.CasbinRule{}).Error; err != nil {
+					return err
+				}
 			}
 		}
 		return nil

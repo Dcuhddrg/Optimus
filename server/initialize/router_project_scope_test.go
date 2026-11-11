@@ -44,7 +44,7 @@ func projectScopeRouterDB(t *testing.T, scenario string, allowed bool) (*gorm.DB
 	// (design 3.1): user 1 holds role 1 (granted below when allowed) and role 7
 	// (granted by tests that need a non-admin role).
 	for _, id := range []uint{1, 7} {
-		require.NoError(t, db.Create(&systemModel.SystemRole{OPTIMUS_MODEL: global.OPTIMUS_MODEL{ID: id}, Code: "role-" + strconv.Itoa(int(id)), Name: "role", Status: systemService.DefaultRoleStatus}).Error)
+		require.NoError(t, db.Create(&systemModel.SystemRole{OPTIMUS_MODEL: global.OPTIMUS_MODEL{ID: id}, Code: "role-" + strconv.Itoa(int(id)), Name: "role"}).Error)
 	}
 	require.NoError(t, db.Create(&systemModel.SystemUser{OPTIMUS_MODEL: global.OPTIMUS_MODEL{ID: 1}, UUID: "router-test-user", Username: "router-test-user", Source: "local", Status: systemService.DefaultUserStatus}).Error)
 	for _, id := range []uint{1, 7} {

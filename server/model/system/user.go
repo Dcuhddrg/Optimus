@@ -26,7 +26,9 @@ type SystemRole struct {
 	Code        string `gorm:"size:128;uniqueIndex;not null" json:"code"`
 	Name        string `gorm:"size:128;not null" json:"name"`
 	Description string `gorm:"size:255" json:"description"`
-	Status      string `gorm:"size:32;not null;index" json:"status"`
+	// Approvable marks a role usable as an approval level (design 3.5). As in
+	// GVA, roles have no enabled/disabled status.
+	Approvable bool `gorm:"not null;default:false" json:"approvable"`
 }
 
 func (SystemRole) TableName() string {

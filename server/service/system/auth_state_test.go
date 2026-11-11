@@ -27,8 +27,8 @@ func newAuthStateFixture(t *testing.T) authStateFixture {
 	db := openTestDB(t)
 	f := authStateFixture{
 		db:        db,
-		adminRole: systemModel.SystemRole{Code: AdminRoleCode, Name: "admin", Status: DefaultRoleStatus},
-		opsRole:   systemModel.SystemRole{Code: "ops", Name: "ops", Status: DefaultRoleStatus},
+		adminRole: systemModel.SystemRole{Code: AdminRoleCode, Name: "admin"},
+		opsRole:   systemModel.SystemRole{Code: "ops", Name: "ops"},
 		user:      systemModel.SystemUser{UUID: "u-alice", Username: "alice", Source: "ldap", Status: DefaultUserStatus},
 	}
 	require.NoError(t, db.Create(&f.adminRole).Error)
@@ -65,16 +65,6 @@ func TestAuthStateChangesApplyOnNextLoadAfterAPIReturns(t *testing.T) {
 	_, err := (&UserService{}).UpdateUserStatus(context.Background(), 1, f.user.ID, "disabled", AuditMeta{})
 	require.NoError(t, err)
 	require.False(t, loadState(t, f.user.ID).Enabled())
-}
-
-func TestAuthStateRoleStatusChangeInvalidatesAllUsers(t *testing.T) {
-	f := newAuthStateFixture(t)
-	require.Equal(t, []uint{f.opsRole.ID}, loadState(t, f.user.ID).RoleIDs)
-
-	_, err := (&RoleService{}).UpdateRoleStatus(context.Background(), 1, f.opsRole.ID, "disabled", AuditMeta{})
-	require.NoError(t, err)
-
-	require.Empty(t, loadState(t, f.user.ID).RoleIDs)
 }
 
 // A request that read the old roles and pauses while the admin revokes them

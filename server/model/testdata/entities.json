@@ -1458,6 +1458,21 @@
   "sys_roles": {
     "deleteClauses": 0,
     "fields": {
+      "approvable": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "bool",
+        "default": "false",
+        "hasDefault": true,
+        "notNull": true,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 0,
+        "type": "bool",
+        "unique": false
+      },
       "code": {
         "autoCreate": 0,
         "autoIncrement": false,
@@ -1533,21 +1548,6 @@
         "type": "string",
         "unique": false
       },
-      "status": {
-        "autoCreate": 0,
-        "autoIncrement": false,
-        "autoUpdate": 0,
-        "dataType": "string",
-        "default": "",
-        "hasDefault": false,
-        "notNull": true,
-        "pk": false,
-        "precision": 0,
-        "scale": 0,
-        "size": 32,
-        "type": "string",
-        "unique": false
-      },
       "updated_at": {
         "autoCreate": 0,
         "autoIncrement": false,
@@ -1573,24 +1573,15 @@
         "option": "",
         "type": "",
         "where": ""
-      },
-      "idx_sys_roles_status": {
-        "class": "",
-        "fields": [
-          "status"
-        ],
-        "option": "",
-        "type": "",
-        "where": ""
       }
     },
     "json": {
+      "approvable": false,
       "code": "",
       "createdAt": "0001-01-01T00:00:00Z",
       "description": "",
       "id": 0,
       "name": "",
-      "status": "",
       "updatedAt": "0001-01-01T00:00:00Z"
     },
     "primaryKeys": [

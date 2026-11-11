@@ -18,9 +18,10 @@ const (
 	BuiltinAdminUUID = "00000000-0000-0000-0000-000000000001"
 	// AdminRoleCode is the built-in role that always holds every system.*
 	// permission.
-	AdminRoleCode     = "admin"
-	DefaultUserStatus = "enabled"
-	DefaultRoleStatus = "enabled"
+	AdminRoleCode = "admin"
+	// DefaultUserRoleCode is bound to new LDAP employees and cannot be deleted.
+	DefaultUserRoleCode = "user"
+	DefaultUserStatus   = "enabled"
 )
 
 func AutoMigrateSystem(db *gorm.DB) error {
@@ -41,10 +42,22 @@ func AutoMigrateSystem(db *gorm.DB) error {
 	)
 }
 
+// RetiredSystemPermissions are catalog entries removed from the product;
+// startup deletes them together with their grants.
+func RetiredSystemPermissions() []systemModel.SystemPermission {
+	return []systemModel.SystemPermission{
+		{Code: "system.roles.status.update", Type: "api", Method: "PATCH", Path: "/system/roles/:id/status"},
+	}
+}
+
 func DefaultSystemRoles() []systemModel.SystemRole {
 	return []systemModel.SystemRole{
-		{Code: "admin", Name: "Administrator", Description: "Full system administrator", Status: DefaultRoleStatus},
-		{Code: "user", Name: "User", Description: "Default LDAP user role", Status: DefaultRoleStatus},
+		{Code: "admin", Name: "Administrator", Description: "Full system administrator"},
+		{Code: "user", Name: "User", Description: "Default LDAP user role"},
+		// Approval roles carry no permissions; they only qualify holders for
+		// an approval level (design 3.5).
+		{Code: "security-approver", Name: "Security approver", Description: "Approves the security level", Approvable: true},
+		{Code: "dept-head-approver", Name: "Department head approver", Description: "Approves the department head level", Approvable: true},
 	}
 }
 
@@ -77,7 +90,7 @@ func DefaultSystemPermissions() []systemModel.SystemPermission {
 		{Code: "system.roles.view", Name: "View roles", Type: "api", Method: "GET", Path: "/system/roles", Sort: 300},
 		{Code: "system.roles.create", Name: "Create roles", Type: "api", Method: "POST", Path: "/system/roles", Sort: 301},
 		{Code: "system.roles.update", Name: "Update roles", Type: "api", Method: "PUT", Path: "/system/roles/:id", Sort: 302},
-		{Code: "system.roles.status.update", Name: "Update role status", Type: "api", Method: "PATCH", Path: "/system/roles/:id/status", Sort: 303},
+		{Code: "system.roles.delete", Name: "Delete roles", Type: "api", Method: "DELETE", Path: "/system/roles/:id", Sort: 303},
 		{Code: "system.roles.permissions.update", Name: "Update role permissions", Type: "api", Method: "PUT", Path: "/system/roles/:id/permissions", Sort: 304},
 		{Code: "system.permissions.view", Name: "View permissions", Type: "api", Method: "GET", Path: "/system/permissions/tree", Sort: 400},
 		{Code: "system.ldap.view", Name: "View LDAP config", Type: "api", Method: "GET", Path: "/system/ldap/config", Sort: 500},

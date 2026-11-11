@@ -37,7 +37,7 @@ func TestRoleServiceCreateRoleWritesAudit(t *testing.T) {
 func TestRoleServiceDatabaseReplaceRolePermissions(t *testing.T) {
 	db := openTestDB(t)
 
-	role := systemModel.SystemRole{Code: "editor", Name: "Editor", Status: DefaultRoleStatus}
+	role := systemModel.SystemRole{Code: "editor", Name: "Editor"}
 	require.NoError(t, db.Create(&role).Error)
 
 	p1 := systemModel.SystemPermission{Code: "content.create", Name: "Create Content", Type: "api", Method: "POST", Path: "/content"}
@@ -72,7 +72,7 @@ func TestRoleServiceDatabaseReplaceRolePermissions(t *testing.T) {
 
 func TestProtectedAdminRoleAudit(t *testing.T) {
 	db := openTestDB(t)
-	require.NoError(t, db.Create(&systemModel.SystemRole{OPTIMUS_MODEL: global.OPTIMUS_MODEL{ID: 3}, Code: "admin", Name: "admin", Status: "enabled"}).Error)
+	require.NoError(t, db.Create(&systemModel.SystemRole{OPTIMUS_MODEL: global.OPTIMUS_MODEL{ID: 3}, Code: "admin", Name: "admin"}).Error)
 	err := (&RoleService{}).UpdateRolePermissions(context.Background(), 1, 3, []string{"read"}, AuditMeta{})
 	require.ErrorIs(t, err, ErrProtectedAdminRole)
 	var audit systemModel.SystemAuditLog
@@ -83,7 +83,7 @@ func TestProtectedAdminRoleAudit(t *testing.T) {
 
 func TestRolePermissionAuditUsesPersistedCodes(t *testing.T) {
 	db := openTestDB(t)
-	role := systemModel.SystemRole{OPTIMUS_MODEL: global.OPTIMUS_MODEL{ID: 3}, Code: "ops", Name: "ops", Status: "enabled"}
+	role := systemModel.SystemRole{OPTIMUS_MODEL: global.OPTIMUS_MODEL{ID: 3}, Code: "ops", Name: "ops"}
 	read := systemModel.SystemPermission{Code: "read", Name: "read", Type: "api", Method: "GET", Path: "/things"}
 	write := systemModel.SystemPermission{Code: "write", Name: "write", Type: "api", Method: "POST", Path: "/things"}
 	require.NoError(t, db.Create(&role).Error)
@@ -126,4 +126,88 @@ func TestRoleServiceQueriesStartupDatabase(t *testing.T) {
 	})
 	require.Contains(t, query, "sys_roles")
 	require.Contains(t, query, "ORDER BY id ASC")
+}
+
+func TestDeleteRoleProtectsAdminUserAndRolesInUse(t *testing.T) {
+	f := newAuthStateFixture(t)
+	userRole := systemModel.SystemRole{Code: DefaultUserRoleCode, Name: "user"}
+	require.NoError(t, f.db.Create(&userRole).Error)
+	svc := &RoleService{}
+
+	require.ErrorIs(t, svc.DeleteRole(context.Background(), 1, f.adminRole.ID, AuditMeta{}), ErrProtectedRole)
+	require.ErrorIs(t, svc.DeleteRole(context.Background(), 1, userRole.ID, AuditMeta{}), ErrProtectedRole)
+	require.ErrorIs(t, svc.DeleteRole(context.Background(), 1, f.opsRole.ID, AuditMeta{}), ErrRoleInUse, "alice holds ops")
+	var audit systemModel.SystemAuditLog
+	require.NoError(t, f.db.Last(&audit).Error)
+	require.Equal(t, "failure", audit.Result)
+	require.Contains(t, audit.Detail, "role_in_use")
+	var count int64
+	require.NoError(t, f.db.Model(&systemModel.SystemRole{}).Count(&count).Error)
+	require.Equal(t, int64(3), count)
+}
+
+func TestDeleteRoleRemovesGrantsAndPolicies(t *testing.T) {
+	f := newAuthStateFixture(t)
+	seedUsersViewPermission(t, f.db)
+	temp := systemModel.SystemRole{Code: "temp", Name: "temp"}
+	require.NoError(t, f.db.Create(&temp).Error)
+	svc := &RoleService{}
+	require.NoError(t, svc.UpdateRolePermissions(context.Background(), 1, temp.ID, []string{"system.users.view", "system.users.menu"}, AuditMeta{}))
+	require.True(t, enforce(t, temp.ID, "/system/users", "GET"))
+
+	require.NoError(t, svc.DeleteRole(context.Background(), 1, temp.ID, AuditMeta{}))
+
+	var count int64
+	require.NoError(t, f.db.Model(&systemModel.SystemRole{}).Where("id = ?", temp.ID).Count(&count).Error)
+	require.Zero(t, count)
+	require.NoError(t, f.db.Model(&systemModel.SystemRolePermission{}).Where("role_id = ?", temp.ID).Count(&count).Error)
+	require.Zero(t, count)
+	require.NoError(t, f.db.Model(&gormadapter.CasbinRule{}).Where("v0 = ?", strconv.Itoa(int(temp.ID))).Count(&count).Error)
+	require.Zero(t, count)
+	require.False(t, enforce(t, temp.ID, "/system/users", "GET"), "the enforcer was reloaded")
+	var audit systemModel.SystemAuditLog
+	require.NoError(t, f.db.Last(&audit).Error)
+	require.Equal(t, "role.delete", audit.Action)
+	require.Equal(t, "success", audit.Result)
+}
+
+func TestApprovableFlagIsSetOnRolesButNeverOnAdmin(t *testing.T) {
+	f := newAuthStateFixture(t)
+	svc := &RoleService{}
+	yes, no := true, false
+
+	updated, err := svc.UpdateRole(context.Background(), 1, f.opsRole.ID, systemRequest.RoleRequest{Name: "ops", Approvable: &yes}, AuditMeta{})
+	require.NoError(t, err)
+	require.True(t, updated.Approvable)
+	// Omitting the flag keeps it.
+	updated, err = svc.UpdateRole(context.Background(), 1, f.opsRole.ID, systemRequest.RoleRequest{Name: "Ops"}, AuditMeta{})
+	require.NoError(t, err)
+	require.True(t, updated.Approvable)
+	require.Equal(t, "Ops", updated.Name)
+	updated, err = svc.UpdateRole(context.Background(), 1, f.opsRole.ID, systemRequest.RoleRequest{Name: "Ops", Approvable: &no}, AuditMeta{})
+	require.NoError(t, err)
+	require.False(t, updated.Approvable)
+
+	_, err = svc.UpdateRole(context.Background(), 1, f.adminRole.ID, systemRequest.RoleRequest{Name: "admin", Approvable: &yes}, AuditMeta{})
+	require.ErrorIs(t, err, ErrProtectedAdminRole)
+
+	created, err := svc.CreateRole(context.Background(), 1, systemRequest.RoleRequest{Code: "audit-approver", Name: "Audit approver", Approvable: &yes}, AuditMeta{})
+	require.NoError(t, err)
+	require.True(t, created.Approvable)
+}
+
+func TestListRolesWithPermissionsIncludesCodes(t *testing.T) {
+	f := newAuthStateFixture(t)
+	seedUsersViewPermission(t, f.db)
+	require.NoError(t, (&RoleService{}).UpdateRolePermissions(context.Background(), 1, f.opsRole.ID, []string{"system.users.menu", "system.users.view"}, AuditMeta{}))
+
+	items, err := (&RoleService{}).ListRolesWithPermissions(context.Background())
+	require.NoError(t, err)
+	for _, item := range items {
+		if item.ID == f.opsRole.ID {
+			require.Equal(t, []string{"system.users.menu", "system.users.view"}, item.PermissionCodes)
+			return
+		}
+	}
+	t.Fatal("ops role missing")
 }

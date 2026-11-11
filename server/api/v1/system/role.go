@@ -6,6 +6,7 @@ import (
 	"optimus/server/model/common/response"
 	systemModel "optimus/server/model/system"
 	systemRequest "optimus/server/model/system/request"
+	systemResponse "optimus/server/model/system/response"
 
 	systemService "optimus/server/service/system"
 
@@ -16,12 +17,13 @@ type RoleApi struct{}
 
 // swag 只能解析本文件导入的包别名；保留此引用，供 Swagger 注释使用 systemModel。
 var _ = systemModel.SystemRole{}
+var _ = systemResponse.RoleListItem{}
 
 // @Tags Role
 // @Summary 角色列表（完整集合，不分页）
 // @Security ApiKeyAuth
 // @Produce application/json
-// @Success 200 {object} response.Response{data=object{list=[]systemModel.SystemRole,total=int}} "code 0 成功，code 7 业务失败"
+// @Success 200 {object} response.Response{data=object{list=[]systemResponse.RoleListItem,total=int}} "code 0 成功，code 7 业务失败"
 // @Failure 401 {object} response.Response "未认证"
 // @Router /system/roles [get]
 func (h *RoleApi) Roles(c *gin.Context) {
@@ -30,7 +32,7 @@ func (h *RoleApi) Roles(c *gin.Context) {
 		writeServiceUnavailable(c, "role service is not available")
 		return
 	}
-	roles, err := svc.ListRoles(c.Request.Context())
+	roles, err := svc.ListRolesWithPermissions(c.Request.Context())
 	if err != nil {
 		response.FailWithMessage("failed to list roles", c)
 		return
@@ -92,16 +94,14 @@ func (h *RoleApi) UpdateRole(c *gin.Context) {
 }
 
 // @Tags Role
-// @Summary 启用或禁用角色
+// @Summary 删除角色（admin、user 及仍有用户持有的角色不能删）
 // @Security ApiKeyAuth
-// @Accept application/json
 // @Produce application/json
 // @Param id path int true "角色 ID"
-// @Param data body systemRequest.UpdateRoleStatusRequest true "请求体"
-// @Success 200 {object} response.Response{data=systemModel.SystemRole} "code 0 成功，code 7 业务失败"
+// @Success 200 {object} response.Response "code 0 成功，code 7 业务失败"
 // @Failure 401 {object} response.Response "未认证"
-// @Router /system/roles/{id}/status [patch]
-func (h *RoleApi) UpdateRoleStatus(c *gin.Context) {
+// @Router /system/roles/{id} [delete]
+func (h *RoleApi) DeleteRole(c *gin.Context) {
 	svc := roleService
 	if global.OPTIMUS_DB == nil {
 		writeServiceUnavailable(c, "role service is not available")
@@ -111,13 +111,17 @@ func (h *RoleApi) UpdateRoleStatus(c *gin.Context) {
 	if !ok {
 		return
 	}
-	var req systemRequest.UpdateRoleStatusRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.FailWithMessage("invalid status request", c)
-		return
+	err := svc.DeleteRole(c.Request.Context(), actorID(c), id, auditMeta(c))
+	switch {
+	case err == nil:
+		response.Ok(c)
+	case errors.Is(err, systemService.ErrRoleNotFound), errors.Is(err, systemService.ErrProtectedRole), errors.Is(err, systemService.ErrRoleInUse):
+		response.FailWithMessage(err.Error(), c)
+	case errors.Is(err, systemService.ErrCasbinReloadPending):
+		response.FailWithMessage("role deleted; reloading permissions, please confirm later", c)
+	default:
+		response.FailWithMessage("failed to delete role", c)
 	}
-	role, err := svc.UpdateRoleStatus(c.Request.Context(), actorID(c), id, req.Status, auditMeta(c))
-	writeRoleServiceResult(c, role, err)
 }
 
 // @Tags Role
@@ -173,7 +177,16 @@ func (h *RoleApi) UpdateRolePermissions(c *gin.Context) {
 // @Failure 401 {object} response.Response "未认证"
 // @Router /system/permissions/tree [get]
 func (h *RoleApi) PermissionTree(c *gin.Context) {
-	response.OkWithData(gin.H{"list": systemService.DefaultSystemPermissions()}, c)
+	if global.OPTIMUS_DB == nil {
+		writeServiceUnavailable(c, "role service is not available")
+		return
+	}
+	permissions, err := roleService.ListPermissions(c.Request.Context())
+	if err != nil {
+		response.FailWithMessage("failed to list permissions", c)
+		return
+	}
+	response.OkWithData(gin.H{"list": permissions}, c)
 }
 
 func writeRoleServiceResult(c *gin.Context, role any, err error) {

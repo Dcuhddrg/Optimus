@@ -1597,7 +1597,7 @@ const docTemplate = `{
                                                 "list": {
                                                     "type": "array",
                                                     "items": {
-                                                        "$ref": "#/definitions/system.SystemRole"
+                                                        "$ref": "#/definitions/response.RoleListItem"
                                                     }
                                                 },
                                                 "total": {
@@ -1734,6 +1734,43 @@ const docTemplate = `{
                         }
                     }
                 }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Role"
+                ],
+                "summary": "删除角色（admin、user 及仍有用户持有的角色不能删）",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "角色 ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "code 0 成功，code 7 业务失败",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "未认证",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    }
+                }
             }
         },
         "/system/roles/{id}/permissions": {
@@ -1776,69 +1813,6 @@ const docTemplate = `{
                         "description": "code 0 成功，code 7 业务失败",
                         "schema": {
                             "$ref": "#/definitions/response.Response"
-                        }
-                    },
-                    "401": {
-                        "description": "未认证",
-                        "schema": {
-                            "$ref": "#/definitions/response.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/system/roles/{id}/status": {
-            "patch": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Role"
-                ],
-                "summary": "启用或禁用角色",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "角色 ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "请求体",
-                        "name": "data",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/request.UpdateRoleStatusRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "code 0 成功，code 7 业务失败",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/response.Response"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/system.SystemRole"
-                                        }
-                                    }
-                                }
-                            ]
                         }
                     },
                     "401": {
@@ -2221,6 +2195,10 @@ const docTemplate = `{
         "request.RoleRequest": {
             "type": "object",
             "properties": {
+                "approvable": {
+                    "description": "Approvable: nil keeps the current flag on update, false on create.",
+                    "type": "boolean"
+                },
                 "code": {
                     "type": "string"
                 },
@@ -2287,14 +2265,6 @@ const docTemplate = `{
                     "items": {
                         "type": "string"
                     }
-                }
-            }
-        },
-        "request.UpdateRoleStatusRequest": {
-            "type": "object",
-            "properties": {
-                "status": {
-                    "type": "string"
                 }
             }
         },
@@ -2613,6 +2583,39 @@ const docTemplate = `{
                 }
             }
         },
+        "response.RoleListItem": {
+            "type": "object",
+            "properties": {
+                "approvable": {
+                    "description": "Approvable marks a role usable as an approval level (design 3.5). As in\nGVA, roles have no enabled/disabled status.",
+                    "type": "boolean"
+                },
+                "code": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "permissionCodes": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "updatedAt": {
+                    "type": "string"
+                }
+            }
+        },
         "response.SyncResult": {
             "type": "object",
             "properties": {
@@ -2758,6 +2761,10 @@ const docTemplate = `{
         "system.SystemRole": {
             "type": "object",
             "properties": {
+                "approvable": {
+                    "description": "Approvable marks a role usable as an approval level (design 3.5). As in\nGVA, roles have no enabled/disabled status.",
+                    "type": "boolean"
+                },
                 "code": {
                     "type": "string"
                 },
@@ -2771,9 +2778,6 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "name": {
-                    "type": "string"
-                },
-                "status": {
                     "type": "string"
                 },
                 "updatedAt": {

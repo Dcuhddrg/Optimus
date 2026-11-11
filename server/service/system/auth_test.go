@@ -49,8 +49,8 @@ func hashTestPassword(password string) (string, error) {
 func TestMenuPermissionCodesForRolesOrdersDistinctCodes(t *testing.T) {
 	db := openTestDB(t)
 
-	adminRole := systemModel.SystemRole{Code: "admin", Name: "Administrator", Status: DefaultRoleStatus}
-	opsRole := systemModel.SystemRole{Code: "ops", Name: "Ops", Status: DefaultRoleStatus}
+	adminRole := systemModel.SystemRole{Code: "admin", Name: "Administrator"}
+	opsRole := systemModel.SystemRole{Code: "ops", Name: "Ops"}
 	require.NoError(t, db.Create(&[]systemModel.SystemRole{adminRole, opsRole}).Error)
 	require.NoError(t, db.Where("code = ?", "admin").First(&adminRole).Error)
 	require.NoError(t, db.Where("code = ?", "ops").First(&opsRole).Error)
@@ -76,7 +76,7 @@ func TestMenuPermissionCodesForRolesOrdersDistinctCodes(t *testing.T) {
 func TestAuthServiceDatabaseSyncLDAPUserCreatesDefaultRole(t *testing.T) {
 	db := openTestDB(t)
 
-	userRole := systemModel.SystemRole{Code: "user", Name: "User", Status: DefaultRoleStatus}
+	userRole := systemModel.SystemRole{Code: "user", Name: "User"}
 	require.NoError(t, db.Create(&userRole).Error)
 
 	store := (&AuthService{})

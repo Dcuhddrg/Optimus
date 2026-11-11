@@ -28,7 +28,7 @@ func TestUserServiceListUsersOmitsPasswordHash(t *testing.T) {
 
 func TestUserStatusAuditRecordsSnapshot(t *testing.T) {
 	db := openTestDB(t)
-	role := systemModel.SystemRole{Code: "admin", Name: "admin", Status: "enabled"}
+	role := systemModel.SystemRole{Code: "admin", Name: "admin"}
 	admin := systemModel.SystemUser{UUID: "admin-id", Username: "admin", Source: "local", Status: "enabled"}
 	target := systemModel.SystemUser{OPTIMUS_MODEL: global.OPTIMUS_MODEL{ID: 7}, UUID: "target-id", Username: "target", Source: "local", Status: "enabled"}
 	require.NoError(t, db.Create(&role).Error)
@@ -49,8 +49,8 @@ func TestUserStatusAuditRecordsSnapshot(t *testing.T) {
 
 func TestBuiltinAdminCannotBeDisabledOrLoseAdminRole(t *testing.T) {
 	db := openTestDB(t)
-	adminRole := systemModel.SystemRole{Code: AdminRoleCode, Name: "admin", Status: "enabled"}
-	userRole := systemModel.SystemRole{Code: "user", Name: "user", Status: "enabled"}
+	adminRole := systemModel.SystemRole{Code: AdminRoleCode, Name: "admin"}
+	userRole := systemModel.SystemRole{Code: "user", Name: "user"}
 	require.NoError(t, db.Create(&adminRole).Error)
 	require.NoError(t, db.Create(&userRole).Error)
 	builtin := systemModel.SystemUser{UUID: BuiltinAdminUUID, Username: "admin", Source: "local", Status: "enabled"}
@@ -82,7 +82,7 @@ func TestBuiltinAdminCannotBeDisabledOrLoseAdminRole(t *testing.T) {
 
 func TestLDAPAdminsCanAllBeDisabledWhileBuiltinAdminRemains(t *testing.T) {
 	db := openTestDB(t)
-	adminRole := systemModel.SystemRole{Code: AdminRoleCode, Name: "admin", Status: "enabled"}
+	adminRole := systemModel.SystemRole{Code: AdminRoleCode, Name: "admin"}
 	require.NoError(t, db.Create(&adminRole).Error)
 	builtin := systemModel.SystemUser{UUID: BuiltinAdminUUID, Username: "admin", Source: "local", Status: "enabled"}
 	ldapAdmin := systemModel.SystemUser{UUID: "ldap:alice", Username: "alice", Source: "ldap", Status: "enabled"}
@@ -99,9 +99,9 @@ func TestLDAPAdminsCanAllBeDisabledWhileBuiltinAdminRemains(t *testing.T) {
 func TestUserRoleAuditUsesPersistedSnapshot(t *testing.T) {
 	db := openTestDB(t)
 	roles := []systemModel.SystemRole{
-		{OPTIMUS_MODEL: global.OPTIMUS_MODEL{ID: 1}, Code: "admin", Name: "admin", Status: "enabled"},
-		{OPTIMUS_MODEL: global.OPTIMUS_MODEL{ID: 2}, Code: "read", Name: "read", Status: "enabled"},
-		{OPTIMUS_MODEL: global.OPTIMUS_MODEL{ID: 3}, Code: "write", Name: "write", Status: "enabled"},
+		{OPTIMUS_MODEL: global.OPTIMUS_MODEL{ID: 1}, Code: "admin", Name: "admin"},
+		{OPTIMUS_MODEL: global.OPTIMUS_MODEL{ID: 2}, Code: "read", Name: "read"},
+		{OPTIMUS_MODEL: global.OPTIMUS_MODEL{ID: 3}, Code: "write", Name: "write"},
 	}
 	for i := range roles {
 		require.NoError(t, db.Create(&roles[i]).Error)

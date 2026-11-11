@@ -4,17 +4,24 @@ import (
 	"context"
 	"errors"
 	"sort"
+	"strconv"
 
 	"optimus/server/global"
 	systemModel "optimus/server/model/system"
 	systemRequest "optimus/server/model/system/request"
+	systemResponse "optimus/server/model/system/response"
 
+	gormadapter "github.com/casbin/gorm-adapter/v3"
 	"gorm.io/gorm"
 )
 
 var (
 	ErrRoleNotFound       = errors.New("role not found")
 	ErrProtectedAdminRole = errors.New("admin role is protected")
+	// ErrProtectedRole: admin and the default user role cannot be deleted.
+	ErrProtectedRole = errors.New("admin and user roles cannot be deleted")
+	// ErrRoleInUse: remove the role from its users before deleting it.
+	ErrRoleInUse = errors.New("role is still assigned to users; remove it from them first")
 )
 
 type RoleService struct{}
@@ -30,7 +37,10 @@ func (s *RoleService) CreateRole(ctx context.Context, actorID uint, req systemRe
 		Code:        req.Code,
 		Name:        req.Name,
 		Description: req.Description,
-		Status:      DefaultRoleStatus,
+		Approvable:  req.Approvable != nil && *req.Approvable,
+	}
+	if role.Code == AdminRoleCode && role.Approvable {
+		return systemModel.SystemRole{}, ErrProtectedAdminRole
 	}
 	created, err := s.createRole(ctx, role)
 	if err != nil {
@@ -45,39 +55,111 @@ func (s *RoleService) UpdateRole(ctx context.Context, actorID uint, roleID uint,
 	if err != nil {
 		return systemModel.SystemRole{}, err
 	}
-	if role.Code == "admin" && req.Code != "" && req.Code != "admin" {
+	if role.Code == AdminRoleCode && req.Code != "" && req.Code != AdminRoleCode {
 		return systemModel.SystemRole{}, ErrProtectedAdminRole
 	}
-	if req.Code != "" {
-		role.Code = req.Code
+	// admin never carries the approval flag: an administrator who approves
+	// holds the approval role as well (design 3.5).
+	if role.Code == AdminRoleCode && req.Approvable != nil && *req.Approvable {
+		return systemModel.SystemRole{}, ErrProtectedAdminRole
 	}
-	role.Name = req.Name
-	role.Description = req.Description
-	updated, err := s.updateRole(ctx, role)
-	if err != nil {
+	columns := map[string]any{"name": req.Name, "description": req.Description}
+	if req.Code != "" {
+		columns["code"] = req.Code
+	}
+	approvableChanged := req.Approvable != nil && *req.Approvable != role.Approvable
+	if req.Approvable != nil {
+		columns["approvable"] = *req.Approvable
+	}
+	if err := global.OPTIMUS_DB.WithContext(ctx).Model(&systemModel.SystemRole{}).Where("id = ?", roleID).Updates(columns).Error; err != nil {
 		return systemModel.SystemRole{}, err
+	}
+	if approvableChanged {
+		// Third parties' approval roles are ignored when authorizing, so the
+		// flag changes their effective roles (design 3.1).
+		InvalidateAllAuthState()
 	}
 	recordAudit(ctx, AuditEvent{ActorUserID: actorID, ActorUsername: meta.ActorUsername, Action: "role.update", ResourceType: "role", ResourceID: resourceID(roleID), Result: "success", IP: meta.IP, UserAgent: meta.UserAgent})
-	return updated, nil
+	return s.findRoleByID(ctx, roleID)
 }
 
-func (s *RoleService) UpdateRoleStatus(ctx context.Context, actorID uint, roleID uint, status string, meta AuditMeta) (systemModel.SystemRole, error) {
+// DeleteRole deletes an unused, unprotected role with its menu grants and
+// Casbin policies, as GVA's DeleteAuthority (design 3.2). Approval-chain
+// references are checked once approval chains exist (#4).
+func (s *RoleService) DeleteRole(ctx context.Context, actorID uint, roleID uint, meta AuditMeta) error {
+	event := failedAudit(actorID, meta, "role.delete", "role", roleID)
+	defer func() { recordAudit(ctx, event) }()
 	role, err := s.findRoleByID(ctx, roleID)
 	if err != nil {
-		return systemModel.SystemRole{}, err
+		event.Detail = auditDetails("target_lookup_failed", nil)
+		return err
 	}
-	if role.Code == "admin" && status != DefaultRoleStatus {
-		return systemModel.SystemRole{}, ErrProtectedAdminRole
+	if role.Code == AdminRoleCode || role.Code == DefaultUserRoleCode {
+		event.Detail = auditDetails("protected_role", nil)
+		return ErrProtectedRole
 	}
-	role.Status = status
-	updated, err := s.updateRole(ctx, role)
+	var holders int64
+	if err := global.OPTIMUS_DB.WithContext(ctx).Model(&systemModel.SystemUserRole{}).Where("role_id = ?", roleID).Count(&holders).Error; err != nil {
+		event.Detail = auditDetails("holder_check_failed", nil)
+		return err
+	}
+	if holders > 0 {
+		event.Detail = auditDetails("role_in_use", nil)
+		return ErrRoleInUse
+	}
+	err = global.OPTIMUS_DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("role_id = ?", roleID).Delete(&systemModel.SystemRolePermission{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("ptype = ? AND v0 = ?", "p", strconv.Itoa(int(roleID))).Delete(&gormadapter.CasbinRule{}).Error; err != nil {
+			return err
+		}
+		// Holders were checked above; a binding added concurrently is
+		// removed with the role rather than left dangling.
+		if err := tx.Where("role_id = ?", roleID).Delete(&systemModel.SystemUserRole{}).Error; err != nil {
+			return err
+		}
+		return tx.Delete(&systemModel.SystemRole{}, roleID).Error
+	})
 	if err != nil {
-		return systemModel.SystemRole{}, err
+		event.Detail = auditDetails("delete_failed", nil)
+		return err
 	}
-	// Disabled roles stop counting for every holder.
+	// Commit, reload Casbin, invalidate, return (design 3.1).
+	reloadErr := CasbinServiceApp.FreshCasbin()
 	InvalidateAllAuthState()
-	recordAudit(ctx, AuditEvent{ActorUserID: actorID, ActorUsername: meta.ActorUsername, Action: "role.status.update", ResourceType: "role", ResourceID: resourceID(roleID), Result: "success", IP: meta.IP, UserAgent: meta.UserAgent})
-	return updated, nil
+	event.Result = "success"
+	event.Detail = auditDetails("deleted", nil)
+	if reloadErr != nil {
+		event.Detail = auditDetails("deleted_reload_pending", nil)
+	}
+	return reloadErr
+}
+
+// ListRolesWithPermissions returns every role with its permission codes, for
+// the role editor.
+func (s *RoleService) ListRolesWithPermissions(ctx context.Context) ([]systemResponse.RoleListItem, error) {
+	roles, err := s.ListRoles(ctx)
+	if err != nil {
+		return nil, err
+	}
+	items := make([]systemResponse.RoleListItem, 0, len(roles))
+	for _, role := range roles {
+		codes, err := s.permissionCodesForRole(ctx, role.ID)
+		if err != nil {
+			return nil, err
+		}
+		items = append(items, systemResponse.RoleListItem{SystemRole: role, PermissionCodes: codes})
+	}
+	return items, nil
+}
+
+// ListPermissions returns the whole permission catalog (all modules), as
+// stored, for the role editor.
+func (s *RoleService) ListPermissions(ctx context.Context) ([]systemModel.SystemPermission, error) {
+	var permissions []systemModel.SystemPermission
+	err := global.OPTIMUS_DB.WithContext(ctx).Order("sort ASC, id ASC").Find(&permissions).Error
+	return permissions, err
 }
 
 func (s *RoleService) UpdateRolePermissions(ctx context.Context, actorID uint, roleID uint, permissionCodes []string, meta AuditMeta) error {
