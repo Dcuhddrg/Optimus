@@ -52,6 +52,12 @@ func (s *LDAPService) GetConfig(ctx context.Context) (systemResponse.LDAPConfigR
 	if err != nil {
 		return systemResponse.LDAPConfigResult{}, err
 	}
+	if cfg.ID == 0 {
+		// Nothing saved yet: return the design defaults, so a first save
+		// does not turn an absent value into an explicit "not synced".
+		cfg.IDAttr = defaultIDAttr
+		cfg.DepartmentAttr = defaultDepartmentAttr
+	}
 	result := ldapConfigResult(cfg)
 	result.BoundUsers = bound
 	return result, nil
@@ -79,6 +85,7 @@ func (s *LDAPService) SaveConfig(ctx context.Context, actorID uint, req systemRe
 		EmailAttr:       req.EmailAttr,
 		IDAttr:          req.IDAttr,
 		DepartmentAttr:  current.DepartmentAttr,
+		Version:         current.Version + 1,
 	}
 	if cfg.BindPassword == "" {
 		cfg.BindPassword = current.BindPassword

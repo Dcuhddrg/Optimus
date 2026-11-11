@@ -77,7 +77,7 @@ func (s *AuthService) loginLDAP(ctx context.Context, req systemRequest.LoginRequ
 		s.writeAudit(ctx, loginFailure(req.Username, meta, 0, reason))
 		return systemResponse.LoginResult{}, userErr
 	}
-	user, failure := s.syncLDAPUser(ctx, client, conn, req.Username, entry)
+	user, failure := s.syncLDAPUser(ctx, client, cfg, req.Username, entry)
 	if failure != nil {
 		s.writeAudit(ctx, loginFailure(req.Username, meta, failure.userID, failure.reason))
 		return systemResponse.LoginResult{}, failure.err
@@ -243,9 +243,21 @@ type ldapLoginFailure struct {
 // still be the one whose password was verified, otherwise the login is
 // refused instead of continuing as whoever holds the username now. Accounts
 // are matched by ExternalID, never by username.
-func (s *AuthService) syncLDAPUser(ctx context.Context, client ldapUtil.Client, conn LDAPConnectionConfig, loginName string, verified LDAPUser) (systemModel.SystemUser, *ldapLoginFailure) {
+func (s *AuthService) syncLDAPUser(ctx context.Context, client ldapUtil.Client, authCfg systemModel.SystemLDAPConfig, loginName string, verified LDAPUser) (systemModel.SystemUser, *ldapLoginFailure) {
 	ldapWriteBack.Lock()
 	defer ldapWriteBack.Unlock()
+
+	// The password was checked under authCfg outside the lock. Config saves
+	// hold this lock and bump the version, so a changed version here means
+	// the identity may have been read under an old id_attr or directory.
+	cfg, err := s.getLDAPConfig(ctx)
+	if err != nil {
+		return systemModel.SystemUser{}, &ldapLoginFailure{reason: "user_sync_failed", err: err}
+	}
+	if !cfg.Enabled || cfg.ID != authCfg.ID || cfg.Version != authCfg.Version {
+		return systemModel.SystemUser{}, &ldapLoginFailure{reason: "ldap_config_changed", err: ErrLDAPDirectoryChanging}
+	}
+	conn := ldapConnectionConfig(cfg)
 
 	current, err := client.LookupUsername(ctx, conn, loginName)
 	switch {

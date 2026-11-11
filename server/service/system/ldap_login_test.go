@@ -23,6 +23,7 @@ type fakeDirectory struct {
 	mu        sync.Mutex
 	entries   map[string]LDAPUser
 	authErr   error
+	afterAuth func()
 	testErr   error
 	onLookup  func(username string)
 	lookupErr error
@@ -59,6 +60,9 @@ func (d *fakeDirectory) Authenticate(_ context.Context, _ LDAPConnectionConfig, 
 	if d.authErr != nil {
 		return LDAPUser{}, d.authErr
 	}
+	if d.afterAuth != nil {
+		d.afterAuth()
+	}
 	return d.get(username)
 }
 
@@ -76,7 +80,17 @@ func (d *fakeDirectory) LookupUsername(_ context.Context, _ LDAPConnectionConfig
 	return d.get(username)
 }
 
-var testLDAPConn = LDAPConnectionConfig{UserFilter: "(uid={username})", UsernameAttr: "uid", IDAttr: "entryUUID", DepartmentAttr: "departmentNumber"}
+// currentLDAPConfig returns the saved LDAP config, saving an enabled test
+// config first if there is none.
+func currentLDAPConfig(t *testing.T) systemModel.SystemLDAPConfig {
+	t.Helper()
+	cfg, err := (&AuthService{}).getLDAPConfig(context.Background())
+	require.NoError(t, err)
+	if cfg.ID == 0 {
+		return enableLDAP(t, global.OPTIMUS_DB)
+	}
+	return cfg
+}
 
 func dirEntry(username, id string) LDAPUser {
 	return LDAPUser{DN: "uid=" + username + ",ou=people,dc=optimus,dc=test", Username: username, DisplayName: strings.ToUpper(username), Email: username + "@optimus.test", Department: "ops", ExternalID: id, Version: "v1"}
@@ -88,7 +102,7 @@ func syncAs(t *testing.T, dir *fakeDirectory, username string) (systemModel.Syst
 	t.Helper()
 	verified, err := dir.get(username)
 	require.NoError(t, err)
-	return (&AuthService{}).syncLDAPUser(context.Background(), dir, testLDAPConn, username, verified)
+	return (&AuthService{}).syncLDAPUser(context.Background(), dir, currentLDAPConfig(t), username, verified)
 }
 
 func seedDefaultRole(t *testing.T, db *gorm.DB) systemModel.SystemRole {
@@ -195,7 +209,7 @@ func TestLDAPLoginRefusesWhenRereadIdentityDiffers(t *testing.T) {
 	require.NoError(t, err)
 	dir.set(dirEntry("erin", "id-someone-else"))
 
-	_, failure := (&AuthService{}).syncLDAPUser(context.Background(), dir, testLDAPConn, "erin", verified)
+	_, failure := (&AuthService{}).syncLDAPUser(context.Background(), dir, currentLDAPConfig(t), "erin", verified)
 	require.NotNil(t, failure)
 	require.ErrorIs(t, failure.err, ErrLDAPDirectoryChanging)
 	var count int64
@@ -208,12 +222,12 @@ func TestLDAPLoginKeepsDepartmentWhenNotSynced(t *testing.T) {
 	bindExternalID(t, f.db, f.user.ID, "id-alice")
 	require.NoError(t, f.db.Model(&systemModel.SystemUser{}).Where("id = ?", f.user.ID).Update("department", "kept").Error)
 	dir := newFakeDirectory(dirEntry("alice", "id-alice"))
-	conn := testLDAPConn
-	conn.DepartmentAttr = ""
+	cfg := currentLDAPConfig(t)
+	require.NoError(t, f.db.Model(&cfg).Update("department_attr", "").Error)
 
 	verified, err := dir.get("alice")
 	require.NoError(t, err)
-	user, failure := (&AuthService{}).syncLDAPUser(context.Background(), dir, conn, "alice", verified)
+	user, failure := (&AuthService{}).syncLDAPUser(context.Background(), dir, cfg, "alice", verified)
 	require.Nil(t, failure)
 	require.Equal(t, "kept", user.Department)
 }
@@ -250,9 +264,11 @@ func TestLDAPLoginWriteBacksAreSerialized(t *testing.T) {
 	<-secondLookup
 }
 
-func enableLDAP(t *testing.T, db *gorm.DB) {
+func enableLDAP(t *testing.T, db *gorm.DB) systemModel.SystemLDAPConfig {
 	t.Helper()
-	require.NoError(t, db.Create(&systemModel.SystemLDAPConfig{Enabled: true, URL: "ldap://test", UserFilter: "(uid={username})", UsernameAttr: "uid", IDAttr: "entryUUID"}).Error)
+	cfg := systemModel.SystemLDAPConfig{Enabled: true, URL: "ldap://test", BindPassword: "pw", UserFilter: "(uid={username})", UsernameAttr: "uid", IDAttr: "entryUUID", DepartmentAttr: "departmentNumber"}
+	require.NoError(t, db.Create(&cfg).Error)
+	return cfg
 }
 
 func lastLoginReason(t *testing.T, db *gorm.DB) string {
@@ -373,4 +389,69 @@ func TestLDAPConnectionTestReportsEmptyScope(t *testing.T) {
 	var audit systemModel.SystemAuditLog
 	require.NoError(t, db.Where("action = ?", "ldap.test.failure").Last(&audit).Error)
 	require.Contains(t, audit.Detail, "no_users_in_scope")
+}
+
+// The admin changes the LDAP config between the password check (outside the
+// write-back lock) and the write-back: the login must not bind an identity
+// read under the old config.
+func TestLDAPLoginRefusedWhenConfigChangesDuringLogin(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		change func(*systemRequest.LDAPConfigRequest)
+	}{
+		{"identity attribute switched", func(r *systemRequest.LDAPConfigRequest) { r.IDAttr = "nsUniqueId" }},
+		{"LDAP disabled", func(r *systemRequest.LDAPConfigRequest) { r.Enabled = false }},
+		{"directory switched", func(r *systemRequest.LDAPConfigRequest) { r.URL = "ldap://other" }},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			db := openTestDB(t)
+			enableLDAP(t, db)
+			seedDefaultRole(t, db)
+			dir := newFakeDirectory(dirEntry("ivy", "id-ivy"))
+			svc := newLDAPServiceForTest(t, dir)
+			dir.afterAuth = func() {
+				req := validLDAPRequest()
+				tc.change(&req)
+				_, err := svc.SaveConfig(context.Background(), 1, req, AuditMeta{})
+				require.NoError(t, err, "no account is bound yet, so the switch is allowed")
+			}
+
+			_, err := (&AuthService{}).Login(context.Background(), systemRequest.LoginRequest{Username: "ivy", Password: "pw"}, AuditMeta{})
+			require.ErrorIs(t, err, ErrLDAPDirectoryChanging)
+			require.Equal(t, "ldap_config_changed", lastLoginReason(t, db))
+			var count int64
+			require.NoError(t, db.Model(&systemModel.SystemUser{}).Count(&count).Error)
+			require.Zero(t, count, "no account is created under the old config")
+		})
+	}
+}
+
+func TestSaveLDAPConfigIncrementsVersion(t *testing.T) {
+	openTestDB(t)
+	svc := newLDAPServiceForTest(t, newFakeDirectory())
+	for want := uint64(1); want <= 2; want++ {
+		_, err := svc.SaveConfig(context.Background(), 1, validLDAPRequest(), AuditMeta{})
+		require.NoError(t, err)
+		cfg, err := svc.getLDAPConfig(context.Background())
+		require.NoError(t, err)
+		require.Equal(t, want, cfg.Version)
+	}
+}
+
+// Before anything is saved, the config page shows the design defaults; saving
+// them as shown keeps department sync on.
+func TestFirstLDAPConfigUsesDefaults(t *testing.T) {
+	openTestDB(t)
+	svc := newLDAPServiceForTest(t, newFakeDirectory())
+	shown, err := svc.GetConfig(context.Background())
+	require.NoError(t, err)
+	require.Equal(t, "entryUUID", shown.IDAttr)
+	require.Equal(t, "departmentNumber", shown.DepartmentAttr)
+
+	req := validLDAPRequest()
+	req.IDAttr = shown.IDAttr
+	req.DepartmentAttr = &shown.DepartmentAttr
+	saved, err := svc.SaveConfig(context.Background(), 1, req, AuditMeta{})
+	require.NoError(t, err)
+	require.Equal(t, "departmentNumber", saved.DepartmentAttr)
 }

@@ -94,6 +94,9 @@ type SystemLDAPConfig struct {
 	IDAttr string `gorm:"size:64;not null;default:entryUUID" json:"idAttr"`
 	// DepartmentAttr is the department attribute; empty means not synced.
 	DepartmentAttr string `gorm:"size:64;default:departmentNumber" json:"departmentAttr"`
+	// Version increases on every save. A login records it before the
+	// password check and refuses to write back if it changed meanwhile.
+	Version uint64 `gorm:"not null;default:0" json:"-"`
 }
 
 func (SystemLDAPConfig) TableName() string {

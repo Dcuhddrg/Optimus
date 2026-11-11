@@ -1205,6 +1205,21 @@
         "size": 64,
         "type": "string",
         "unique": false
+      },
+      "version": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "uint",
+        "default": "0",
+        "hasDefault": true,
+        "notNull": true,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 64,
+        "type": "uint64",
+        "unique": false
       }
     },
     "indexes": {},

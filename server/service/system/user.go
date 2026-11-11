@@ -18,7 +18,7 @@ var (
 	// ErrBuiltinAdminProtected: the built-in admin account must stay enabled
 	// and keep the admin role, so the system always has an administrator.
 	// ErrLDAPProfileReadOnly rejects profile edits of an LDAP account.
-	ErrLDAPProfileReadOnly = errors.New("profile fields of an LDAP account come from the directory and cannot be edited")
+	ErrLDAPProfileReadOnly   = errors.New("profile fields of an LDAP account come from the directory and cannot be edited")
 	ErrBuiltinAdminProtected = errors.New("built-in admin must stay enabled with the admin role")
 )
 
