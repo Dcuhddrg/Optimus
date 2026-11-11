@@ -60,7 +60,7 @@ const EN_PERMISSION_CODE_LABELS = {
   'system.roles.create': 'Create roles',
   'system.roles.menu': 'Roles',
   'system.roles.permissions.update': 'Update role permissions',
-  'system.roles.status.update': 'Update role status',
+  'system.roles.delete': 'Delete roles',
   'system.roles.update': 'Update roles',
   'system.roles.view': 'View roles',
   'system.users.menu': 'Users',
@@ -88,7 +88,7 @@ const PERMISSION_CODE_LABELS = createLocaleLabelTable<PermissionCode>({
     'system.roles.create': '创建角色',
     'system.roles.menu': '角色',
     'system.roles.permissions.update': '更新角色权限',
-    'system.roles.status.update': '更新角色状态',
+    'system.roles.delete': '删除角色',
     'system.roles.update': '更新角色',
     'system.roles.view': '查看角色',
     'system.users.menu': '用户',
@@ -118,7 +118,7 @@ const PERMISSION_TYPE_LABELS = createLocaleLabelTable<PermissionTypeValue>({
 export const AUDIT_ACTION_CODES = [
   'auth.login.success', 'auth.login.failure', 'auth.logout',
   'user.update', 'user.status.update', 'user.roles.update',
-  'role.create', 'role.update', 'role.status.update', 'role.permissions.update',
+  'role.create', 'role.update', 'role.delete', 'role.status.update', 'role.permissions.update', 'user.roles.migrate', 'system.admin.repair',
   'ldap.config.update', 'ldap.test.success', 'ldap.test.failure',
 ] as const;
 
@@ -127,13 +127,15 @@ const AUDIT_ACTION_LABELS = createLocaleLabelTable<AuditActionCode>({
   en: {
     'auth.login.success': 'Sign in', 'auth.login.failure': 'Failed sign-in', 'auth.logout': 'Sign out',
     'user.update': 'Update user', 'user.status.update': 'Update user status', 'user.roles.update': 'Update user roles',
-    'role.create': 'Create role', 'role.update': 'Update role', 'role.status.update': 'Update role status', 'role.permissions.update': 'Update role permissions',
+    'role.create': 'Create role', 'role.update': 'Update role', 'role.delete': 'Delete role', 'role.status.update': 'Update role status', 'role.permissions.update': 'Update role permissions',
+    'user.roles.migrate': 'Role migration', 'system.admin.repair': 'Built-in admin repair',
     'ldap.config.update': 'Update LDAP configuration', 'ldap.test.success': 'LDAP connection test', 'ldap.test.failure': 'Failed LDAP connection test',
   },
   'zh-CN': {
     'auth.login.success': '登录', 'auth.login.failure': '登录失败', 'auth.logout': '退出登录',
     'user.update': '修改用户', 'user.status.update': '修改用户状态', 'user.roles.update': '修改用户角色',
-    'role.create': '创建角色', 'role.update': '修改角色', 'role.status.update': '修改角色状态', 'role.permissions.update': '修改角色权限',
+    'role.create': '创建角色', 'role.update': '修改角色', 'role.delete': '删除角色', 'role.status.update': '修改角色状态', 'role.permissions.update': '修改角色权限',
+    'user.roles.migrate': '角色迁移', 'system.admin.repair': '内置管理员修复',
     'ldap.config.update': '修改 LDAP 配置', 'ldap.test.success': 'LDAP 连接测试', 'ldap.test.failure': 'LDAP 连接测试失败',
   },
 });

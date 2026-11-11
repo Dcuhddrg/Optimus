@@ -1,6 +1,6 @@
 # 用户管理设计
 
-- 状态：已批准（用户逐条确认，2026-11-06）；实现状态：3.1、3.4 实现中（[#80](https://github.com/Dcuhddrg/Optimus/issues/80) 第一个 PR），其余未开始。
+- 状态：已批准（用户逐条确认，2026-11-06）；实现状态：3.1、3.4 已实现（[#82](https://github.com/Dcuhddrg/Optimus/pull/82)）；3.2、3.5 实现中（[#80](https://github.com/Dcuhddrg/Optimus/issues/80) 第二个 PR），其余未开始。
 - 关联：[#80](https://github.com/Dcuhddrg/Optimus/issues/80)（实施与验收）、[#4](https://github.com/Dcuhddrg/Optimus/issues/4)（审批流，以本设计为前置）、[ADR-005](../adr/0005-ldap-identity-optimus-authorization.md)（身份与授权分工）。
 - 对照基线：gin-vue-admin 本地仓库 `67894b11`（比文档其他处引用的 `cee04b08` 新）。
 
@@ -292,6 +292,7 @@ GVA 的 `middleware/jwt.go` 里有"已登录用户被禁用就让 token 失效"�
 - 审批角色本身不带菜单和接口权限，只表示"有资格审批这一级"。"我的待办"和审批操作的页面、接口放进 `user` 角色。某张工单能不能由某人审批，由后端按审批链判断，不经过 Casbin。
 - 持有该角色的任意一人审批，这一级就通过（或签）。
 - 种子数据预置两个审批角色，都带审批标记，都不带权限：`security-approver`（安全审批）、`dept-head-approver`（部门负责人审批）。
+- 升级时若库里已有同编码角色：无持有人且无权限的直接接管为审批角色；有持有人或权限的保持原样（不加审批标记，避免其持有人自动获得审批资格），记审计并告警，由管理员在角色管理里确认后再勾选。该迁移只成功执行一次，中途失败会在下次启动重试。
 - 现有三级审批的对应关系：
 
 | 审批级别 | 审批人 |

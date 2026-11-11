@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	systemModel "optimus/server/model/system"
 	systemService "optimus/server/service/system"
@@ -16,6 +17,7 @@ import (
 	gormadapter "github.com/casbin/gorm-adapter/v3"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 const (
@@ -36,7 +38,109 @@ func (i *initSystem) MigrateTable(ctx context.Context) (context.Context, error) 
 	if !ok {
 		return ctx, systemService.ErrMissingDBContext
 	}
-	return ctx, systemService.AutoMigrateSystem(db)
+	return ctx, MigrateSystemSchema(db)
+}
+
+// MigrateSystemSchema migrates the system tables and runs the one-time data
+// migrations.
+func MigrateSystemSchema(db *gorm.DB) error {
+	if err := systemService.AutoMigrateSystem(db); err != nil {
+		return err
+	}
+	if err := runDataMigration(db, presetApprovalRolesMigration, adoptPresetApprovalRoles); err != nil {
+		return err
+	}
+	return MigrateRemoveRoleStatus(db)
+}
+
+const presetApprovalRolesMigration = "2026-11-preset-approval-roles"
+
+// runDataMigration runs fn once. fn and the completion marker share one
+// transaction: a failure or crash leaves no marker, so the next start retries.
+func runDataMigration(db *gorm.DB, name string, fn func(tx *gorm.DB) error) error {
+	return db.Transaction(func(tx *gorm.DB) error {
+		var done int64
+		if err := tx.Model(&systemModel.SystemDataMigration{}).Where("name = ?", name).Count(&done).Error; err != nil {
+			return err
+		}
+		if done > 0 {
+			return nil
+		}
+		if err := fn(tx); err != nil {
+			return fmt.Errorf("data migration %s: %w", name, err)
+		}
+		return tx.Create(&systemModel.SystemDataMigration{Name: name, AppliedAt: time.Now()}).Error
+	})
+}
+
+// presetAdoptTestHook, when set, runs after each preset role is handled so
+// tests can fail the migration midway.
+var presetAdoptTestHook func() error
+
+// adoptPresetApprovalRoles handles roles that already use a preset approval
+// code when the preset roles are introduced. Marking a role approvable makes
+// its holders approval candidates, which nobody authorized, so only a role
+// with no holders and no permissions is adopted. Any other same-code role is
+// left untouched and audited for the admin to decide in role management.
+// Later edits to the flag are never overwritten, since this runs once.
+func adoptPresetApprovalRoles(db *gorm.DB) error {
+	for _, preset := range systemService.DefaultSystemRoles() {
+		if !preset.Approvable {
+			continue
+		}
+		var role systemModel.SystemRole
+		err := db.Clauses(clause.Locking{Strength: "UPDATE"}).Where("code = ?", preset.Code).First(&role).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		if role.Approvable {
+			continue
+		}
+		var menuGrants, policies, holders int64
+		if err := db.Model(&systemModel.SystemRolePermission{}).Where("role_id = ?", role.ID).Count(&menuGrants).Error; err != nil {
+			return err
+		}
+		if err := db.Model(&gormadapter.CasbinRule{}).Where("ptype = ? AND v0 = ?", "p", strconv.Itoa(int(role.ID))).Count(&policies).Error; err != nil {
+			return err
+		}
+		if err := db.Model(&systemModel.SystemUserRole{}).Where("role_id = ?", role.ID).Count(&holders).Error; err != nil {
+			return err
+		}
+		adopt := menuGrants+policies == 0 && holders == 0
+		reason, result := "preset_role_adopted", "success"
+		if adopt {
+			if err := db.Model(&systemModel.SystemRole{}).Where("id = ?", role.ID).Update("approvable", true).Error; err != nil {
+				return err
+			}
+		} else {
+			reason, result = "preset_role_conflict", "failure"
+		}
+		detail, _ := json.Marshal(map[string]any{"version": 1, "reason": reason, "roleCode": role.Code, "permissions": menuGrants + policies, "holders": holders})
+		if err := db.Create(&systemModel.SystemAuditLog{
+			Action:       "role.preset.adopt",
+			ResourceType: "role",
+			ResourceID:   strconv.Itoa(int(role.ID)),
+			Result:       result,
+			Detail:       string(detail),
+		}).Error; err != nil {
+			return err
+		}
+		fields := []zap.Field{zap.String("role", role.Code), zap.Int64("permissions", menuGrants+policies), zap.Int64("holders", holders)}
+		if adopt {
+			zap.L().Info("existing empty role adopted as preset approval role", fields...)
+		} else {
+			zap.L().Warn("existing role uses a preset approval code but has holders or permissions; left non-approvable, mark it approvable in role management if intended", fields...)
+		}
+		if presetAdoptTestHook != nil {
+			if err := presetAdoptTestHook(); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func (i *initSystem) TableCreated(ctx context.Context) bool {
@@ -70,6 +174,9 @@ func SeedSystemData(db *gorm.DB, initialAdminPassword string) error {
 		initialAdminPassword = defaultAdminPassword
 	}
 	if err := seedRoles(db); err != nil {
+		return err
+	}
+	if err := removeRetiredPermissions(db); err != nil {
 		return err
 	}
 	// Normalize legacy /api/v1-prefixed catalog paths first: grants written
@@ -325,6 +432,81 @@ func migrateAPIGrantsToCasbin(db *gorm.DB) error {
 			}
 			if err := tx.Delete(&systemModel.SystemRolePermission{}, grant.ID).Error; err != nil {
 				return err
+			}
+		}
+		return nil
+	})
+}
+
+// MigrateRemoveRoleStatus drops the role status column, as GVA has none
+// (design 3.2). Users first lose their bindings to disabled roles, so every
+// user keeps exactly the permissions they effectively had: a disabled role
+// granted nothing. Each unbinding is audited and logged. It runs before
+// serving and is idempotent: a crash before the column drop leaves disabled
+// roles without holders and the next start finishes the job.
+func MigrateRemoveRoleStatus(db *gorm.DB) error {
+	if !db.Migrator().HasColumn(&systemModel.SystemRole{}, "status") {
+		return nil
+	}
+	var disabled []struct {
+		ID   uint
+		Code string
+	}
+	if err := db.Table("sys_roles").Select("id, code").Where("status <> ?", "enabled").Scan(&disabled).Error; err != nil {
+		return err
+	}
+	for _, role := range disabled {
+		var userIDs []uint
+		if err := db.Model(&systemModel.SystemUserRole{}).Where("role_id = ?", role.ID).Order("user_id ASC").Pluck("user_id", &userIDs).Error; err != nil {
+			return err
+		}
+		if err := db.Transaction(func(tx *gorm.DB) error {
+			for _, userID := range userIDs {
+				detail, _ := json.Marshal(map[string]any{"version": 1, "reason": "disabled_role_unbound", "roleId": role.ID, "roleCode": role.Code})
+				if err := tx.Create(&systemModel.SystemAuditLog{
+					Action:       "user.roles.migrate",
+					ResourceType: "user",
+					ResourceID:   strconv.Itoa(int(userID)),
+					Result:       "success",
+					Detail:       string(detail),
+				}).Error; err != nil {
+					return err
+				}
+			}
+			return tx.Where("role_id = ?", role.ID).Delete(&systemModel.SystemUserRole{}).Error
+		}); err != nil {
+			return err
+		}
+		zap.L().Info("role status migration: unbound users from disabled role", zap.String("role", role.Code), zap.Uints("users", userIDs))
+	}
+	if err := db.Exec("ALTER TABLE `sys_roles` DROP COLUMN `status`").Error; err != nil {
+		return err
+	}
+	zap.L().Info("role status migration: dropped sys_roles.status", zap.Int("disabledRoles", len(disabled)))
+	return nil
+}
+
+// removeRetiredPermissions deletes catalog entries the product no longer
+// has, with their menu grants and Casbin policies.
+func removeRetiredPermissions(db *gorm.DB) error {
+	return db.Transaction(func(tx *gorm.DB) error {
+		for _, retired := range systemService.RetiredSystemPermissions() {
+			var ids []uint
+			if err := tx.Model(&systemModel.SystemPermission{}).Where("code = ?", retired.Code).Pluck("id", &ids).Error; err != nil {
+				return err
+			}
+			if len(ids) > 0 {
+				if err := tx.Where("permission_id IN ?", ids).Delete(&systemModel.SystemRolePermission{}).Error; err != nil {
+					return err
+				}
+				if err := tx.Where("id IN ?", ids).Delete(&systemModel.SystemPermission{}).Error; err != nil {
+					return err
+				}
+			}
+			if retired.Type == "api" {
+				if err := tx.Where("ptype = ? AND v1 = ? AND v2 = ?", "p", retired.Path, retired.Method).Delete(&gormadapter.CasbinRule{}).Error; err != nil {
+					return err
+				}
 			}
 		}
 		return nil

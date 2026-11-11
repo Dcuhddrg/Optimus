@@ -105,5 +105,7 @@ func TestRoutersUseGroupedRBACCapability(t *testing.T) {
 	engine.ServeHTTP(recorder, req)
 
 	require.Equal(t, http.StatusOK, recorder.Code)
-	require.Contains(t, recorder.Body.String(), "\"code\":\"system.permissions.view\"")
+	// The tree is read from the catalog in the database (all modules), which
+	// the fixture seeded with path-coded entries.
+	require.Contains(t, recorder.Body.String(), "\"code\":\"/system/permissions/tree\"")
 }

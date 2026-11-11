@@ -10,7 +10,7 @@ func (r *RoleRouter) InitRoleRouter(privateGroup *gin.RouterGroup) {
 	roleRouter.GET("", roleApi.Roles)
 	roleRouter.POST("", roleApi.CreateRole)
 	roleRouter.PUT(":id", roleApi.UpdateRole)
-	roleRouter.PATCH(":id/status", roleApi.UpdateRoleStatus)
+	roleRouter.DELETE(":id", roleApi.DeleteRole)
 	roleRouter.PUT(":id/permissions", roleApi.UpdateRolePermissions)
 	permissionRouter.GET("tree", roleApi.PermissionTree)
 }

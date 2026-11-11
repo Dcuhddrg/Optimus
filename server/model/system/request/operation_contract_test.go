@@ -19,7 +19,6 @@ func TestOperationRequestDTOsPreserveJSONFields(t *testing.T) {
 	}{
 		{systemRequest.UpdateUserStatusRequest{}, `{"status":""}`},
 		{systemRequest.UpdateUserRolesRequest{}, `{"roleIds":null}`},
-		{systemRequest.UpdateRoleStatusRequest{}, `{"status":""}`},
 		{systemRequest.UpdateRolePermissionsRequest{}, `{"permissionCodes":null}`},
 		{systemRequest.UpdateUserRolesRequest{RoleIDs: []uint{}}, `{"roleIds":[]}`},
 		{systemRequest.UpdateRolePermissionsRequest{PermissionCodes: []string{}}, `{"permissionCodes":[]}`},

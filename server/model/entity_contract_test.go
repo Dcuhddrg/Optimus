@@ -21,7 +21,7 @@ var entityContractOutput = flag.String("entity-contract-output", "", "record pre
 // Capture observable fields and SQL metadata, excluding Go embedding paths and
 // field declaration order, which the structural migration intentionally changes.
 func TestEntitySchemaAndJSONContracts(t *testing.T) {
-	entities := []any{system.SystemUser{}, system.SystemRole{}, system.SystemPermission{}, system.SystemLDAPConfig{}, system.SystemUserRole{}, system.SystemRolePermission{}, system.SystemAuditLog{}, project.Project{}, project.UserProject{}, cloud.CloudAccount{}, cloud.CloudAsset{}}
+	entities := []any{system.SystemUser{}, system.SystemRole{}, system.SystemPermission{}, system.SystemLDAPConfig{}, system.SystemUserRole{}, system.SystemRolePermission{}, system.SystemAuditLog{}, system.SystemDataMigration{}, project.Project{}, project.UserProject{}, cloud.CloudAccount{}, cloud.CloudAsset{}}
 	actual := map[string]any{}
 	for _, entity := range entities {
 		s, err := schema.Parse(entity, &sync.Map{}, schema.NamingStrategy{})

@@ -24,7 +24,12 @@ export interface SystemRole {
   code: string;
   name: string;
   description: string;
-  status: string;
+  // Can be chosen as an approval level (design 3.5).
+  approvable: boolean;
+}
+
+export interface SystemRoleWithPermissions extends SystemRole {
+  permissionCodes: string[];
 }
 
 export interface SystemPermission {

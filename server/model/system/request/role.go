@@ -4,10 +4,8 @@ type RoleRequest struct {
 	Code        string `json:"code"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
-}
-
-type UpdateRoleStatusRequest struct {
-	Status string `json:"status"`
+	// Approvable: nil keeps the current flag on update, false on create.
+	Approvable *bool `json:"approvable"`
 }
 
 type UpdateRolePermissionsRequest struct {

@@ -44,7 +44,7 @@ func TestRegisteredRoutesAndUnauthenticatedContracts(t *testing.T) {
 		{"GET", "/health", true}, {"GET", "/ping", true}, {"GET", "/base/ping", true}, {"GET", "/swagger/*any", true},
 		{"POST", "/system/auth/login", true}, {"GET", "/system/auth/me", false}, {"POST", "/system/auth/logout", false},
 		{"GET", "/system/users", false}, {"PUT", "/system/users/:id", false}, {"PATCH", "/system/users/:id/status", false}, {"PUT", "/system/users/:id/roles", false},
-		{"GET", "/system/roles", false}, {"POST", "/system/roles", false}, {"PUT", "/system/roles/:id", false}, {"PATCH", "/system/roles/:id/status", false}, {"PUT", "/system/roles/:id/permissions", false}, {"GET", "/system/permissions/tree", false},
+		{"GET", "/system/roles", false}, {"POST", "/system/roles", false}, {"PUT", "/system/roles/:id", false}, {"DELETE", "/system/roles/:id", false}, {"PUT", "/system/roles/:id/permissions", false}, {"GET", "/system/permissions/tree", false},
 		{"GET", "/system/ldap/config", false}, {"PUT", "/system/ldap/config", false}, {"POST", "/system/ldap/test", false}, {"GET", "/system/audit-logs", false}, {"GET", "/system/audit-logs/export", false},
 		{"GET", "/projects", false}, {"POST", "/projects", false}, {"GET", "/projects/:code", false}, {"PUT", "/projects/:code", false}, {"DELETE", "/projects/:code", false},
 		{"GET", "/projects/:code/members", false}, {"POST", "/projects/:code/members", false}, {"PATCH", "/projects/:code/members/:userId", false}, {"DELETE", "/projects/:code/members/:userId", false},

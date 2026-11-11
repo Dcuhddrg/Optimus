@@ -190,7 +190,7 @@ func TestAuditSetChangeCanonicalizesAndDoesNotModifyInput(t *testing.T) {
 
 func TestPermissionCodesSnapshotUsesSavedAssignments(t *testing.T) {
 	db := openTestDB(t)
-	roles := []systemModel.SystemRole{{Code: "first", Name: "First", Status: "enabled"}, {Code: "second", Name: "Second", Status: "enabled"}}
+	roles := []systemModel.SystemRole{{Code: "first", Name: "First"}, {Code: "second", Name: "Second"}}
 	require.NoError(t, db.Create(&roles).Error)
 	permissions := []systemModel.SystemPermission{{Code: "z.write", Name: "Write", Type: "api", Method: "POST", Path: "/things"}, {Code: "a.read", Name: "Read", Type: "api", Method: "GET", Path: "/things"}}
 	require.NoError(t, db.Create(&permissions).Error)
@@ -234,7 +234,7 @@ func TestLDAPSaveFailureSurvivesAuditWriteFailure(t *testing.T) {
 
 func TestUserUpdateSurvivesAuditWriteFailure(t *testing.T) {
 	db := openTestDB(t)
-	role := systemModel.SystemRole{Code: "admin", Name: "admin", Status: "enabled"}
+	role := systemModel.SystemRole{Code: "admin", Name: "admin"}
 	admin := systemModel.SystemUser{UUID: "admin-id", Username: "admin", Source: "local", Status: "enabled"}
 	user := systemModel.SystemUser{UUID: "target-id", Username: "target", Source: "local", Status: "enabled"}
 	require.NoError(t, db.Create(&role).Error)
@@ -264,7 +264,7 @@ func TestUserUpdateSurvivesAuditWriteFailure(t *testing.T) {
 
 func TestUserUpdateFailureSurvivesAuditWriteFailure(t *testing.T) {
 	db := openTestDB(t)
-	role := systemModel.SystemRole{Code: "admin", Name: "admin", Status: "enabled"}
+	role := systemModel.SystemRole{Code: "admin", Name: "admin"}
 	admin := systemModel.SystemUser{UUID: "admin-id", Username: "admin", Source: "local", Status: "enabled"}
 	user := systemModel.SystemUser{UUID: "target-id", Username: "target", Source: "local", Status: "enabled"}
 	require.NoError(t, db.Create(&role).Error)
@@ -322,7 +322,7 @@ func TestSuccessfulLoginSurvivesAuditWriteFailure(t *testing.T) {
 
 func TestRoleMutationFailureSurvivesAuditWriteFailure(t *testing.T) {
 	db := openTestDB(t)
-	role := systemModel.SystemRole{Code: "ops", Name: "ops", Status: "enabled"}
+	role := systemModel.SystemRole{Code: "ops", Name: "ops"}
 	read := systemModel.SystemPermission{Code: "read", Name: "read", Type: "api", Method: "GET", Path: "/things"}
 	write := systemModel.SystemPermission{Code: "write", Name: "write", Type: "api", Method: "POST", Path: "/things"}
 	require.NoError(t, db.Create(&role).Error)
@@ -358,7 +358,7 @@ func TestRolePermissionSnapshotFailuresPreserveMutation(t *testing.T) {
 	for _, failAt := range []int{1, 2} {
 		t.Run(string(rune('0'+failAt)), func(t *testing.T) {
 			db := openTestDB(t)
-			role := systemModel.SystemRole{Code: "ops", Name: "ops", Status: "enabled"}
+			role := systemModel.SystemRole{Code: "ops", Name: "ops"}
 			permission := systemModel.SystemPermission{Code: "write", Name: "write", Type: "api", Method: "PUT", Path: "/write"}
 			require.NoError(t, db.Create(&role).Error)
 			require.NoError(t, db.Create(&permission).Error)
@@ -389,8 +389,8 @@ func TestUserRoleSnapshotFailuresPreserveMutation(t *testing.T) {
 	for _, failAt := range []int{1, 2} {
 		t.Run(string(rune('0'+failAt)), func(t *testing.T) {
 			db := openTestDB(t)
-			adminRole := systemModel.SystemRole{OPTIMUS_MODEL: global.OPTIMUS_MODEL{ID: 1}, Code: "admin", Name: "admin", Status: "enabled"}
-			role := systemModel.SystemRole{OPTIMUS_MODEL: global.OPTIMUS_MODEL{ID: 2}, Code: "ops", Name: "ops", Status: "enabled"}
+			adminRole := systemModel.SystemRole{OPTIMUS_MODEL: global.OPTIMUS_MODEL{ID: 1}, Code: "admin", Name: "admin"}
+			role := systemModel.SystemRole{OPTIMUS_MODEL: global.OPTIMUS_MODEL{ID: 2}, Code: "ops", Name: "ops"}
 			admin := systemModel.SystemUser{UUID: "admin-id", Username: "admin", Source: "local", Status: "enabled"}
 			user := systemModel.SystemUser{OPTIMUS_MODEL: global.OPTIMUS_MODEL{ID: 7}, UUID: "target-id", Username: "target", Source: "local", Status: "enabled"}
 			require.NoError(t, db.Create(&adminRole).Error)

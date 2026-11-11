@@ -26,7 +26,9 @@ type SystemRole struct {
 	Code        string `gorm:"size:128;uniqueIndex;not null" json:"code"`
 	Name        string `gorm:"size:128;not null" json:"name"`
 	Description string `gorm:"size:255" json:"description"`
-	Status      string `gorm:"size:32;not null;index" json:"status"`
+	// Approvable marks a role usable as an approval level (design 3.5). As in
+	// GVA, roles have no enabled/disabled status.
+	Approvable bool `gorm:"not null;default:false" json:"approvable"`
 }
 
 func (SystemRole) TableName() string {
@@ -103,4 +105,16 @@ type SystemAuditLog struct {
 
 func (SystemAuditLog) TableName() string {
 	return "sys_audit_logs"
+}
+
+// SystemDataMigration records a one-time data migration that has completed.
+// The row is written in the same transaction as the migration's changes, so a
+// migration that failed or was interrupted runs again on the next start.
+type SystemDataMigration struct {
+	Name      string    `gorm:"primaryKey;size:128" json:"name"`
+	AppliedAt time.Time `gorm:"not null" json:"appliedAt"`
+}
+
+func (SystemDataMigration) TableName() string {
+	return "sys_data_migrations"
 }

@@ -10,6 +10,7 @@ import (
 	systemResponse "optimus/server/model/system/response"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 var (
@@ -110,6 +111,10 @@ func (s *UserService) UpdateUserRoles(ctx context.Context, actorID uint, userID 
 	}
 	before, beforeErr := queryUserRoles(ctx, userID)
 	if err := s.replaceUserRoles(ctx, userID, roleIDs); err != nil {
+		if errors.Is(err, ErrRoleNotFound) {
+			event.Detail = auditDetails("role_not_found", nil)
+			return err
+		}
 		event.Detail = auditDetails("update_failed", nil)
 		return err
 	}
@@ -179,10 +184,32 @@ func (s *UserService) writeUserColumns(ctx context.Context, userID uint, columns
 
 func (s *UserService) replaceUserRoles(ctx context.Context, userID uint, roleIDs []uint) error {
 	return global.OPTIMUS_DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Share-lock the roles being bound, so a concurrent DeleteRole (which
+		// takes an exclusive lock) either waits for this commit and then sees
+		// the holder, or commits first and this assignment finds the role gone.
+		requested := map[uint]bool{}
+		for _, roleID := range roleIDs {
+			requested[roleID] = true
+		}
+		existing := []uint{}
+		if len(requested) > 0 {
+			if err := tx.Clauses(clause.Locking{Strength: "SHARE"}).Model(&systemModel.SystemRole{}).Where("id IN ?", roleIDs).Order("id ASC").Pluck("id", &existing).Error; err != nil {
+				return err
+			}
+		}
+		// Any requested role missing (deleted, or never existed): reject the
+		// whole assignment and keep the user's current bindings, rather than
+		// silently replacing them with fewer roles than the admin asked for.
+		if len(existing) != len(requested) {
+			return ErrRoleNotFound
+		}
+		if hook := roleLockTestHooks.afterAssignLock; hook != nil {
+			hook(userID)
+		}
 		if err := tx.Where("user_id = ?", userID).Delete(&systemModel.SystemUserRole{}).Error; err != nil {
 			return err
 		}
-		for _, roleID := range roleIDs {
+		for _, roleID := range existing {
 			if err := tx.Create(&systemModel.SystemUserRole{UserID: userID, RoleID: roleID}).Error; err != nil {
 				return err
 			}

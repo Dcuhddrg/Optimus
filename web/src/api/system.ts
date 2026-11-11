@@ -1,14 +1,5 @@
 import { ApiError, apiDownloadCSV, apiRequest } from '../utils/request';
-import type {
-  AuditLogFilter,
-  AuditLogPage,
-  CurrentUserResponse,
-  LDAPConfig,
-  LoginResponse,
-  SystemPermission,
-  SystemRole,
-  SystemUser,
-} from '../types/system';
+import type { AuditLogFilter, AuditLogPage, CurrentUserResponse, LDAPConfig, LoginResponse, SystemPermission, SystemRole, SystemUser, SystemRoleWithPermissions } from '../types/system';
 
 export function login(username: string, password: string) {
   return apiRequest<LoginResponse>('/system/auth/login', {
@@ -38,7 +29,26 @@ export function updateUserStatus(id: number, status: string) {
 }
 
 export function listRoles() {
-  return apiRequest<{ list: SystemRole[]; total: number }>('/system/roles');
+  return apiRequest<{ list: SystemRoleWithPermissions[]; total: number }>('/system/roles');
+}
+
+export interface RoleInput {
+  code?: string;
+  name: string;
+  description: string;
+  approvable?: boolean;
+}
+
+export function createRole(input: RoleInput) {
+  return apiRequest<SystemRole>('/system/roles', { method: 'POST', body: JSON.stringify(input) });
+}
+
+export function updateRole(id: number, input: RoleInput) {
+  return apiRequest<SystemRole>(`/system/roles/${id}`, { method: 'PUT', body: JSON.stringify(input) });
+}
+
+export function deleteRole(id: number) {
+  return apiRequest<Record<string, never>>(`/system/roles/${id}`, { method: 'DELETE' });
 }
 
 export function permissionTree() {
