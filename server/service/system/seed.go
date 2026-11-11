@@ -37,6 +37,7 @@ func AutoMigrateSystem(db *gorm.DB) error {
 		&systemModel.SystemRolePermission{},
 		&systemModel.SystemLDAPConfig{},
 		&systemModel.SystemAuditLog{},
+		&systemModel.SystemDataMigration{},
 		&systemModel.JwtBlacklist{},
 		&gormadapter.CasbinRule{},
 	)

@@ -34,7 +34,7 @@ func projectScopeRouterDB(t *testing.T, scenario string, allowed bool) (*gorm.DB
 	}
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
 	require.NoError(t, err)
-	for _, table := range []string{"user_projects", "projects", "sys_role_permissions", "sys_user_roles", "sys_permissions", "sys_roles", "sys_users", "sys_ldap_config", "sys_audit_logs", "jwt_blacklists", "casbin_rule"} {
+	for _, table := range []string{"user_projects", "projects", "sys_role_permissions", "sys_user_roles", "sys_permissions", "sys_roles", "sys_users", "sys_ldap_config", "sys_audit_logs", "sys_data_migrations", "jwt_blacklists", "casbin_rule"} {
 		require.NoError(t, db.Exec("DROP TABLE IF EXISTS `"+table+"`").Error)
 	}
 	require.NoError(t, projectService.AutoMigrateProject(db))

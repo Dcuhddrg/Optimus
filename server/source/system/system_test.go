@@ -30,7 +30,7 @@ func resetTestDB(t *testing.T) *gorm.DB {
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, sqlDB.Close()) })
-	for _, table := range []string{"sys_role_permissions", "sys_user_roles", "sys_permissions", "sys_roles", "sys_users", "sys_ldap_config", "sys_audit_logs", "jwt_blacklists", "casbin_rule"} {
+	for _, table := range []string{"sys_role_permissions", "sys_user_roles", "sys_permissions", "sys_roles", "sys_users", "sys_ldap_config", "sys_audit_logs", "sys_data_migrations", "jwt_blacklists", "casbin_rule"} {
 		require.NoError(t, db.Exec("DROP TABLE IF EXISTS `"+table+"`").Error)
 	}
 	return db
@@ -369,16 +369,29 @@ func TestSeedSystemDataRemovesRetiredRoleStatusPermissionMySQL(t *testing.T) {
 	require.NoError(t, db.Where("code = ?", "system.roles.delete").First(&deletePermission).Error)
 }
 
-// Upgrading a database that already has a role with a preset approval code:
-// the role is adopted once (approval flag set, permissions and holders kept,
-// audited), and a later manual change of the flag survives restarts.
-func TestMigrateSystemSchemaAdoptsExistingPresetCodeOnceMySQL(t *testing.T) {
+// legacyRole inserts a pre-upgrade role that happens to use a preset code.
+func legacyRole(t *testing.T, db *gorm.DB, code string) systemModel.SystemRole {
+	t.Helper()
+	role := systemModel.SystemRole{Code: code, Name: "Legacy " + code}
+	require.NoError(t, db.Create(&role).Error)
+	require.NoError(t, db.Model(&role).Update("approvable", false).Error)
+	return role
+}
+
+func countPresetAudits(t *testing.T, db *gorm.DB) int64 {
+	t.Helper()
+	var n int64
+	require.NoError(t, db.Model(&systemModel.SystemAuditLog{}).Where("action = ?", "role.preset.adopt").Count(&n).Error)
+	return n
+}
+
+// A same-code role with holders or permissions is not made approvable: that
+// would give its holders an approval eligibility nobody granted. It is left
+// as is and audited for the admin.
+func TestMigrateSystemSchemaLeavesHeldPresetCodeRoleMySQL(t *testing.T) {
 	db := resetTestDB(t)
 	require.NoError(t, systemService.AutoMigrateSystem(db))
-	require.NoError(t, db.Exec("ALTER TABLE `sys_roles` DROP COLUMN `approvable`").Error)
-	require.NoError(t, db.Exec("INSERT INTO `sys_roles` (`code`, `name`, `description`, `created_at`, `updated_at`) VALUES ('security-approver', 'Legacy security', '', NOW(), NOW())").Error)
-	var legacy struct{ ID uint }
-	require.NoError(t, db.Table("sys_roles").Select("id").Where("code = ?", "security-approver").Scan(&legacy).Error)
+	legacy := legacyRole(t, db, "security-approver")
 	alice := systemModel.SystemUser{UUID: "u-alice", Username: "alice", Source: "ldap", Status: "enabled"}
 	require.NoError(t, db.Create(&alice).Error)
 	require.NoError(t, db.Create(&systemModel.SystemUserRole{UserID: alice.ID, RoleID: legacy.ID}).Error)
@@ -389,25 +402,90 @@ func TestMigrateSystemSchemaAdoptsExistingPresetCodeOnceMySQL(t *testing.T) {
 
 	var role systemModel.SystemRole
 	require.NoError(t, db.Where("code = ?", "security-approver").First(&role).Error)
-	require.Equal(t, legacy.ID, role.ID, "the existing role is adopted, not duplicated")
-	require.True(t, role.Approvable)
-	require.Equal(t, "Legacy security", role.Name)
+	require.Equal(t, legacy.ID, role.ID, "no duplicate role is created")
+	require.False(t, role.Approvable, "holders must not gain approval eligibility")
 	var holders, policies int64
 	require.NoError(t, db.Model(&systemModel.SystemUserRole{}).Where("role_id = ?", role.ID).Count(&holders).Error)
 	require.NoError(t, db.Model(&gormadapter.CasbinRule{}).Where("v0 = ?", strconv.Itoa(int(role.ID))).Count(&policies).Error)
 	require.Equal(t, int64(1), holders)
-	require.Equal(t, int64(1), policies, "no destructive cleanup")
+	require.Equal(t, int64(1), policies)
 	var audit systemModel.SystemAuditLog
 	require.NoError(t, db.Where("action = ?", "role.preset.adopt").First(&audit).Error)
-	require.Contains(t, audit.Detail, `"permissions":1`)
+	require.Equal(t, "failure", audit.Result)
+	require.Contains(t, audit.Detail, `"reason":"preset_role_conflict"`)
+	require.Contains(t, audit.Detail, `"holders":1`)
 	var dept systemModel.SystemRole
 	require.NoError(t, db.Where("code = ?", "dept-head-approver").First(&dept).Error)
 	require.True(t, dept.Approvable, "a missing preset is created by the seed")
 
-	// The admin clears the flag; later starts do not adopt again.
+	// The decision is the admin's; restarts do not audit or change it again.
+	require.NoError(t, MigrateSystemSchema(db))
+	require.NoError(t, db.First(&role, role.ID).Error)
+	require.False(t, role.Approvable)
+	require.Equal(t, int64(1), countPresetAudits(t, db))
+}
+
+// An empty same-code role is adopted once, and a later manual change of the
+// flag survives restarts.
+func TestMigrateSystemSchemaAdoptsEmptyPresetCodeRoleOnceMySQL(t *testing.T) {
+	db := resetTestDB(t)
+	require.NoError(t, systemService.AutoMigrateSystem(db))
+	legacy := legacyRole(t, db, "security-approver")
+
+	require.NoError(t, MigrateSystemSchema(db))
+	require.NoError(t, SeedSystemData(db, "admin-secret"))
+
+	var role systemModel.SystemRole
+	require.NoError(t, db.First(&role, legacy.ID).Error)
+	require.True(t, role.Approvable)
+	require.Equal(t, "Legacy security-approver", role.Name)
+	var audit systemModel.SystemAuditLog
+	require.NoError(t, db.Where("action = ?", "role.preset.adopt").First(&audit).Error)
+	require.Equal(t, "success", audit.Result)
+	require.Contains(t, audit.Detail, `"reason":"preset_role_adopted"`)
+
 	require.NoError(t, db.Model(&role).Update("approvable", false).Error)
 	require.NoError(t, MigrateSystemSchema(db))
 	require.NoError(t, SeedSystemData(db, "admin-secret"))
-	require.NoError(t, db.First(&role, role.ID).Error)
+	require.NoError(t, db.First(&role, legacy.ID).Error)
 	require.False(t, role.Approvable)
+	require.Equal(t, int64(1), countPresetAudits(t, db))
+}
+
+// A migration that fails midway leaves no completion marker and no partial
+// change, so the next start runs it again.
+func TestMigrateSystemSchemaRetriesPresetAdoptionAfterFailureMySQL(t *testing.T) {
+	db := resetTestDB(t)
+	require.NoError(t, systemService.AutoMigrateSystem(db))
+	security := legacyRole(t, db, "security-approver")
+	dept := legacyRole(t, db, "dept-head-approver")
+
+	calls := 0
+	presetAdoptTestHook = func() error {
+		calls++
+		if calls == 1 {
+			return errors.New("crash after first role")
+		}
+		return nil
+	}
+	t.Cleanup(func() { presetAdoptTestHook = nil })
+	require.Error(t, MigrateSystemSchema(db))
+
+	var role systemModel.SystemRole
+	require.NoError(t, db.First(&role, security.ID).Error)
+	require.False(t, role.Approvable, "the failed attempt is rolled back")
+	require.Equal(t, int64(0), countPresetAudits(t, db))
+	var markers int64
+	require.NoError(t, db.Model(&systemModel.SystemDataMigration{}).Count(&markers).Error)
+	require.Equal(t, int64(0), markers)
+
+	require.NoError(t, MigrateSystemSchema(db))
+	for _, id := range []uint{security.ID, dept.ID} {
+		var adopted systemModel.SystemRole
+		require.NoError(t, db.First(&adopted, id).Error)
+		require.True(t, adopted.Approvable, adopted.Code)
+	}
+	require.Equal(t, int64(2), countPresetAudits(t, db))
+	require.NoError(t, db.Model(&systemModel.SystemDataMigration{}).Count(&markers).Error)
+	require.Equal(t, int64(1), markers)
 }

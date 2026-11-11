@@ -106,3 +106,15 @@ type SystemAuditLog struct {
 func (SystemAuditLog) TableName() string {
 	return "sys_audit_logs"
 }
+
+// SystemDataMigration records a one-time data migration that has completed.
+// The row is written in the same transaction as the migration's changes, so a
+// migration that failed or was interrupted runs again on the next start.
+type SystemDataMigration struct {
+	Name      string    `gorm:"primaryKey;size:128" json:"name"`
+	AppliedAt time.Time `gorm:"not null" json:"appliedAt"`
+}
+
+func (SystemDataMigration) TableName() string {
+	return "sys_data_migrations"
+}

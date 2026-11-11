@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	systemModel "optimus/server/model/system"
 	systemService "optimus/server/service/system"
@@ -16,6 +17,7 @@ import (
 	gormadapter "github.com/casbin/gorm-adapter/v3"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 const (
@@ -40,44 +42,62 @@ func (i *initSystem) MigrateTable(ctx context.Context) (context.Context, error) 
 }
 
 // MigrateSystemSchema migrates the system tables and runs the one-time data
-// migrations that depend on the schema before AutoMigrate.
+// migrations.
 func MigrateSystemSchema(db *gorm.DB) error {
-	// The approval flag arrives with the preset approval roles: a database
-	// without the column is being upgraded and may already hold roles with
-	// the preset codes.
-	addingApprovable := db.Migrator().HasTable(&systemModel.SystemRole{}) && !db.Migrator().HasColumn(&systemModel.SystemRole{}, "approvable")
 	if err := systemService.AutoMigrateSystem(db); err != nil {
 		return err
 	}
-	if addingApprovable {
-		if err := adoptPresetApprovalRoles(db); err != nil {
-			return err
-		}
+	if err := runDataMigration(db, presetApprovalRolesMigration, adoptPresetApprovalRoles); err != nil {
+		return err
 	}
 	return MigrateRemoveRoleStatus(db)
 }
 
-// adoptPresetApprovalRoles runs once, on the upgrade that adds the approval
-// flag (design 3.5). A role already using a preset approval code becomes that
-// preset: it gets the approval flag, keeps its permissions and holders (no
-// destructive cleanup), and the adoption is audited and logged, with a warning
-// when it carries permissions, which preset approval roles normally do not.
-// Later edits to the flag are never overwritten, since this does not run again.
+const presetApprovalRolesMigration = "2026-11-preset-approval-roles"
+
+// runDataMigration runs fn once. fn and the completion marker share one
+// transaction: a failure or crash leaves no marker, so the next start retries.
+func runDataMigration(db *gorm.DB, name string, fn func(tx *gorm.DB) error) error {
+	return db.Transaction(func(tx *gorm.DB) error {
+		var done int64
+		if err := tx.Model(&systemModel.SystemDataMigration{}).Where("name = ?", name).Count(&done).Error; err != nil {
+			return err
+		}
+		if done > 0 {
+			return nil
+		}
+		if err := fn(tx); err != nil {
+			return fmt.Errorf("data migration %s: %w", name, err)
+		}
+		return tx.Create(&systemModel.SystemDataMigration{Name: name, AppliedAt: time.Now()}).Error
+	})
+}
+
+// presetAdoptTestHook, when set, runs after each preset role is handled so
+// tests can fail the migration midway.
+var presetAdoptTestHook func() error
+
+// adoptPresetApprovalRoles handles roles that already use a preset approval
+// code when the preset roles are introduced. Marking a role approvable makes
+// its holders approval candidates, which nobody authorized, so only a role
+// with no holders and no permissions is adopted. Any other same-code role is
+// left untouched and audited for the admin to decide in role management.
+// Later edits to the flag are never overwritten, since this runs once.
 func adoptPresetApprovalRoles(db *gorm.DB) error {
 	for _, preset := range systemService.DefaultSystemRoles() {
 		if !preset.Approvable {
 			continue
 		}
 		var role systemModel.SystemRole
-		err := db.Where("code = ?", preset.Code).First(&role).Error
+		err := db.Clauses(clause.Locking{Strength: "UPDATE"}).Where("code = ?", preset.Code).First(&role).Error
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			continue
 		}
 		if err != nil {
 			return err
 		}
-		if err := db.Model(&systemModel.SystemRole{}).Where("id = ?", role.ID).Update("approvable", true).Error; err != nil {
-			return err
+		if role.Approvable {
+			continue
 		}
 		var menuGrants, policies, holders int64
 		if err := db.Model(&systemModel.SystemRolePermission{}).Where("role_id = ?", role.ID).Count(&menuGrants).Error; err != nil {
@@ -89,21 +109,35 @@ func adoptPresetApprovalRoles(db *gorm.DB) error {
 		if err := db.Model(&systemModel.SystemUserRole{}).Where("role_id = ?", role.ID).Count(&holders).Error; err != nil {
 			return err
 		}
-		detail, _ := json.Marshal(map[string]any{"version": 1, "reason": "preset_role_adopted", "roleCode": role.Code, "permissions": menuGrants + policies, "holders": holders})
+		adopt := menuGrants+policies == 0 && holders == 0
+		reason, result := "preset_role_adopted", "success"
+		if adopt {
+			if err := db.Model(&systemModel.SystemRole{}).Where("id = ?", role.ID).Update("approvable", true).Error; err != nil {
+				return err
+			}
+		} else {
+			reason, result = "preset_role_conflict", "failure"
+		}
+		detail, _ := json.Marshal(map[string]any{"version": 1, "reason": reason, "roleCode": role.Code, "permissions": menuGrants + policies, "holders": holders})
 		if err := db.Create(&systemModel.SystemAuditLog{
 			Action:       "role.preset.adopt",
 			ResourceType: "role",
 			ResourceID:   strconv.Itoa(int(role.ID)),
-			Result:       "success",
+			Result:       result,
 			Detail:       string(detail),
 		}).Error; err != nil {
 			return err
 		}
 		fields := []zap.Field{zap.String("role", role.Code), zap.Int64("permissions", menuGrants+policies), zap.Int64("holders", holders)}
-		if menuGrants+policies > 0 {
-			zap.L().Warn("existing role adopted as preset approval role but carries permissions; preset approval roles normally have none, review it", fields...)
+		if adopt {
+			zap.L().Info("existing empty role adopted as preset approval role", fields...)
 		} else {
-			zap.L().Info("existing role adopted as preset approval role", fields...)
+			zap.L().Warn("existing role uses a preset approval code but has holders or permissions; left non-approvable, mark it approvable in role management if intended", fields...)
+		}
+		if presetAdoptTestHook != nil {
+			if err := presetAdoptTestHook(); err != nil {
+				return err
+			}
 		}
 	}
 	return nil

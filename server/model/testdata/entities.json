@@ -950,6 +950,49 @@
       "id"
     ]
   },
+  "sys_data_migrations": {
+    "deleteClauses": 0,
+    "fields": {
+      "applied_at": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "time",
+        "default": "",
+        "hasDefault": false,
+        "notNull": true,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 0,
+        "type": "time.Time",
+        "unique": false
+      },
+      "name": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": true,
+        "precision": 0,
+        "scale": 0,
+        "size": 128,
+        "type": "string",
+        "unique": false
+      }
+    },
+    "indexes": {},
+    "json": {
+      "appliedAt": "0001-01-01T00:00:00Z",
+      "name": ""
+    },
+    "primaryKeys": [
+      "name"
+    ]
+  },
   "sys_ldap_config": {
     "deleteClauses": 0,
     "fields": {
