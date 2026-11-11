@@ -6,7 +6,6 @@ import (
 	"errors"
 
 	projectModel "optimus/server/model/project"
-	systemModel "optimus/server/model/system"
 	projectService "optimus/server/service/project"
 	systemService "optimus/server/service/system"
 
@@ -53,31 +52,11 @@ func SeedProjectData(db *gorm.DB) error {
 	if db == nil {
 		return errors.New("db is nil")
 	}
-	for _, perm := range projectService.DefaultProjectPermissions() {
-		p := perm
-		if err := db.Where("code = ?", p.Code).FirstOrCreate(&p).Error; err != nil {
-			return err
-		}
-	}
-	return seedAdminProjectPermissions(db)
-}
-
-func seedAdminProjectPermissions(db *gorm.DB) error {
-	var adminRole systemModel.SystemRole
-	if err := db.Where("code = ?", "admin").First(&adminRole).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil
-		}
+	// Grant the admin role only permissions introduced by this run, so a
+	// revoked permission stays revoked across restarts.
+	created, err := systemService.SeedPermissionCatalog(db, projectService.DefaultProjectPermissions())
+	if err != nil {
 		return err
 	}
-	for _, perm := range projectService.DefaultProjectPermissions() {
-		var p systemModel.SystemPermission
-		if err := db.Where("code = ?", perm.Code).First(&p).Error; err != nil {
-			return err
-		}
-		if err := systemService.GrantPermissions(db, adminRole.ID, []systemModel.SystemPermission{p}); err != nil {
-			return err
-		}
-	}
-	return nil
+	return systemService.GrantToAdminRole(db, created)
 }

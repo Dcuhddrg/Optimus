@@ -48,10 +48,9 @@ func (s *UserService) UpdateUser(ctx context.Context, actorID uint, userID uint,
 	if err != nil {
 		return systemResponse.SystemUserSummary{}, err
 	}
-	user.DisplayName = req.DisplayName
-	user.Email = req.Email
-
-	updated, err := s.updateUser(ctx, user)
+	// Write only the edited columns: a full-row Save of this earlier read
+	// would restore a status disabled in the meantime.
+	updated, err := s.updateUserColumns(ctx, user.ID, map[string]any{"display_name": req.DisplayName, "email": req.Email})
 	if err != nil {
 		return systemResponse.SystemUserSummary{}, err
 	}
@@ -72,8 +71,7 @@ func (s *UserService) UpdateUserStatus(ctx context.Context, actorID uint, userID
 		return systemResponse.SystemUserSummary{}, ErrBuiltinAdminProtected
 	}
 	before := user.Status
-	user.Status = status
-	updated, err := s.updateUser(ctx, user)
+	updated, err := s.updateUserColumns(ctx, user.ID, map[string]any{"status": status})
 	if err != nil {
 		event.Detail = auditDetails("update_failed", nil)
 		return systemResponse.SystemUserSummary{}, err
@@ -158,9 +156,14 @@ func (s *UserService) findUserByID(ctx context.Context, id uint) (systemModel.Sy
 	return user, err
 }
 
-func (s *UserService) updateUser(ctx context.Context, user systemModel.SystemUser) (systemModel.SystemUser, error) {
-	err := global.OPTIMUS_DB.WithContext(ctx).Save(&user).Error
-	return user, err
+// updateUserColumns updates only the given columns and returns the row as
+// stored afterwards. Never Save a whole user read earlier: concurrent writes
+// to other columns (status, roles' holders) would be overwritten.
+func (s *UserService) updateUserColumns(ctx context.Context, userID uint, columns map[string]any) (systemModel.SystemUser, error) {
+	if err := global.OPTIMUS_DB.WithContext(ctx).Model(&systemModel.SystemUser{}).Where("id = ?", userID).Updates(columns).Error; err != nil {
+		return systemModel.SystemUser{}, err
+	}
+	return s.findUserByID(ctx, userID)
 }
 
 func (s *UserService) replaceUserRoles(ctx context.Context, userID uint, roleIDs []uint) error {

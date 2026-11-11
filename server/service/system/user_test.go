@@ -7,8 +7,10 @@ import (
 
 	"optimus/server/global"
 	systemModel "optimus/server/model/system"
+	systemRequest "optimus/server/model/system/request"
 
 	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
 )
 
 func TestUserServiceListUsersOmitsPasswordHash(t *testing.T) {
@@ -120,4 +122,52 @@ func TestUserRoleAuditUsesPersistedSnapshot(t *testing.T) {
 	require.Equal(t, []any{float64(2), float64(3)}, change["after"])
 	require.Equal(t, []any{float64(3)}, change["added"])
 	require.Equal(t, []any{float64(1)}, change["removed"])
+}
+
+// registerBeforeUserUpdate runs fn once, just before the first UPDATE of
+// sys_users, to interleave a concurrent write between a read and its write.
+func registerBeforeUserUpdate(t *testing.T, db *gorm.DB, fn func()) {
+	t.Helper()
+	fired := false
+	name := "test:before_user_update_" + t.Name()
+	require.NoError(t, db.Callback().Update().Before("gorm:update").Register(name, func(tx *gorm.DB) {
+		if fired || tx.Statement.Table != "sys_users" {
+			return
+		}
+		fired = true
+		fn()
+	}))
+	t.Cleanup(func() { _ = db.Callback().Update().Remove(name) })
+}
+
+func TestProfileUpdateDoesNotRestoreConcurrentDisable(t *testing.T) {
+	f := newAuthStateFixture(t)
+	registerBeforeUserUpdate(t, f.db, func() {
+		_, err := (&UserService{}).UpdateUserStatus(context.Background(), 1, f.user.ID, "disabled", AuditMeta{})
+		require.NoError(t, err)
+	})
+
+	updated, err := (&UserService{}).UpdateUser(context.Background(), 1, f.user.ID, systemRequest.UpdateUserRequest{DisplayName: "Alice", Email: "alice@example.com"}, AuditMeta{})
+	require.NoError(t, err)
+
+	require.Equal(t, "disabled", updated.Status)
+	require.Equal(t, "Alice", updated.DisplayName)
+	require.False(t, loadState(t, f.user.ID).Enabled())
+}
+
+func TestLDAPLoginSyncDoesNotRestoreConcurrentDisable(t *testing.T) {
+	f := newAuthStateFixture(t)
+	registerBeforeUserUpdate(t, f.db, func() {
+		_, err := (&UserService{}).UpdateUserStatus(context.Background(), 1, f.user.ID, "disabled", AuditMeta{})
+		require.NoError(t, err)
+	})
+
+	_, err := (&AuthService{}).syncLDAPUser(context.Background(), LDAPUser{Username: f.user.Username, DisplayName: "Alice", Email: "alice@example.com"})
+	require.NoError(t, err)
+
+	var stored systemModel.SystemUser
+	require.NoError(t, f.db.First(&stored, f.user.ID).Error)
+	require.Equal(t, "disabled", stored.Status)
+	require.Equal(t, "Alice", stored.DisplayName)
+	require.False(t, loadState(t, f.user.ID).Enabled())
 }

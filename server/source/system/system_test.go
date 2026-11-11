@@ -186,3 +186,57 @@ func TestSeedSystemDataRepairsBuiltinAdminMySQL(t *testing.T) {
 	require.Contains(t, audit.Detail, "system.users.roles.update")
 	require.True(t, utils.BcryptCheck("admin-secret", admin.PasswordHash), "repair keeps the existing password")
 }
+
+// Seeds always used the fixed UUID, but a manually edited database may hold a
+// local admin with another UUID; it is adopted as the built-in admin.
+func TestSeedSystemDataAdoptsLegacyLocalAdminMySQL(t *testing.T) {
+	db := resetTestDB(t)
+	require.NoError(t, systemService.AutoMigrateSystem(db))
+	require.NoError(t, SeedSystemData(db, "admin-secret"))
+	require.NoError(t, db.Model(&systemModel.SystemUser{}).Where("uuid = ?", systemService.BuiltinAdminUUID).
+		Updates(map[string]any{"uuid": "legacy-admin-uuid", "status": "disabled"}).Error)
+
+	require.NoError(t, SeedSystemData(db, "ignored"))
+
+	var admin systemModel.SystemUser
+	require.NoError(t, db.Where("username = ?", "admin").First(&admin).Error)
+	require.Equal(t, systemService.BuiltinAdminUUID, admin.UUID)
+	require.Equal(t, "enabled", admin.Status)
+	var count int64
+	require.NoError(t, db.Model(&systemModel.SystemUser{}).Where("username = ?", "admin").Count(&count).Error)
+	require.Equal(t, int64(1), count)
+	var audit systemModel.SystemAuditLog
+	require.NoError(t, db.Where("action = ?", "system.admin.repair").First(&audit).Error)
+	require.Contains(t, audit.Detail, "adopted legacy local admin")
+	require.Contains(t, audit.Detail, "re-enabled")
+}
+
+func TestSeedSystemDataRefusesNonLocalAdminMySQL(t *testing.T) {
+	db := resetTestDB(t)
+	require.NoError(t, systemService.AutoMigrateSystem(db))
+	require.NoError(t, db.Create(&systemModel.SystemUser{UUID: "ldap:admin", Username: "admin", Source: "ldap", Status: "enabled"}).Error)
+
+	err := SeedSystemData(db, "admin-secret")
+
+	require.ErrorContains(t, err, "blocks the built-in admin")
+	require.ErrorContains(t, err, "UPDATE sys_users SET username")
+}
+
+// Permissions revoked from the admin role stay revoked after a restart;
+// only system.* is restored.
+func TestSeedSystemDataKeepsRevokedNonSystemPermissionsMySQL(t *testing.T) {
+	db := resetTestDB(t)
+	require.NoError(t, systemService.AutoMigrateSystem(db))
+	require.NoError(t, SeedSystemData(db, "admin-secret"))
+	var adminRole systemModel.SystemRole
+	require.NoError(t, db.Where("code = ?", "admin").First(&adminRole).Error)
+	var dashboard systemModel.SystemPermission
+	require.NoError(t, db.Where("code = ?", "dashboard.view").First(&dashboard).Error)
+	require.NoError(t, db.Where("role_id = ? AND permission_id = ?", adminRole.ID, dashboard.ID).Delete(&systemModel.SystemRolePermission{}).Error)
+
+	require.NoError(t, SeedSystemData(db, "admin-secret"))
+
+	var grants int64
+	require.NoError(t, db.Model(&systemModel.SystemRolePermission{}).Where("role_id = ? AND permission_id = ?", adminRole.ID, dashboard.ID).Count(&grants).Error)
+	require.Zero(t, grants)
+}

@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -71,7 +72,8 @@ func SeedSystemData(db *gorm.DB, initialAdminPassword string) error {
 	if err := seedRoles(db); err != nil {
 		return err
 	}
-	if err := seedPermissions(db); err != nil {
+	createdPermissions, err := systemService.SeedPermissionCatalog(db, systemService.DefaultSystemPermissions())
+	if err != nil {
 		return err
 	}
 	if err := migrateAPIGrantsToCasbin(db); err != nil {
@@ -90,7 +92,7 @@ func SeedSystemData(db *gorm.DB, initialAdminPassword string) error {
 	if err := seedAdminUserRole(db, &repairs); err != nil {
 		return err
 	}
-	if err := seedAdminRolePermissions(db, &repairs); err != nil {
+	if err := seedAdminRolePermissions(db, createdPermissions, &repairs); err != nil {
 		return err
 	}
 	if created {
@@ -102,15 +104,6 @@ func SeedSystemData(db *gorm.DB, initialAdminPassword string) error {
 func seedRoles(db *gorm.DB) error {
 	for _, role := range systemService.DefaultSystemRoles() {
 		if err := db.Where("code = ?", role.Code).FirstOrCreate(&role).Error; err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func seedPermissions(db *gorm.DB) error {
-	for _, permission := range systemService.DefaultSystemPermissions() {
-		if err := db.Where("code = ?", permission.Code).FirstOrCreate(&permission).Error; err != nil {
 			return err
 		}
 	}
@@ -135,10 +128,21 @@ func seedAdminUser(db *gorm.DB, initialAdminPassword string, repairs *[]string) 
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return false, err
 	}
-	// A legacy row with the admin username but another UUID is left alone, as
-	// before; only the fixed-UUID account is the built-in admin.
+	// A row named admin with another UUID can only come from manual edits.
+	// A local one is the built-in admin: adopt it by giving it the fixed UUID
+	// (UUIDs are never used to look users up, so its sessions stay valid).
+	// Anything else would shadow the built-in admin: refuse to start.
 	if err := db.Where("username = ?", systemService.DefaultAdminUsername).First(&existing).Error; err == nil {
-		return false, nil
+		if existing.Source != "local" {
+			return false, fmt.Errorf("account %q (id %d) has source %q and blocks the built-in admin; rename it, e.g. UPDATE sys_users SET username = 'admin-%s' WHERE id = %d, then restart", existing.Username, existing.ID, existing.Source, existing.Source, existing.ID)
+		}
+		columns := map[string]any{"uuid": systemService.BuiltinAdminUUID}
+		*repairs = append(*repairs, "adopted legacy local admin (uuid "+existing.UUID+")")
+		if existing.Status != systemService.DefaultUserStatus {
+			columns["status"] = systemService.DefaultUserStatus
+			*repairs = append(*repairs, "re-enabled")
+		}
+		return false, db.Model(&systemModel.SystemUser{}).Where("id = ?", existing.ID).Updates(columns).Error
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return false, err
 	}
@@ -184,23 +188,38 @@ func seedAdminUserRole(db *gorm.DB, repairs *[]string) error {
 	return nil
 }
 
-// seedAdminRolePermissions grants the admin role every catalog permission;
-// missing system.* grants are reported as repairs.
-func seedAdminRolePermissions(db *gorm.DB, repairs *[]string) error {
+// seedAdminRolePermissions keeps every system.* permission on the admin role
+// (missing ones are reported as repairs) and grants other permissions only
+// when this run introduced them: permissions an administrator revoked from
+// the admin role stay revoked across restarts (design 3.4).
+func seedAdminRolePermissions(db *gorm.DB, created []systemModel.SystemPermission, repairs *[]string) error {
 	var adminRole systemModel.SystemRole
 	if err := db.Where("code = ?", systemService.AdminRoleCode).First(&adminRole).Error; err != nil {
 		return err
 	}
 
-	var permissions []systemModel.SystemPermission
-	if err := db.Find(&permissions).Error; err != nil {
+	var systemPermissions []systemModel.SystemPermission
+	if err := db.Where("code LIKE ?", "system.%").Find(&systemPermissions).Error; err != nil {
 		return err
 	}
 	missing, err := missingSystemGrants(db, adminRole.ID)
 	if err != nil {
 		return err
 	}
-	if err := systemService.GrantPermissions(db, adminRole.ID, permissions); err != nil {
+	// A permission introduced by this run is granted for the first time, not
+	// restored.
+	isNew := map[string]bool{}
+	for _, permission := range created {
+		isNew[permission.Code] = true
+	}
+	restored := []string{}
+	for _, code := range missing {
+		if !isNew[code] {
+			restored = append(restored, code)
+		}
+	}
+	missing = restored
+	if err := systemService.GrantPermissions(db, adminRole.ID, append(systemPermissions, created...)); err != nil {
 		return err
 	}
 	if len(missing) > 0 {

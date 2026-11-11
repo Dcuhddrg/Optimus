@@ -154,3 +154,37 @@ func apiPermissionCodesForRole(db *gorm.DB, roleID uint) ([]string, error) {
 		Where("p.type = ?", "api").Order("p.code").Pluck("p.code", &codes).Error
 	return codes, err
 }
+
+// SeedPermissionCatalog creates missing catalog entries and returns those
+// created by this call. Seeds grant only these to the admin role, so a
+// permission an administrator revoked is not granted back on restart; the
+// admin role's system.* permissions are restored separately (design 3.4).
+func SeedPermissionCatalog(db *gorm.DB, catalog []systemModel.SystemPermission) ([]systemModel.SystemPermission, error) {
+	created := []systemModel.SystemPermission{}
+	for _, permission := range catalog {
+		p := permission
+		result := db.Where("code = ?", p.Code).FirstOrCreate(&p)
+		if result.Error != nil {
+			return nil, result.Error
+		}
+		if result.RowsAffected > 0 {
+			created = append(created, p)
+		}
+	}
+	return created, nil
+}
+
+// GrantToAdminRole grants permissions to the admin role, if it exists.
+func GrantToAdminRole(db *gorm.DB, permissions []systemModel.SystemPermission) error {
+	if len(permissions) == 0 {
+		return nil
+	}
+	var adminRole systemModel.SystemRole
+	if err := db.Where("code = ?", AdminRoleCode).First(&adminRole).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil
+		}
+		return err
+	}
+	return GrantPermissions(db, adminRole.ID, permissions)
+}
