@@ -1452,6 +1452,106 @@
                 }
             }
         },
+        "/system/ldap/sync/execute": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "按预览执行：逐人加锁重读核对后写入；停用、绑定、\"不是同一个人\"只处理出现在预览里且核对一致的账号。重读出错时停止，结果为 partial。",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "LDAP"
+                ],
+                "summary": "执行 LDAP 全量同步",
+                "parameters": [
+                    {
+                        "description": "请求体",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.LDAPSyncExecuteRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "code 0 成功，code 7 业务失败",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/response.LDAPSyncResult"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "未认证",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/system/ldap/sync/preview": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "只读：分页读取同步范围，与 LDAP 账号比对，返回分类列表和预览 ID。预览 ID 30 分钟内有效，只能由发起人执行一次。",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "LDAP"
+                ],
+                "summary": "预览 LDAP 全量同步",
+                "responses": {
+                    "200": {
+                        "description": "code 0 成功，code 7 业务失败",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/response.LDAPSyncPreview"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "未认证",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/system/ldap/test": {
             "post": {
                 "security": [
@@ -2148,6 +2248,35 @@
                 }
             }
         },
+        "request.LDAPSyncExecuteRequest": {
+            "type": "object",
+            "required": [
+                "previewId"
+            ],
+            "properties": {
+                "bind": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "disable": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "previewId": {
+                    "type": "string"
+                },
+                "separate": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            }
+        },
         "request.LDAPTestRequest": {
             "type": "object",
             "properties": {
@@ -2474,6 +2603,166 @@
                     "type": "string"
                 },
                 "usernameAttr": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.LDAPSyncAccount": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "department": {
+                    "type": "string"
+                },
+                "displayName": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "externalId": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "roles": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "status": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.LDAPSyncEntry": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "department": {
+                    "type": "string"
+                },
+                "displayName": {
+                    "type": "string"
+                },
+                "dn": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "externalId": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.LDAPSyncFieldChange": {
+            "type": "object",
+            "properties": {
+                "after": {
+                    "type": "string"
+                },
+                "before": {
+                    "type": "string"
+                },
+                "field": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.LDAPSyncItem": {
+            "type": "object",
+            "properties": {
+                "account": {
+                    "$ref": "#/definitions/response.LDAPSyncAccount"
+                },
+                "category": {
+                    "type": "string"
+                },
+                "changes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.LDAPSyncFieldChange"
+                    }
+                },
+                "entry": {
+                    "$ref": "#/definitions/response.LDAPSyncEntry"
+                },
+                "reason": {
+                    "type": "string"
+                },
+                "suspicious": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "response.LDAPSyncOutcome": {
+            "type": "object",
+            "properties": {
+                "accountId": {
+                    "type": "integer"
+                },
+                "action": {
+                    "type": "string"
+                },
+                "outcome": {
+                    "type": "string"
+                },
+                "reason": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.LDAPSyncPreview": {
+            "type": "object",
+            "properties": {
+                "configChanged": {
+                    "description": "ConfigChanged: base DN, filter or identity attribute changed since the\nlast successful sync, so every disable candidate needs the admin.",
+                    "type": "boolean"
+                },
+                "disablesBlocked": {
+                    "description": "DisablesBlocked: some entries could not be identified, so this sync\ndisables nobody.",
+                    "type": "boolean"
+                },
+                "expiresAt": {
+                    "type": "string"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.LDAPSyncItem"
+                    }
+                },
+                "previewId": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.LDAPSyncResult": {
+            "type": "object",
+            "properties": {
+                "outcomes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.LDAPSyncOutcome"
+                    }
+                },
+                "status": {
                     "type": "string"
                 }
             }

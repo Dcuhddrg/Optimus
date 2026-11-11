@@ -8,6 +8,7 @@ import {
 } from '../../locale/systemLabels';
 import { useI18n } from '../../locale/useI18n';
 import type { SystemUser } from '../../types/system';
+import { LdapSyncPanel } from './LdapSyncPanel';
 import styles from './SystemUsersPage.module.css';
 
 export function SystemUsersPage() {
@@ -35,6 +36,7 @@ export function SystemUsersPage() {
         <p className="page-eyebrow">{t('system.users.eyebrow')}</p>
         <h1 className={styles.title}>{t('system.users.title')}</h1>
       </header>
+      <LdapSyncPanel onDone={() => void loadUsers()} />
       <div className={styles.table}>
         {users.map((user) => (
           <div className={styles.row} key={user.id}>

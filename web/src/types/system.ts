@@ -104,3 +104,75 @@ export interface ListResponse<T> {
   items: T[];
   total: number;
 }
+
+// LDAP full sync (design 3.3 D6).
+export type LDAPSyncCategory =
+  | 'create'
+  | 'update'
+  | 'autoDisable'
+  | 'unconfirmable'
+  | 'outOfScope'
+  | 'pendingBinding'
+  | 'conflict'
+  | 'disabledInfo'
+  | 'unidentifiable';
+
+export interface LDAPSyncAccount {
+  id: number;
+  username: string;
+  displayName: string;
+  email: string;
+  department: string;
+  externalId: string;
+  status: string;
+  createdAt: string;
+  roles: string[] | null;
+}
+
+export interface LDAPSyncEntry {
+  dn: string;
+  username: string;
+  displayName: string;
+  email: string;
+  department: string;
+  externalId: string;
+  createdAt: string | null;
+}
+
+export interface LDAPSyncItem {
+  category: LDAPSyncCategory;
+  reason?: string;
+  account?: LDAPSyncAccount;
+  entry?: LDAPSyncEntry;
+  changes?: { field: string; before: string; after: string }[];
+  // Pending binding whose directory entry is newer than the account (or of
+  // unknown age): likely a reused uid, confirm one by one.
+  suspicious?: boolean;
+}
+
+export interface LDAPSyncPreview {
+  previewId: string;
+  expiresAt: string;
+  disablesBlocked: boolean;
+  configChanged: boolean;
+  items: LDAPSyncItem[];
+}
+
+export interface LDAPSyncChoices {
+  disable: number[];
+  bind: number[];
+  separate: number[];
+}
+
+export interface LDAPSyncOutcome {
+  action: string;
+  accountId?: number;
+  username: string;
+  outcome: 'done' | 'skipped' | 'error' | 'unprocessed';
+  reason?: string;
+}
+
+export interface LDAPSyncResult {
+  status: 'completed' | 'partial';
+  outcomes: LDAPSyncOutcome[];
+}

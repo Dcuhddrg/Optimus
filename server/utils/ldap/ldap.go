@@ -63,6 +63,9 @@ type User struct {
 	// Version is entryCSN (OpenLDAP) or modifyTimestamp; rename and move
 	// update it.
 	Version string
+	// CreatedAt is createTimestamp, read by the sync scope reads only; nil
+	// when unreadable.
+	CreatedAt *time.Time
 }
 
 // Client is the LDAP capability used by services.
@@ -74,6 +77,12 @@ type Client interface {
 	Authenticate(ctx context.Context, cfg Config, username, password string) (User, error)
 	// LookupUsername reads the entry for username with the service account.
 	LookupUsername(ctx context.Context, cfg Config, username string) (User, error)
+	// SearchScope reads every entry of the sync scope.
+	SearchScope(ctx context.Context, cfg Config) ([]User, error)
+	// LookupExternalID re-reads one sync-scope entry by its identity.
+	LookupExternalID(ctx context.Context, cfg Config, externalID string) (User, error)
+	// ExistsInDirectory looks the identity up across the whole directory.
+	ExistsInDirectory(ctx context.Context, cfg Config, externalID string) (bool, error)
 }
 
 // NewLDAP builds a client per call, like GVA's upload.NewOss.
@@ -216,16 +225,7 @@ func (c *GoLDAPClient) findByUsername(conn *ldap.Conn, cfg Config, username stri
 	default:
 		return User{}, ErrDuplicateUsername
 	}
-	entry := result.Entries[0]
-	return User{
-		DN:          entry.DN,
-		Username:    firstLDAPAttr(entry, cfg.UsernameAttr, ""),
-		DisplayName: firstLDAPAttr(entry, cfg.DisplayNameAttr, ""),
-		Email:       firstLDAPAttr(entry, cfg.EmailAttr, ""),
-		Department:  firstLDAPAttr(entry, cfg.DepartmentAttr, ""),
-		ExternalID:  firstLDAPAttr(entry, cfg.IDAttr, ""),
-		Version:     entryVersion(entry),
-	}, nil
+	return entryUser(result.Entries[0], cfg), nil
 }
 
 func (c *GoLDAPClient) searchRequest(base string, scope int, sizeLimit int, filter string, attrs []string) *ldap.SearchRequest {

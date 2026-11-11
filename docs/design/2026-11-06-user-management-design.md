@@ -1,6 +1,6 @@
 # 用户管理设计
 
-- 状态：已批准（用户逐条确认，2026-11-06）；实现状态：3.1、3.4 已实现（[#82](https://github.com/Dcuhddrg/Optimus/pull/82)）；3.2、3.5 已实现（[#83](https://github.com/Dcuhddrg/Optimus/pull/83)）；3.3 的目录身份部分（`ExternalID`、过滤条件校验、登录身份与版本核对、写回锁、测试连接修复）实现中（[#80](https://github.com/Dcuhddrg/Optimus/issues/80) 第三个 PR），全量同步与第三方人员未开始。
+- 状态：已批准（用户逐条确认，2026-11-06）；实现状态：3.1、3.4 已实现（[#82](https://github.com/Dcuhddrg/Optimus/pull/82)）；3.2、3.5 已实现（[#83](https://github.com/Dcuhddrg/Optimus/pull/83)）；3.3 目录身份已实现（[#84](https://github.com/Dcuhddrg/Optimus/pull/84)），全量同步（预览、快照、执行、确认缺席、待绑定）实现中（[#80](https://github.com/Dcuhddrg/Optimus/issues/80) 第四个 PR）；3.6 第三方人员未开始。
 - 关联：[#80](https://github.com/Dcuhddrg/Optimus/issues/80)（实施与验收）、[#4](https://github.com/Dcuhddrg/Optimus/issues/4)（审批流，以本设计为前置）、[ADR-005](../adr/0005-ldap-identity-optimus-authorization.md)（身份与授权分工）。
 - 对照基线：gin-vue-admin 本地仓库 `67894b11`（比文档其他处引用的 `cee04b08` 新）。
 

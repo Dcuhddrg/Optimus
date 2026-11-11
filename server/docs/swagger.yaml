@@ -66,6 +66,25 @@ definitions:
       usernameAttr:
         type: string
     type: object
+  request.LDAPSyncExecuteRequest:
+    properties:
+      bind:
+        items:
+          type: integer
+        type: array
+      disable:
+        items:
+          type: integer
+        type: array
+      previewId:
+        type: string
+      separate:
+        items:
+          type: integer
+        type: array
+    required:
+    - previewId
+    type: object
   request.LDAPTestRequest:
     properties:
       baseDn:
@@ -281,6 +300,115 @@ definitions:
       userFilter:
         type: string
       usernameAttr:
+        type: string
+    type: object
+  response.LDAPSyncAccount:
+    properties:
+      createdAt:
+        type: string
+      department:
+        type: string
+      displayName:
+        type: string
+      email:
+        type: string
+      externalId:
+        type: string
+      id:
+        type: integer
+      roles:
+        items:
+          type: string
+        type: array
+      status:
+        type: string
+      username:
+        type: string
+    type: object
+  response.LDAPSyncEntry:
+    properties:
+      createdAt:
+        type: string
+      department:
+        type: string
+      displayName:
+        type: string
+      dn:
+        type: string
+      email:
+        type: string
+      externalId:
+        type: string
+      username:
+        type: string
+    type: object
+  response.LDAPSyncFieldChange:
+    properties:
+      after:
+        type: string
+      before:
+        type: string
+      field:
+        type: string
+    type: object
+  response.LDAPSyncItem:
+    properties:
+      account:
+        $ref: '#/definitions/response.LDAPSyncAccount'
+      category:
+        type: string
+      changes:
+        items:
+          $ref: '#/definitions/response.LDAPSyncFieldChange'
+        type: array
+      entry:
+        $ref: '#/definitions/response.LDAPSyncEntry'
+      reason:
+        type: string
+      suspicious:
+        type: boolean
+    type: object
+  response.LDAPSyncOutcome:
+    properties:
+      accountId:
+        type: integer
+      action:
+        type: string
+      outcome:
+        type: string
+      reason:
+        type: string
+      username:
+        type: string
+    type: object
+  response.LDAPSyncPreview:
+    properties:
+      configChanged:
+        description: |-
+          ConfigChanged: base DN, filter or identity attribute changed since the
+          last successful sync, so every disable candidate needs the admin.
+        type: boolean
+      disablesBlocked:
+        description: |-
+          DisablesBlocked: some entries could not be identified, so this sync
+          disables nobody.
+        type: boolean
+      expiresAt:
+        type: string
+      items:
+        items:
+          $ref: '#/definitions/response.LDAPSyncItem'
+        type: array
+      previewId:
+        type: string
+    type: object
+  response.LDAPSyncResult:
+    properties:
+      outcomes:
+        items:
+          $ref: '#/definitions/response.LDAPSyncOutcome'
+        type: array
+      status:
         type: string
     type: object
   response.LDAPTestResult:
@@ -1377,6 +1505,63 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: 保存 LDAP 配置
+      tags:
+      - LDAP
+  /system/ldap/sync/execute:
+    post:
+      consumes:
+      - application/json
+      description: 按预览执行：逐人加锁重读核对后写入；停用、绑定、"不是同一个人"只处理出现在预览里且核对一致的账号。重读出错时停止，结果为 partial。
+      parameters:
+      - description: 请求体
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/request.LDAPSyncExecuteRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: code 0 成功，code 7 业务失败
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/response.LDAPSyncResult'
+              type: object
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 执行 LDAP 全量同步
+      tags:
+      - LDAP
+  /system/ldap/sync/preview:
+    post:
+      description: 只读：分页读取同步范围，与 LDAP 账号比对，返回分类列表和预览 ID。预览 ID 30 分钟内有效，只能由发起人执行一次。
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: code 0 成功，code 7 业务失败
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/response.LDAPSyncPreview'
+              type: object
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 预览 LDAP 全量同步
       tags:
       - LDAP
   /system/ldap/test:

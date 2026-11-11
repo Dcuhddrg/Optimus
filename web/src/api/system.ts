@@ -1,5 +1,5 @@
 import { ApiError, apiDownloadCSV, apiRequest } from '../utils/request';
-import type { AuditLogFilter, AuditLogPage, CurrentUserResponse, LDAPConfig, LoginResponse, SystemPermission, SystemRole, SystemUser, SystemRoleWithPermissions } from '../types/system';
+import type { AuditLogFilter, AuditLogPage, CurrentUserResponse, LDAPConfig, LDAPSyncChoices, LDAPSyncPreview, LDAPSyncResult, LoginResponse, SystemPermission, SystemRole, SystemUser, SystemRoleWithPermissions } from '../types/system';
 
 export function login(username: string, password: string) {
   return apiRequest<LoginResponse>('/system/auth/login', {
@@ -77,6 +77,17 @@ export function testLDAPConfig(config: LDAPConfig & { useSavedBindPassword?: boo
   return apiRequest<{ success: boolean; message: string }>('/system/ldap/test', {
     method: 'POST',
     body: JSON.stringify(config),
+  });
+}
+
+export function previewLDAPSync() {
+  return apiRequest<LDAPSyncPreview>('/system/ldap/sync/preview', { method: 'POST' });
+}
+
+export function executeLDAPSync(previewId: string, choices: LDAPSyncChoices) {
+  return apiRequest<LDAPSyncResult>('/system/ldap/sync/execute', {
+    method: 'POST',
+    body: JSON.stringify({ previewId, ...choices }),
   });
 }
 

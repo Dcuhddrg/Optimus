@@ -49,6 +49,18 @@ func (failingLDAPClient) LookupUsername(context.Context, LDAPConnectionConfig, s
 	return LDAPUser{}, errors.New("DO_NOT_LOG_THIS")
 }
 
+func (failingLDAPClient) SearchScope(context.Context, LDAPConnectionConfig) ([]LDAPUser, error) {
+	return nil, errors.New("DO_NOT_LOG_THIS")
+}
+
+func (failingLDAPClient) LookupExternalID(context.Context, LDAPConnectionConfig, string) (LDAPUser, error) {
+	return LDAPUser{}, errors.New("DO_NOT_LOG_THIS")
+}
+
+func (failingLDAPClient) ExistsInDirectory(context.Context, LDAPConnectionConfig, string) (bool, error) {
+	return false, errors.New("DO_NOT_LOG_THIS")
+}
+
 func TestLDAPSnapshotFailureStillSavesConfig(t *testing.T) {
 	db := openTestDB(t)
 	require.NoError(t, db.Callback().Query().Before("gorm:query").Register("test:fail_ldap_read", func(tx *gorm.DB) {
@@ -111,6 +123,18 @@ func (c *fakeLDAPClientUC) Authenticate(context.Context, LDAPConnectionConfig, s
 
 func (c *fakeLDAPClientUC) LookupUsername(context.Context, LDAPConnectionConfig, string) (LDAPUser, error) {
 	return LDAPUser{}, errors.New("not used")
+}
+
+func (c *fakeLDAPClientUC) SearchScope(context.Context, LDAPConnectionConfig) ([]LDAPUser, error) {
+	return nil, errors.New("not used")
+}
+
+func (c *fakeLDAPClientUC) LookupExternalID(context.Context, LDAPConnectionConfig, string) (LDAPUser, error) {
+	return LDAPUser{}, errors.New("not used")
+}
+
+func (c *fakeLDAPClientUC) ExistsInDirectory(context.Context, LDAPConnectionConfig, string) (bool, error) {
+	return false, errors.New("not used")
 }
 
 func TestLDAPServiceDatabaseGetLDAPConfigReturnsEmptyWhenMissing(t *testing.T) {

@@ -86,6 +86,7 @@ func (s *LDAPService) SaveConfig(ctx context.Context, actorID uint, req systemRe
 		IDAttr:          req.IDAttr,
 		DepartmentAttr:  current.DepartmentAttr,
 		Version:         current.Version + 1,
+		LastSyncKey:     current.LastSyncKey,
 	}
 	if cfg.BindPassword == "" {
 		cfg.BindPassword = current.BindPassword
@@ -111,7 +112,7 @@ func (s *LDAPService) SaveConfig(ctx context.Context, actorID uint, req systemRe
 		return systemResponse.LDAPConfigResult{}, err
 	}
 	if bound > 0 && (currentErr != nil || current.IDAttr != cfg.IDAttr) {
-		event.Detail = auditDetails("identity_attr_locked", map[string]auditChange{"boundUsers": {Before: bound, After: bound}})
+		event.Detail = auditDetailsMap("identity_attr_locked", map[string]any{"boundUsers": bound})
 		return systemResponse.LDAPConfigResult{}, IdentityAttrLockedError{Bound: bound}
 	}
 	saved, err := s.saveLDAPConfig(ctx, cfg)

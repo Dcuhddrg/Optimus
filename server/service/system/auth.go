@@ -12,7 +12,6 @@ import (
 	"optimus/server/utils"
 	ldapUtil "optimus/server/utils/ldap"
 
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -272,10 +271,8 @@ func (s *AuthService) syncLDAPUser(ctx context.Context, client ldapUtil.Client, 
 	if username == "" {
 		username = loginName
 	}
-	profile := map[string]any{"username": username, "display_name": current.DisplayName, "email": current.Email}
-	if conn.DepartmentAttr != "" {
-		profile["department"] = current.Department
-	}
+	current.Username = username
+	profile := ldapProfileColumns(current, conn.DepartmentAttr != "")
 
 	db := global.OPTIMUS_DB.WithContext(ctx)
 	var user systemModel.SystemUser
@@ -323,27 +320,8 @@ func (s *AuthService) syncLDAPUser(ctx context.Context, client ldapUtil.Client, 
 		return systemModel.SystemUser{}, &ldapLoginFailure{reason: "ldap_identity_conflict", err: ErrLDAPAccountConflict, userID: byName.ID}
 	}
 
-	externalID := current.ExternalID
-	created := systemModel.SystemUser{
-		UUID:        uuid.NewString(),
-		Username:    username,
-		DisplayName: current.DisplayName,
-		Email:       current.Email,
-		Department:  current.Department,
-		ExternalID:  &externalID,
-		Source:      "ldap",
-		Status:      DefaultUserStatus,
-	}
-	if conn.DepartmentAttr == "" {
-		created.Department = ""
-	}
-	err = db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Create(&created).Error; err != nil {
-			return err
-		}
-		return bindDefaultUserRole(tx, created.ID)
-	})
-	if err != nil {
+	created := newLDAPAccount(current, conn.DepartmentAttr != "")
+	if err := createLDAPAccount(db, &created); err != nil {
 		return systemModel.SystemUser{}, &ldapLoginFailure{reason: "user_sync_failed", err: err}
 	}
 	InvalidateUserAuthState(created.ID)

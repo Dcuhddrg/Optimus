@@ -28,3 +28,15 @@ type LDAPTestRequest struct {
 	IDAttr               string `json:"idAttr"`
 	DepartmentAttr       string `json:"departmentAttr"`
 }
+
+// LDAPSyncExecuteRequest executes a sync preview with the admin's choices.
+// Each list holds account IDs from the preview: Disable for outOfScope and
+// unconfirmable rows, Bind for pendingBinding rows confirmed as the same
+// person, Separate for pendingBinding or conflict rows confirmed as another
+// person.
+type LDAPSyncExecuteRequest struct {
+	PreviewID string `json:"previewId" binding:"required"`
+	Disable   []uint `json:"disable"`
+	Bind      []uint `json:"bind"`
+	Separate  []uint `json:"separate"`
+}

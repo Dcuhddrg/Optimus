@@ -44,11 +44,27 @@ func recordAudit(ctx context.Context, event AuditEvent) {
 	}
 }
 
+// auditDetailsMap writes a versioned detail with extra fields. Callers pass
+// only values that are safe to store (no secrets, no raw errors).
+func auditDetailsMap(reason string, extra map[string]any) string {
+	detail := map[string]any{}
+	for key, value := range extra {
+		detail[key] = value
+	}
+	detail["version"] = 1
+	detail["reason"] = reason
+	data, err := json.Marshal(detail)
+	if err != nil {
+		return `{"version":1,"reason":"detail_unavailable"}`
+	}
+	return string(data)
+}
+
 func auditDetails(reason string, changes map[string]auditChange) string {
 	safe := make(map[string]auditChange)
 	for key, change := range changes {
 		switch key {
-		case "status", "roleIds", "permissionCodes", "enabled", "connectionChanged", "mappingChanged", "bindPasswordChanged":
+		case "status", "roleIds", "permissionCodes", "enabled", "connectionChanged", "mappingChanged", "bindPasswordChanged", "idAttr":
 			if !reflect.DeepEqual(change.Before, change.After) {
 				safe[key] = change
 			}

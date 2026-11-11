@@ -1146,6 +1146,21 @@
         "type": "string",
         "unique": false
       },
+      "last_sync_key": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 64,
+        "type": "string",
+        "unique": false
+      },
       "updated_at": {
         "autoCreate": 0,
         "autoIncrement": false,
