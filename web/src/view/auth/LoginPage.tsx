@@ -4,18 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
 import { LanguageSwitcher } from '../../components/locale/LanguageSwitcher';
 import { useI18n } from '../../locale/useI18n';
-import type { MessageKey } from '../../locale/messages';
 import styles from './LoginPage.module.css';
-
-// Server login refusals that have a localized text (design 3.3).
-const LOGIN_REFUSALS: Record<string, MessageKey> = {
-  'account conflict, contact an administrator': 'auth.ldapAccountConflict',
-  'account is awaiting administrator confirmation, contact an administrator': 'auth.ldapBindingPending',
-  'directory identity is missing, contact an administrator': 'auth.ldapIdentityMissing',
-  'directory identity is inconsistent, contact an administrator': 'auth.ldapIdentityAnomaly',
-  'the directory has duplicate accounts with this username, contact an administrator': 'auth.ldapDuplicateUsername',
-  'the directory is changing, please retry later': 'auth.ldapDirectoryChanging',
-};
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -39,8 +28,7 @@ export function LoginPage() {
       navigate(destination, { replace: true });
     } catch (err) {
       if (err instanceof Error) {
-        const refusal = LOGIN_REFUSALS[err.message];
-        setError(refusal ? t(refusal) : err.message);
+        setError(err.message);
         setShowFallbackError(false);
       } else {
         setError(null);
@@ -116,7 +104,7 @@ export function LoginPage() {
                 />
                 <small className={styles.hint}>{t('auth.passwordHint')}</small>
               </label>
-              {loginNotice && !error && !showFallbackError ? <p className={styles.error} role="alert">{t('auth.accountDisabled')}</p> : null}
+              {loginNotice && !error && !showFallbackError ? <p className={styles.error} role="alert">{loginNotice}</p> : null}
               {error || showFallbackError ? (
                 <p className={styles.error}>
                   {showFallbackError ? t('auth.loginFailed') : error}
