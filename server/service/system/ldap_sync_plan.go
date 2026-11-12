@@ -38,6 +38,10 @@ const (
 	syncReasonDuplicateIdentity  = "duplicate_identity"
 	syncReasonUsernameReused     = "username_reused"
 	syncReasonRenameTaken        = "rename_taken"
+	// The username is held by a local account (today only the built-in
+	// admin): listed, but never resolved by the sync; the directory entry
+	// must be renamed.
+	syncReasonLocalAccount = "local_account"
 )
 
 // syncAccount is the Optimus side of the comparison.
@@ -162,7 +166,7 @@ func buildSyncPlan(entries []LDAPUser, accounts []syncAccount, syncDepartment bo
 			if holder != nil && holder.ID != owner.ID {
 				// Renamed onto a username another account holds.
 				matched[holder.ID] = true
-				plan.Items = append(plan.Items, syncItem{Category: SyncConflict, Reason: syncReasonRenameTaken, Account: holder, Entry: &e})
+				plan.Items = append(plan.Items, syncItem{Category: SyncConflict, Reason: conflictReason(holder, syncReasonRenameTaken), Account: holder, Entry: &e})
 				continue
 			}
 			if owner.Status != DefaultUserStatus {
@@ -184,7 +188,7 @@ func buildSyncPlan(entries []LDAPUser, accounts []syncAccount, syncDepartment bo
 			continue
 		}
 		// Same username, another identity (or a local account): another person.
-		plan.Items = append(plan.Items, syncItem{Category: SyncConflict, Reason: syncReasonUsernameReused, Account: holder, Entry: &e})
+		plan.Items = append(plan.Items, syncItem{Category: SyncConflict, Reason: conflictReason(holder, syncReasonUsernameReused), Account: holder, Entry: &e})
 	}
 
 	for i := range accounts {
@@ -213,6 +217,13 @@ func buildSyncPlan(entries []LDAPUser, accounts []syncAccount, syncDepartment bo
 	return plan
 }
 
+func conflictReason(holder *syncAccount, reason string) string {
+	if holder.Source != "ldap" {
+		return syncReasonLocalAccount
+	}
+	return reason
+}
+
 func (i syncItem) sortKey() string {
 	if i.Account != nil {
 		return string(i.Category) + "\x00" + strings.ToLower(i.Account.Username)
@@ -238,8 +249,11 @@ func profileChanges(a syncAccount, e LDAPUser, syncDepartment bool) []syncFieldC
 }
 
 // syncConfigKey is the part of the config whose change makes the next sync's
-// disable candidates need the admin (design 3.3, auto-disable condition 3).
+// disable candidates need the admin (design 3.3, auto-disable condition 3):
+// everything that decides which directory is read and what it shows. The
+// server URL and bind account count, since another server or another bind
+// account's access rights can hide people who still exist.
 func syncConfigKey(cfg systemModel.SystemLDAPConfig) string {
-	sum := sha256.Sum256([]byte(strings.Join([]string{cfg.BaseDN, cfg.UserFilter, cfg.IDAttr}, "\x00")))
+	sum := sha256.Sum256([]byte(strings.Join([]string{cfg.URL, cfg.BindDN, cfg.BaseDN, cfg.UserFilter, cfg.IDAttr}, "\x00")))
 	return hex.EncodeToString(sum[:])
 }

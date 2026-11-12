@@ -161,3 +161,17 @@ func TestSyncPlanDepartmentOnlyWhenSynced(t *testing.T) {
 	require.Empty(t, buildSyncPlan([]LDAPUser{entry}, []syncAccount{account}, false, false, noneElsewhere).Items)
 	require.Len(t, buildSyncPlan([]LDAPUser{entry}, []syncAccount{account}, true, false, noneElsewhere).Items, 1)
 }
+
+// A local account (the built-in admin) holding the username is a conflict
+// the sync never resolves, whether the entry is new or renamed onto it.
+func TestSyncPlanLocalAccountConflictIsNotResolvable(t *testing.T) {
+	admin := syncAccount{ID: 1, Username: "admin", Source: "local", Status: DefaultUserStatus}
+	bob := ldapAccount(2, "bob", strp("id-bob"))
+	plan := buildSyncPlan([]LDAPUser{planEntry("admin", "id-intruder")}, []syncAccount{admin}, true, false, noneElsewhere)
+	require.Equal(t, syncReasonLocalAccount, itemFor(t, plan, "admin").Reason)
+
+	plan = buildSyncPlan([]LDAPUser{planEntry("admin", "id-bob")}, []syncAccount{admin, bob}, true, false, noneElsewhere)
+	item := itemFor(t, plan, "admin")
+	require.Equal(t, SyncConflict, item.Category)
+	require.Equal(t, syncReasonLocalAccount, item.Reason)
+}

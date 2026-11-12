@@ -256,3 +256,64 @@ func TestLDAPSyncAbortsOnScopeReadFailure(t *testing.T) {
 	_, err = f.svc.PreviewSync(context.Background(), syncAdmin, AuditMeta{})
 	require.ErrorIs(t, err, ErrSyncScopeEmpty)
 }
+
+// A directory entry named like the built-in admin is listed as a conflict but
+// can never retire it: the request is skipped, and separate refuses a local
+// account even when handed one directly.
+func TestLDAPSyncNeverRetiresLocalAdmin(t *testing.T) {
+	f := newSyncFixture(t, dirEntry("admin", "id-intruder"))
+	admin := systemModel.SystemUser{UUID: BuiltinAdminUUID, Username: "admin", DisplayName: "admin", Source: "local", Status: DefaultUserStatus}
+	require.NoError(t, f.db.Create(&admin).Error)
+
+	preview := f.preview(t)
+	require.Equal(t, "conflict", previewCategory(preview, "admin"))
+	for _, item := range preview.Items {
+		if item.Account != nil && item.Account.ID == admin.ID {
+			require.Equal(t, syncReasonLocalAccount, item.Reason)
+		}
+	}
+	result := f.execute(t, systemRequest.LDAPSyncExecuteRequest{PreviewID: preview.PreviewID, Separate: []uint{admin.ID}})
+	outcome := outcomeOf(result, "admin")
+	require.Equal(t, syncOutcomeSkipped, outcome.Outcome)
+	require.Equal(t, syncReasonLocalAccount, outcome.Reason)
+
+	run := &syncRun{ctx: context.Background(), client: f.dir, cfg: f.cfg, actorID: syncAdmin}
+	forged := syncItem{Category: SyncConflict, Reason: syncReasonUsernameReused, Account: &syncAccount{ID: admin.ID, Username: "admin", Source: "local"}}
+	reason, err := run.separate(forged, dirEntry("admin", "id-intruder"))
+	require.NoError(t, err)
+	require.Equal(t, syncReasonLocalAccount, reason)
+
+	kept := f.reload(t, admin.ID)
+	require.Equal(t, "admin", kept.Username)
+	require.Equal(t, DefaultUserStatus, kept.Status)
+	var n int64
+	require.NoError(t, f.db.Model(&systemModel.SystemUser{}).Where("external_id = ?", "id-intruder").Count(&n).Error)
+	require.Zero(t, n, "no account is created for the intruding entry")
+}
+
+// After a completed sync, switching to another server or bind account with
+// the same base DN and filter makes absent people need the admin again:
+// another directory, or narrower access rights, can hide people who exist.
+func TestLDAPSyncServerOrBindAccountChangeNeedsAdmin(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		change map[string]any
+	}{
+		{"url", map[string]any{"url": "ldap://other"}},
+		{"bind_dn", map[string]any{"bind_dn": "cn=reader,dc=optimus,dc=test"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			f := newSyncFixture(t, dirEntry("hank", "id-hank"))
+			carol := f.account(t, "carol", strp("id-carol"))
+			f.markSynced(t)
+			require.Equal(t, "autoDisable", previewCategory(f.preview(t), "carol"))
+
+			require.NoError(t, f.db.Model(&systemModel.SystemLDAPConfig{}).Where("id = ?", f.cfg.ID).Updates(tc.change).Error)
+			preview := f.preview(t)
+			require.True(t, preview.ConfigChanged)
+			require.Equal(t, "unconfirmable", previewCategory(preview, "carol"))
+			f.execute(t, systemRequest.LDAPSyncExecuteRequest{PreviewID: preview.PreviewID})
+			require.Equal(t, DefaultUserStatus, f.reload(t, carol.ID).Status, "not disabled without the admin")
+		})
+	}
+}

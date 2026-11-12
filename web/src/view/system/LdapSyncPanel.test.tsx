@@ -18,6 +18,7 @@ const preview = {
     { category: 'pendingBinding', account: account(7, 'later'), entry: entry('later', 'id-later'), suspicious: true },
     { category: 'conflict', reason: 'username_reused', account: account(8, 'gina'), entry: entry('gina', 'id-new-gina') },
     { category: 'outOfScope', account: account(4, 'dan') },
+    { category: 'conflict', reason: 'local_account', account: { ...account(1, 'admin'), roles: ['admin'] }, entry: entry('admin', 'id-admin') },
   ],
 };
 let root: Root;
@@ -52,6 +53,8 @@ describe('LDAP sync panel', () => {
     await click(button('Confirm all unflagged as the same person'));
     expect(row('erin').querySelector('select')!.value).toBe('bind');
     expect(row('later').querySelector('select')!.value).toBe('leave');
+    expect(row('admin').querySelector('input')).toBeNull();
+    expect(row('admin').textContent).toContain('rename the directory entry');
 
     await click(row('gina').querySelector('input')!);
     await click(row('dan').querySelector('input')!);

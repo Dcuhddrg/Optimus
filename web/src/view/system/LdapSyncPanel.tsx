@@ -117,6 +117,8 @@ export function LdapSyncPanel({ onDone }: { onDone: () => void }) {
           </label>
         );
       case 'conflict':
+        // Local accounts (the built-in admin) are never retired by a sync.
+        if (item.reason === 'local_account') return null;
         return (
           <label className={styles.choice}>
             <input type="checkbox" checked={separate.has(id)} onChange={() => toggle(separate, setSeparate, id)} />

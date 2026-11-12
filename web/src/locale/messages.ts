@@ -533,6 +533,7 @@ const en = {
         duplicate_identity: 'Directory identity is duplicated in the scope',
         username_reused: 'Username now belongs to another directory identity',
         rename_taken: 'Renamed onto a username this account holds',
+        local_account: 'Username belongs to a local account; rename the directory entry',
       },
       action: {
         create: 'Create',
@@ -1160,6 +1161,7 @@ const zhCN: typeof en = {
         duplicate_identity: '目录标识在同步范围内重复',
         username_reused: '用户名已属于另一个目录标识',
         rename_taken: '目录中改名后的用户名被此账号占用',
+        local_account: '用户名属于本地账号，请在目录中给该条目改名',
       },
       action: {
         create: '新增',

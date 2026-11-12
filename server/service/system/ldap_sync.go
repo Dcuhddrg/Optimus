@@ -298,6 +298,8 @@ func planSyncTasks(plan syncPlan, snap *syncSnapshot, req systemRequest.LDAPSync
 				skipped = append(skipped, systemResponse.LDAPSyncOutcome{Action: action, AccountID: id, Username: username, Outcome: syncOutcomeSkipped, Reason: "category_changed"})
 			case snapshotOf(current) != recorded:
 				skipped = append(skipped, systemResponse.LDAPSyncOutcome{Action: action, AccountID: id, Username: username, Outcome: syncOutcomeSkipped, Reason: "identity_changed"})
+			case action == syncActionSeparate && current.Reason == syncReasonLocalAccount:
+				skipped = append(skipped, systemResponse.LDAPSyncOutcome{Action: action, AccountID: id, Username: username, Outcome: syncOutcomeSkipped, Reason: syncReasonLocalAccount})
 			default:
 				tasks = append(tasks, syncTask{action: action, item: current})
 			}
@@ -543,6 +545,11 @@ func (r *syncRun) separate(item syncItem, entry LDAPUser) (string, error) {
 	}
 	if externalIDOf(old) != item.accountSideID() || old.Username != item.Account.Username {
 		return "account_changed", nil
+	}
+	// Local accounts, the built-in admin above all, are never retired by a
+	// directory entry (design 3.4: it is the fallback administrator).
+	if old.Source != "ldap" || isBuiltinAdmin(old) {
+		return syncReasonLocalAccount, nil
 	}
 	var newID uint
 	err := r.db().Transaction(func(tx *gorm.DB) error {
