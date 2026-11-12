@@ -2835,8 +2835,24 @@ const docTemplate = `{
                 "outcome": {
                     "type": "string"
                 },
+                "ownedProjects": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "reason": {
                     "type": "string"
+                },
+                "restrictedRoles": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "turnedExternal": {
+                    "description": "TurnedExternal marks an update that made an employee external;\nRestrictedRoles stopped applying and OwnedProjects need another owner,\nboth read right after the write.",
+                    "type": "boolean"
                 },
                 "username": {
                     "type": "string"

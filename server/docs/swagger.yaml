@@ -411,8 +411,22 @@ definitions:
         type: string
       outcome:
         type: string
+      ownedProjects:
+        items:
+          type: string
+        type: array
       reason:
         type: string
+      restrictedRoles:
+        items:
+          type: string
+        type: array
+      turnedExternal:
+        description: |-
+          TurnedExternal marks an update that made an employee external;
+          RestrictedRoles stopped applying and OwnedProjects need another owner,
+          both read right after the write.
+        type: boolean
       username:
         type: string
     type: object
