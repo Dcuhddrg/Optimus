@@ -9,3 +9,5 @@ dist/
 .superpowers/
 .worktrees/
 .playwright-mcp/
+# design docs stay local (not pushed)
+docs/design/
