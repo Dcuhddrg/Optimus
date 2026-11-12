@@ -49,20 +49,55 @@ func (failingLDAPClient) LookupUsername(context.Context, LDAPConnectionConfig, s
 	return LDAPUser{}, errors.New("DO_NOT_LOG_THIS")
 }
 
-func TestLDAPSnapshotFailureStillSavesConfig(t *testing.T) {
+func (failingLDAPClient) SearchScope(context.Context, LDAPConnectionConfig) ([]LDAPUser, error) {
+	return nil, errors.New("DO_NOT_LOG_THIS")
+}
+
+func (failingLDAPClient) LookupExternalID(context.Context, LDAPConnectionConfig, string) (LDAPUser, error) {
+	return LDAPUser{}, errors.New("DO_NOT_LOG_THIS")
+}
+
+func (failingLDAPClient) ExistsInDirectory(context.Context, LDAPConnectionConfig, string) (bool, error) {
+	return false, errors.New("DO_NOT_LOG_THIS")
+}
+
+// A failed read of the current config refuses the save even with no bound
+// users: building on an empty snapshot would insert a second row that readers
+// never pick, and report success while the old config stays in effect.
+func TestSaveLDAPConfigRefusesWhenCurrentConfigUnreadable(t *testing.T) {
 	db := openTestDB(t)
+	svc := newLDAPServiceForTest(t, newFakeDirectory())
+	first := validLDAPRequest()
+	first.BindPassword = "SECRET"
+	_, err := svc.SaveConfig(context.Background(), 1, first, AuditMeta{})
+	require.NoError(t, err)
+
+	failNext := true
 	require.NoError(t, db.Callback().Query().Before("gorm:query").Register("test:fail_ldap_read", func(tx *gorm.DB) {
-		if tx.Statement.Table == "sys_ldap_config" {
-			tx.AddError(errors.New("snapshot read failed"))
+		if tx.Statement.Table == "sys_ldap_config" && failNext {
+			failNext = false
+			tx.AddError(errors.New("transient read failure"))
 		}
 	}))
-	svc := newLDAPServiceForTest(t, &fakeLDAPClientUC{})
-	_, err := svc.SaveConfig(context.Background(), 1, systemRequest.LDAPConfigRequest{Enabled: true, BindPassword: "SECRET", UserFilter: "(uid={username})", UsernameAttr: "uid"}, AuditMeta{})
+	t.Cleanup(func() { _ = db.Callback().Query().Remove("test:fail_ldap_read") })
+
+	changed := validLDAPRequest()
+	changed.BaseDN = "ou=changed,dc=example,dc=com"
+	_, err = svc.SaveConfig(context.Background(), 1, changed, AuditMeta{})
+	require.Error(t, err)
+
+	var rows int64
+	require.NoError(t, db.Model(&systemModel.SystemLDAPConfig{}).Count(&rows).Error)
+	require.EqualValues(t, 1, rows, "no second row is inserted")
+	cfg, err := svc.getLDAPConfig(context.Background())
 	require.NoError(t, err)
+	require.Equal(t, first.BaseDN, cfg.BaseDN)
+	require.EqualValues(t, 1, cfg.Version)
+
 	var audit systemModel.SystemAuditLog
-	require.NoError(t, db.Last(&audit).Error)
-	require.Equal(t, "success", audit.Result)
-	require.Contains(t, audit.Detail, "snapshot_unavailable")
+	require.NoError(t, db.Where("action = ?", "ldap.config.update").Last(&audit).Error)
+	require.Equal(t, "failure", audit.Result)
+	require.Contains(t, audit.Detail, "update_failed")
 	require.NotContains(t, audit.Detail, "SECRET")
 }
 
@@ -111,6 +146,18 @@ func (c *fakeLDAPClientUC) Authenticate(context.Context, LDAPConnectionConfig, s
 
 func (c *fakeLDAPClientUC) LookupUsername(context.Context, LDAPConnectionConfig, string) (LDAPUser, error) {
 	return LDAPUser{}, errors.New("not used")
+}
+
+func (c *fakeLDAPClientUC) SearchScope(context.Context, LDAPConnectionConfig) ([]LDAPUser, error) {
+	return nil, errors.New("not used")
+}
+
+func (c *fakeLDAPClientUC) LookupExternalID(context.Context, LDAPConnectionConfig, string) (LDAPUser, error) {
+	return LDAPUser{}, errors.New("not used")
+}
+
+func (c *fakeLDAPClientUC) ExistsInDirectory(context.Context, LDAPConnectionConfig, string) (bool, error) {
+	return false, errors.New("not used")
 }
 
 func TestLDAPServiceDatabaseGetLDAPConfigReturnsEmptyWhenMissing(t *testing.T) {

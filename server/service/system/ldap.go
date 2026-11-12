@@ -71,7 +71,14 @@ func (s *LDAPService) SaveConfig(ctx context.Context, actorID uint, req systemRe
 	ldapWriteBack.Lock()
 	defer ldapWriteBack.Unlock()
 
-	current, currentErr := s.getLDAPConfig(ctx)
+	// The new row is built from the current one (ID, version, sync key,
+	// saved password); without it a save would insert a second row that
+	// readers never pick, so a failed read refuses the save.
+	current, err := s.getLDAPConfig(ctx)
+	if err != nil {
+		event.Detail = auditDetails("update_failed", nil)
+		return systemResponse.LDAPConfigResult{}, err
+	}
 	cfg := systemModel.SystemLDAPConfig{
 		OPTIMUS_MODEL:   global.OPTIMUS_MODEL{ID: current.ID},
 		Enabled:         req.Enabled,
@@ -86,6 +93,7 @@ func (s *LDAPService) SaveConfig(ctx context.Context, actorID uint, req systemRe
 		IDAttr:          req.IDAttr,
 		DepartmentAttr:  current.DepartmentAttr,
 		Version:         current.Version + 1,
+		LastSyncKey:     current.LastSyncKey,
 	}
 	if cfg.BindPassword == "" {
 		cfg.BindPassword = current.BindPassword
@@ -110,8 +118,8 @@ func (s *LDAPService) SaveConfig(ctx context.Context, actorID uint, req systemRe
 		event.Detail = auditDetails("update_failed", nil)
 		return systemResponse.LDAPConfigResult{}, err
 	}
-	if bound > 0 && (currentErr != nil || current.IDAttr != cfg.IDAttr) {
-		event.Detail = auditDetails("identity_attr_locked", map[string]auditChange{"boundUsers": {Before: bound, After: bound}})
+	if bound > 0 && current.IDAttr != cfg.IDAttr {
+		event.Detail = auditDetailsMap("identity_attr_locked", map[string]any{"boundUsers": bound})
 		return systemResponse.LDAPConfigResult{}, IdentityAttrLockedError{Bound: bound}
 	}
 	saved, err := s.saveLDAPConfig(ctx, cfg)
@@ -121,17 +129,13 @@ func (s *LDAPService) SaveConfig(ctx context.Context, actorID uint, req systemRe
 	}
 	event.ResourceID = resourceID(saved.ID)
 	event.Result = "success"
-	if currentErr != nil {
-		event.Detail = auditDetails("snapshot_unavailable", nil)
-	} else {
-		event.Detail = auditDetails("updated", map[string]auditChange{
-			"enabled":             {Before: current.Enabled, After: saved.Enabled},
-			"connectionChanged":   {Before: false, After: current.URL != saved.URL || current.BaseDN != saved.BaseDN || current.BindDN != saved.BindDN},
-			"mappingChanged":      {Before: false, After: current.UserFilter != saved.UserFilter || current.UsernameAttr != saved.UsernameAttr || current.DisplayNameAttr != saved.DisplayNameAttr || current.EmailAttr != saved.EmailAttr || current.DepartmentAttr != saved.DepartmentAttr},
-			"idAttr":              {Before: current.IDAttr, After: saved.IDAttr},
-			"bindPasswordChanged": {Before: false, After: current.BindPassword != saved.BindPassword},
-		})
-	}
+	event.Detail = auditDetails("updated", map[string]auditChange{
+		"enabled":             {Before: current.Enabled, After: saved.Enabled},
+		"connectionChanged":   {Before: false, After: current.URL != saved.URL || current.BaseDN != saved.BaseDN || current.BindDN != saved.BindDN},
+		"mappingChanged":      {Before: false, After: current.UserFilter != saved.UserFilter || current.UsernameAttr != saved.UsernameAttr || current.DisplayNameAttr != saved.DisplayNameAttr || current.EmailAttr != saved.EmailAttr || current.DepartmentAttr != saved.DepartmentAttr},
+		"idAttr":              {Before: current.IDAttr, After: saved.IDAttr},
+		"bindPasswordChanged": {Before: false, After: current.BindPassword != saved.BindPassword},
+	})
 	result := ldapConfigResult(saved)
 	result.BoundUsers = bound
 	return result, nil

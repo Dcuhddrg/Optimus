@@ -105,3 +105,62 @@ func (h *LDAPApi) TestLDAPConfig(c *gin.Context) {
 	}
 	response.OkWithData(result, c)
 }
+
+// @Tags LDAP
+// @Summary 预览 LDAP 全量同步
+// @Description 只读：分页读取同步范围，与 LDAP 账号比对，返回分类列表和预览 ID。预览 ID 30 分钟内有效，只能由发起人执行一次。
+// @Security ApiKeyAuth
+// @Produce application/json
+// @Success 200 {object} response.Response{data=systemResponse.LDAPSyncPreview} "code 0 成功，code 7 业务失败"
+// @Failure 401 {object} response.Response "未认证"
+// @Router /system/ldap/sync/preview [post]
+func (h *LDAPApi) PreviewLDAPSync(c *gin.Context) {
+	svc := ldapService
+	if global.OPTIMUS_DB == nil {
+		writeServiceUnavailable(c, "ldap service is not available")
+		return
+	}
+	preview, err := svc.PreviewSync(c.Request.Context(), actorID(c), auditMeta(c))
+	if errors.Is(err, systemService.ErrLDAPDisabled) || errors.Is(err, systemService.ErrSyncScopeEmpty) {
+		response.FailWithMessage(err.Error(), c)
+		return
+	}
+	if err != nil {
+		response.FailWithMessage("ldap sync preview failed; nothing was changed", c)
+		return
+	}
+	response.OkWithData(preview, c)
+}
+
+// @Tags LDAP
+// @Summary 执行 LDAP 全量同步
+// @Description 按预览执行：逐人加锁重读核对后写入；停用、绑定、"不是同一个人"只处理出现在预览里且核对一致的账号。重读出错时停止，结果为 partial。
+// @Security ApiKeyAuth
+// @Accept application/json
+// @Produce application/json
+// @Param data body systemRequest.LDAPSyncExecuteRequest true "请求体"
+// @Success 200 {object} response.Response{data=systemResponse.LDAPSyncResult} "code 0 成功，code 7 业务失败"
+// @Failure 401 {object} response.Response "未认证"
+// @Router /system/ldap/sync/execute [post]
+func (h *LDAPApi) ExecuteLDAPSync(c *gin.Context) {
+	svc := ldapService
+	if global.OPTIMUS_DB == nil {
+		writeServiceUnavailable(c, "ldap service is not available")
+		return
+	}
+	var req systemRequest.LDAPSyncExecuteRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.FailWithMessage("invalid ldap sync request", c)
+		return
+	}
+	result, err := svc.ExecuteSync(c.Request.Context(), actorID(c), req, auditMeta(c))
+	if errors.Is(err, systemService.ErrSyncPreviewInvalid) || errors.Is(err, systemService.ErrSyncScopeEmpty) {
+		response.FailWithMessage(err.Error(), c)
+		return
+	}
+	if err != nil {
+		response.FailWithMessage("ldap sync failed; nothing was changed", c)
+		return
+	}
+	response.OkWithData(result, c)
+}

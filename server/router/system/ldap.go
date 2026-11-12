@@ -9,4 +9,6 @@ func (r *LDAPRouter) InitLDAPRouter(privateGroup *gin.RouterGroup) {
 	ldapRouter.GET("config", ldapApi.LDAPConfig)
 	ldapRouter.PUT("config", ldapApi.UpdateLDAPConfig)
 	ldapRouter.POST("test", ldapApi.TestLDAPConfig)
+	ldapRouter.POST("sync/preview", ldapApi.PreviewLDAPSync)
+	ldapRouter.POST("sync/execute", ldapApi.ExecuteLDAPSync)
 }

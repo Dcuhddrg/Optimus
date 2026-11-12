@@ -97,6 +97,8 @@ func DefaultSystemPermissions() []systemModel.SystemPermission {
 		{Code: "system.ldap.view", Name: "View LDAP config", Type: "api", Method: "GET", Path: "/system/ldap/config", Sort: 500},
 		{Code: "system.ldap.update", Name: "Update LDAP config", Type: "api", Method: "PUT", Path: "/system/ldap/config", Sort: 501},
 		{Code: "system.ldap.test", Name: "Test LDAP config", Type: "api", Method: "POST", Path: "/system/ldap/test", Sort: 502},
+		{Code: "system.ldap.sync.preview", Name: "Preview LDAP sync", Type: "api", Method: "POST", Path: "/system/ldap/sync/preview", Sort: 503},
+		{Code: "system.ldap.sync.execute", Name: "Execute LDAP sync", Type: "api", Method: "POST", Path: "/system/ldap/sync/execute", Sort: 504},
 		{Code: "system.audit.view", Name: "View audit logs", Type: "api", Method: "GET", Path: "/system/audit-logs", Sort: 600},
 		{Code: "system.audit.export", Name: "Export audit logs", Type: "api", Method: "GET", Path: "/system/audit-logs/export", Sort: 601},
 	}

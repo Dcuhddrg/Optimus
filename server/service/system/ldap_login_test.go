@@ -28,10 +28,18 @@ type fakeDirectory struct {
 	onLookup  func(username string)
 	lookupErr error
 	lookups   int
+
+	// Sync: out-of-scope identities that still exist in the directory, and
+	// injected errors.
+	elsewhere   map[string]bool
+	searchErr   error
+	existsErr   error
+	lookupIDErr error
+	onLookupID  func(id string)
 }
 
 func newFakeDirectory(entries ...LDAPUser) *fakeDirectory {
-	d := &fakeDirectory{entries: map[string]LDAPUser{}}
+	d := &fakeDirectory{entries: map[string]LDAPUser{}, elsewhere: map[string]bool{}}
 	for _, e := range entries {
 		d.entries[e.Username] = e
 	}
@@ -454,4 +462,57 @@ func TestFirstLDAPConfigUsesDefaults(t *testing.T) {
 	saved, err := svc.SaveConfig(context.Background(), 1, req, AuditMeta{})
 	require.NoError(t, err)
 	require.Equal(t, "departmentNumber", saved.DepartmentAttr)
+}
+
+func (d *fakeDirectory) remove(username string) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	delete(d.entries, username)
+}
+
+func (d *fakeDirectory) SearchScope(context.Context, LDAPConnectionConfig) ([]LDAPUser, error) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if d.searchErr != nil {
+		return nil, d.searchErr
+	}
+	entries := make([]LDAPUser, 0, len(d.entries))
+	for _, e := range d.entries {
+		entries = append(entries, e)
+	}
+	return entries, nil
+}
+
+func (d *fakeDirectory) LookupExternalID(_ context.Context, _ LDAPConnectionConfig, id string) (LDAPUser, error) {
+	if d.onLookupID != nil {
+		d.onLookupID(id)
+	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if d.lookupIDErr != nil {
+		return LDAPUser{}, d.lookupIDErr
+	}
+	for _, e := range d.entries {
+		if e.ExternalID == id {
+			return e, nil
+		}
+	}
+	return LDAPUser{}, ldapUtil.ErrUserNotFound
+}
+
+func (d *fakeDirectory) ExistsInDirectory(_ context.Context, _ LDAPConnectionConfig, id string) (bool, error) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if d.existsErr != nil {
+		return false, d.existsErr
+	}
+	if d.elsewhere[id] {
+		return true, nil
+	}
+	for _, e := range d.entries {
+		if e.ExternalID == id {
+			return true, nil
+		}
+	}
+	return false, nil
 }

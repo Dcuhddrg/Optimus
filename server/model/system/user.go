@@ -97,6 +97,10 @@ type SystemLDAPConfig struct {
 	// Version increases on every save. A login records it before the
 	// password check and refuses to write back if it changed meanwhile.
 	Version uint64 `gorm:"not null;default:0" json:"-"`
+	// LastSyncKey digests base DN, filter and id_attr at the last fully
+	// completed sync; while it differs from the current config, sync does not
+	// disable anyone automatically.
+	LastSyncKey string `gorm:"size:64" json:"-"`
 }
 
 func (SystemLDAPConfig) TableName() string {
