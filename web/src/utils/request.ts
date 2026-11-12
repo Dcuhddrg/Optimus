@@ -1,10 +1,7 @@
 const TOKEN_KEY = 'optimus.token';
 const PROJECT_CODE_KEY = 'optimus.currentProjectCode';
 
-// Server msg on HTTP 401 for a disabled user's session (middleware.AccountDisabledMessage).
-export const ACCOUNT_DISABLED_MESSAGE = 'account is disabled';
-
-// Receives the server's 401 msg, e.g. ACCOUNT_DISABLED_MESSAGE.
+// Receives the server's 401 msg; the login page shows it as is (GVA).
 let onUnauthorized: ((message?: string) => void) | undefined;
 let currentProjectCode: string | null = window.localStorage.getItem(PROJECT_CODE_KEY);
 

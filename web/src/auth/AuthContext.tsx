@@ -9,7 +9,6 @@ import {
 import { useNavigate } from 'react-router-dom';
 
 import {
-  ACCOUNT_DISABLED_MESSAGE,
   ApiError,
   isPermissionDenied,
   clearStoredToken,
@@ -26,7 +25,8 @@ interface AuthContextValue {
   loading: boolean;
   sessionError: 'forbidden' | 'unavailable' | null;
   // Why the last session ended, shown on the login page (design 3.1).
-  loginNotice: 'accountDisabled' | null;
+  // The server's 401 msg that ended the session, shown on the login page.
+  loginNotice: string | null;
   retrySession: () => void;
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -52,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setCurrent(null);
       setSessionError(null);
       setLoading(false);
-      setLoginNotice(message === ACCOUNT_DISABLED_MESSAGE ? 'accountDisabled' : null);
+      setLoginNotice(message || null);
       navigate('/login', { replace: true });
     });
   }, [navigate]);
