@@ -9,7 +9,7 @@ const base = { uuid: 'u', email: '', source: 'ldap', bound: true, status: 'enabl
 const users = [
   { ...base, id: 1, username: 'alice', displayName: 'Alice', personType: 'employee' },
   { ...base, id: 2, username: 'eve', displayName: 'Eve', personType: 'external', expiresOn: null, sponsorId: null },
-  { ...base, id: 3, username: 'old', displayName: 'Old', personType: 'external', expiresOn: '2026-01-31', sponsorId: 4, sponsor: 'gone', sponsorInvalid: true, expired: true },
+  { ...base, id: 3, username: 'old', displayName: 'Old', personType: 'external', expiresOn: '2026-01-31', sponsorId: 4, sponsor: 'gone', sponsorInvalid: true, expired: true, restrictedRoles: ['admin'], ownedProjects: ['prod'] },
   { ...base, id: 4, username: 'gone', displayName: 'Gone', personType: 'employee', status: 'disabled' },
 ];
 let root: Root;
@@ -35,6 +35,8 @@ describe('System users page', () => {
     expect(row('eve').textContent).toContain('No permissions until expiry and sponsor are set');
     expect(row('old').textContent).toContain('Expired');
     expect(row('old').textContent).toContain('Sponsor no longer valid');
+    expect(row('old').textContent).toContain('Roles to remove (not applied): admin');
+    expect(row('old').textContent).toContain('Projects to hand over: prod');
 
     await act(async () => buttonIn(row('eve'), 'Expiry and sponsor').click());
     const sponsorSelect = row('eve').querySelector('select')!;

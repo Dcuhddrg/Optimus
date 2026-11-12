@@ -191,16 +191,9 @@ func loadSyncAccounts(db *gorm.DB) ([]syncAccount, error) {
 			restricted[g.UserID] = append(restricted[g.UserID], g.Code)
 		}
 	}
-	var owned []struct {
-		UserID uint
-		Code   string
-	}
-	if err := db.Table("user_projects AS up").Select("up.user_id, p.code").Joins("JOIN projects AS p ON p.id = up.project_id").Where("up.project_role = ? AND p.deleted_at IS NULL", "owner").Order("p.code").Scan(&owned).Error; err != nil {
+	projects, err := ownedProjectsByUser(db)
+	if err != nil {
 		return nil, err
-	}
-	projects := map[uint][]string{}
-	for _, o := range owned {
-		projects[o.UserID] = append(projects[o.UserID], o.Code)
 	}
 	accounts := make([]syncAccount, 0, len(users))
 	for _, u := range users {
@@ -369,27 +362,22 @@ type turnedExternal struct {
 	projects []string
 }
 
-// noteTurnedExternal reads, after the person type was committed, which held
-// roles stop applying and which projects the account still owns. A project
-// owner assignment locks the user row, so it either committed before the
-// type change (and is listed here) or sees the account as external and is
-// refused.
-func (r *syncRun) noteTurnedExternal(accountID uint) error {
-	var roles []string
-	if err := r.db().Table("sys_user_roles AS ur").Joins("JOIN sys_roles AS r ON r.id = ur.role_id").
-		Where("ur.user_id = ? AND (r.code = ? OR r.approvable = ?)", accountID, AdminRoleCode, true).Order("r.code").Pluck("r.code", &roles).Error; err != nil {
-		return err
+// readHandover reads, in the transaction that wrote the person type, which
+// held roles stop applying and which projects the account still owns. The
+// write locked the user row and a project owner assignment locks it too, so
+// an assignment either committed before (and is listed here) or waits and
+// then sees the account as external and is refused.
+func readHandover(tx *gorm.DB, accountID uint) (turnedExternal, error) {
+	var note turnedExternal
+	if err := tx.Table("sys_user_roles AS ur").Joins("JOIN sys_roles AS r ON r.id = ur.role_id").
+		Where("ur.user_id = ? AND (r.code = ? OR r.approvable = ?)", accountID, AdminRoleCode, true).Order("r.code").Pluck("r.code", &note.roles).Error; err != nil {
+		return turnedExternal{}, err
 	}
-	var projects []string
-	if err := r.db().Table("user_projects AS up").Joins("JOIN projects AS p ON p.id = up.project_id").
-		Where("up.user_id = ? AND up.project_role = ? AND p.deleted_at IS NULL", accountID, "owner").Order("p.code").Pluck("p.code", &projects).Error; err != nil {
-		return err
+	if err := tx.Table("user_projects AS up").Joins("JOIN projects AS p ON p.id = up.project_id").
+		Where("up.user_id = ? AND up.project_role = ? AND p.deleted_at IS NULL", accountID, "owner").Order("p.code").Pluck("p.code", &note.projects).Error; err != nil {
+		return turnedExternal{}, err
 	}
-	if r.turnedExternal == nil {
-		r.turnedExternal = map[uint]turnedExternal{}
-	}
-	r.turnedExternal[accountID] = turnedExternal{roles: roles, projects: projects}
-	return nil
+	return note, nil
 }
 
 func taskOutcome(task syncTask, outcome, reason string) systemResponse.LDAPSyncOutcome {
@@ -512,15 +500,34 @@ func (r *syncRun) apply(task syncTask) (string, error) {
 			return "username_taken", err
 		}
 		profile := ldapProfileColumns(entry, r.cfg)
-		if err := r.db().Model(&systemModel.SystemUser{}).Where("id = ?", account.ID).Updates(profile).Error; err != nil {
+		turnsExternal := personTypeOrDefault(account.PersonType) != PersonExternal && profile["person_type"] == PersonExternal
+		var note turnedExternal
+		// The hand-over read commits with the write: if it fails, the type
+		// change rolls back and stays visible to the next preview, instead of
+		// a changed type reported as a failed write.
+		err = r.db().Transaction(func(tx *gorm.DB) error {
+			if err := tx.Model(&systemModel.SystemUser{}).Where("id = ?", account.ID).Updates(profile).Error; err != nil {
+				return err
+			}
+			if !turnsExternal {
+				return nil
+			}
+			var err error
+			note, err = readHandover(tx, account.ID)
+			return err
+		})
+		if err != nil {
 			return "", err
 		}
 		// Invalidate before the lock is released, not only when the whole run
 		// ends: a person now external must lose admin and approval roles on
 		// the next request even if the run has many people left.
 		InvalidateUserAuthState(account.ID)
-		if personTypeOrDefault(account.PersonType) != PersonExternal && profile["person_type"] == PersonExternal {
-			return "", r.noteTurnedExternal(account.ID)
+		if turnsExternal {
+			if r.turnedExternal == nil {
+				r.turnedExternal = map[uint]turnedExternal{}
+			}
+			r.turnedExternal[account.ID] = note
 		}
 		return "", nil
 

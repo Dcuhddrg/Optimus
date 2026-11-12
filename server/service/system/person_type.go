@@ -5,6 +5,8 @@ import (
 	"time"
 
 	systemModel "optimus/server/model/system"
+
+	"gorm.io/gorm"
 )
 
 // Person types (design 3.6). External accounts expire, need a sponsor, and
@@ -111,4 +113,20 @@ func expiresOn(expiresAt *time.Time) *string {
 // expiry restores the account at once.
 func accountExpired(personType string, expiresAt *time.Time, now time.Time) bool {
 	return personTypeOrDefault(personType) == PersonExternal && expiresAt != nil && now.After(*expiresAt)
+}
+
+// ownedProjectsByUser lists, per user, the codes of projects they own.
+func ownedProjectsByUser(db *gorm.DB) (map[uint][]string, error) {
+	var owned []struct {
+		UserID uint
+		Code   string
+	}
+	if err := db.Table("user_projects AS up").Select("up.user_id, p.code").Joins("JOIN projects AS p ON p.id = up.project_id").Where("up.project_role = ? AND p.deleted_at IS NULL", "owner").Order("p.code").Scan(&owned).Error; err != nil {
+		return nil, err
+	}
+	projects := map[uint][]string{}
+	for _, o := range owned {
+		projects[o.UserID] = append(projects[o.UserID], o.Code)
+	}
+	return projects, nil
 }

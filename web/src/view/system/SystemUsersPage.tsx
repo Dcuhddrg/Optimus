@@ -85,6 +85,8 @@ export function SystemUsersPage() {
     if (user.expired) parts.push(t('system.users.expired'));
     if (user.sponsorInvalid) parts.push(t('system.users.sponsorInvalid'));
     if (!user.expiresOn || !user.sponsorId) parts.push(t('system.users.missingControls'));
+    if (user.restrictedRoles?.length) parts.push(t('system.users.restrictedRoles').replace('{roles}', user.restrictedRoles.join(', ')));
+    if (user.ownedProjects?.length) parts.push(t('system.users.ownedProjects').replace('{projects}', user.ownedProjects.join(', ')));
     return parts.join(' · ');
   }
 
@@ -107,7 +109,7 @@ export function SystemUsersPage() {
                 {user.source === 'ldap' && !user.bound ? ` · ${t('system.users.pendingBinding')}` : null}
               </p>
               {user.personType === 'external' ? (
-                <p className={user.expired || user.sponsorInvalid ? styles.warning : undefined}>
+                <p className={user.expired || user.sponsorInvalid || user.restrictedRoles?.length || user.ownedProjects?.length ? styles.warning : undefined}>
                   {externalLine(user)}{' '}
                   {editing === user.id ? null : (
                     <button type="button" className={styles.link} onClick={() => setEditing(user.id)}>

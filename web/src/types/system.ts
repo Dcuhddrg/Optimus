@@ -23,6 +23,10 @@ export interface SystemUser {
   sponsor?: string;
   sponsorInvalid?: boolean;
   expired?: boolean;
+  // External accounts: held admin/approval roles that do not apply, and
+  // projects still owned, until removed or handed over.
+  restrictedRoles?: string[];
+  ownedProjects?: string[];
 }
 
 export interface CurrentUserResponse {

@@ -39,6 +39,10 @@ func (s *UserService) ListUsers(ctx context.Context) (systemResponse.UserListRes
 		byID[user.ID] = user
 	}
 	now := time.Now()
+	owned, err := ownedProjectsByUser(global.OPTIMUS_DB.WithContext(ctx))
+	if err != nil {
+		return systemResponse.UserListResult{}, err
+	}
 	items := make([]systemResponse.UserListItem, 0, len(users))
 	for _, user := range users {
 		roles, err := queryUserRoles(ctx, user.ID)
@@ -49,6 +53,12 @@ func (s *UserService) ListUsers(ctx context.Context) (systemResponse.UserListRes
 		item := systemResponse.UserListItem{SystemUserSummary: summarizeUser(user), Roles: roleCodes}
 		if personTypeOrDefault(user.PersonType) == PersonExternal {
 			item.Expired = accountExpired(user.PersonType, user.ExpiresAt, now)
+			for _, role := range roles {
+				if isRestrictedForExternal(role.Code, role.Approvable) {
+					item.RestrictedRoles = append(item.RestrictedRoles, role.Code)
+				}
+			}
+			item.OwnedProjects = owned[user.ID]
 			if user.SponsorID != nil {
 				sponsor, ok := byID[*user.SponsorID]
 				item.Sponsor = sponsor.Username

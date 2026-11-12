@@ -31,4 +31,9 @@ type UserListItem struct {
 	Sponsor        string `json:"sponsor,omitempty"`
 	SponsorInvalid bool   `json:"sponsorInvalid,omitempty"`
 	Expired        bool   `json:"expired,omitempty"`
+	// For an external account: held roles that do not apply (admin and
+	// approval roles) and projects it still owns, until an administrator
+	// removes or hands them over (design 3.6).
+	RestrictedRoles []string `json:"restrictedRoles,omitempty"`
+	OwnedProjects   []string `json:"ownedProjects,omitempty"`
 }

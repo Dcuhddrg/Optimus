@@ -2,7 +2,9 @@ package system
 
 import (
 	"context"
+	"errors"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -12,6 +14,7 @@ import (
 	systemRequest "optimus/server/model/system/request"
 
 	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
 )
 
 func TestPersonTypeClassification(t *testing.T) {
@@ -291,4 +294,48 @@ func TestLDAPSyncInvalidatesEachTurnedExternalAtOnce(t *testing.T) {
 	require.Equal(t, []string{AdminRoleCode}, outcome.RestrictedRoles)
 	require.Equal(t, []string{project.Code}, outcome.OwnedProjects)
 	require.False(t, outcomeOf(result, "zed").TurnedExternal)
+}
+
+// If reading the hand-over fails, the type change rolls back with it: the
+// result's write failure is true, and the next preview still flags the
+// change. The user list keeps showing what an external account still holds.
+func TestLDAPSyncHandoverReadFailureRollsBackTypeChange(t *testing.T) {
+	f := newSyncFixture(t, externalEntry("dan", "id-dan"))
+	dan := f.account(t, "dan", strp("id-dan"))
+	require.NoError(t, f.db.Model(&dan).Updates(map[string]any{"display_name": "DAN", "email": "dan@optimus.test", "department": "ops"}).Error)
+	admin := systemModel.SystemRole{Code: AdminRoleCode, Name: "admin"}
+	require.NoError(t, f.db.Create(&admin).Error)
+	require.NoError(t, f.db.Create(&systemModel.SystemUserRole{UserID: dan.ID, RoleID: admin.ID}).Error)
+	preview := f.preview(t)
+
+	failing := false
+	require.NoError(t, f.db.Callback().Query().Before("gorm:query").Register("test:fail_handover", func(tx *gorm.DB) {
+		if failing && tx.Statement.TableExpr != nil && strings.HasPrefix(tx.Statement.TableExpr.SQL, "user_projects") {
+			tx.AddError(errors.New("handover read failed"))
+		}
+	}))
+	t.Cleanup(func() { _ = f.db.Callback().Query().Remove("test:fail_handover") })
+	failing = true
+	result := f.execute(t, systemRequest.LDAPSyncExecuteRequest{PreviewID: preview.PreviewID})
+	failing = false
+	require.Equal(t, syncStatusPartial, result.Status)
+	require.Equal(t, "write_failed", outcomeOf(result, "dan").Reason)
+	require.Equal(t, PersonEmployee, f.reload(t, dan.ID).PersonType, "rolled back with the failed read")
+
+	again := f.preview(t)
+	for _, item := range again.Items {
+		if item.Account != nil && item.Account.ID == dan.ID {
+			require.Equal(t, []string{AdminRoleCode}, item.RestrictedRoles, "still flagged for the admin")
+		}
+	}
+
+	// Turned external some other way (login): the user list keeps flagging it.
+	require.NoError(t, f.db.Model(&dan).Update("person_type", PersonExternal).Error)
+	list, err := (&UserService{}).ListUsers(context.Background())
+	require.NoError(t, err)
+	for _, item := range list.Items {
+		if item.ID == dan.ID {
+			require.Equal(t, []string{AdminRoleCode}, item.RestrictedRoles)
+		}
+	}
 }
