@@ -48,7 +48,10 @@ type Config struct {
 	DisplayNameAttr string
 	EmailAttr       string
 	DepartmentAttr  string
-	IDAttr          string
+	// EmployeeTypeAttr is read with all its values (employeeType is
+	// multi-valued); empty means not read.
+	EmployeeTypeAttr string
+	IDAttr           string
 }
 
 // User is a directory entry read for one user. Empty attributes stay empty:
@@ -59,7 +62,9 @@ type User struct {
 	DisplayName string
 	Email       string
 	Department  string
-	ExternalID  string
+	// EmployeeTypes are all values of EmployeeTypeAttr.
+	EmployeeTypes []string
+	ExternalID    string
 	// Version is entryCSN (OpenLDAP) or modifyTimestamp; rename and move
 	// update it.
 	Version string
@@ -236,7 +241,7 @@ func (c *GoLDAPClient) searchRequest(base string, scope int, sizeLimit int, filt
 // which a server only returns when asked for by name.
 func userAttributes(cfg Config) []string {
 	attrs := []string{attrEntryCSN, attrModifyTimestamp}
-	for _, attr := range []string{cfg.UsernameAttr, cfg.DisplayNameAttr, cfg.EmailAttr, cfg.DepartmentAttr, cfg.IDAttr} {
+	for _, attr := range []string{cfg.UsernameAttr, cfg.DisplayNameAttr, cfg.EmailAttr, cfg.DepartmentAttr, cfg.EmployeeTypeAttr, cfg.IDAttr} {
 		if attr != "" {
 			attrs = append(attrs, attr)
 		}

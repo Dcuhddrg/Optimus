@@ -43,6 +43,11 @@ type LDAPSyncItem struct {
 	Entry      *LDAPSyncEntry        `json:"entry,omitempty"`
 	Changes    []LDAPSyncFieldChange `json:"changes,omitempty"`
 	Suspicious bool                  `json:"suspicious,omitempty"`
+	// RestrictedRoles and OwnedProjects are set when an update turns an
+	// employee into an external person: those roles stop applying at once;
+	// the admin should remove them and hand the projects to an employee.
+	RestrictedRoles []string `json:"restrictedRoles,omitempty"`
+	OwnedProjects   []string `json:"ownedProjects,omitempty"`
 }
 
 // LDAPSyncPreview is a read-only sync plan. Executing it needs PreviewID.
@@ -66,6 +71,12 @@ type LDAPSyncOutcome struct {
 	Username  string `json:"username"`
 	Outcome   string `json:"outcome"`
 	Reason    string `json:"reason,omitempty"`
+	// TurnedExternal marks an update that made an employee external;
+	// RestrictedRoles stopped applying and OwnedProjects need another owner,
+	// both read right after the write.
+	TurnedExternal  bool     `json:"turnedExternal,omitempty"`
+	RestrictedRoles []string `json:"restrictedRoles,omitempty"`
+	OwnedProjects   []string `json:"ownedProjects,omitempty"`
 }
 
 // LDAPSyncResult reports an execution. Status is completed or partial

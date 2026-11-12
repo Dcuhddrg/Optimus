@@ -6,6 +6,9 @@ type SystemRoleSummary struct {
 	ID   uint   `json:"id"`
 	Code string `json:"code"`
 	Name string `json:"name"`
+	// Approvable lets authorization drop approval roles for external
+	// accounts (design 3.6).
+	Approvable bool `json:"approvable"`
 }
 
 type AuditPage struct {

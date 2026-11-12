@@ -120,6 +120,9 @@ func entryUser(entry *ldap.Entry, cfg Config) User {
 		ExternalID:  firstLDAPAttr(entry, cfg.IDAttr, ""),
 		Version:     entryVersion(entry),
 	}
+	if cfg.EmployeeTypeAttr != "" {
+		user.EmployeeTypes = entry.GetAttributeValues(cfg.EmployeeTypeAttr)
+	}
 	if raw := entry.GetAttributeValue(attrCreateTimestamp); raw != "" {
 		if created, err := ber.ParseGeneralizedTime([]byte(raw)); err == nil {
 			user.CreatedAt = &created

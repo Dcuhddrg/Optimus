@@ -56,6 +56,21 @@ type syncAccount struct {
 	Status      string
 	CreatedAt   time.Time
 	Roles       []string
+	PersonType  string
+	// RestrictedRoles are held roles an external account cannot use (admin
+	// and approval roles); OwnedProjects are projects it owns (design 3.6).
+	RestrictedRoles []string
+	OwnedProjects   []string
+}
+
+// planMapping is the part of the config that maps entries to profiles.
+type planMapping struct {
+	syncDepartment bool
+	personType     func(LDAPUser) string
+}
+
+func mappingOf(cfg systemModel.SystemLDAPConfig) planMapping {
+	return planMapping{syncDepartment: cfg.DepartmentAttr != "", personType: func(e LDAPUser) string { return personTypeOf(e, cfg) }}
 }
 
 func (a syncAccount) externalID() string {
@@ -79,6 +94,11 @@ type syncItem struct {
 	// after the account, or whose creation time is unreadable: the uid was
 	// likely reused, so it cannot be confirmed in bulk.
 	Suspicious bool
+	// RestrictedRoles and OwnedProjects are set on an update that turns an
+	// employee into an external person: the roles stop applying at once and
+	// the admin should remove them and hand the projects over (design 3.6).
+	RestrictedRoles []string
+	OwnedProjects   []string
 }
 
 // accountSideID and entrySideID are the identities the snapshot records.
@@ -112,7 +132,7 @@ type absenceCheck func(externalID string) (bool, error)
 // buildSyncPlan compares the sync scope with the LDAP accounts. accounts
 // holds every account, local ones included, so usernames they hold count as
 // taken. syncDepartment is false when department_attr is empty.
-func buildSyncPlan(entries []LDAPUser, accounts []syncAccount, syncDepartment bool, configChanged bool, exists absenceCheck) syncPlan {
+func buildSyncPlan(entries []LDAPUser, accounts []syncAccount, mapping planMapping, configChanged bool, exists absenceCheck) syncPlan {
 	plan := syncPlan{ConfigChanged: configChanged}
 
 	// Identify entries: both a username and an identity, each unique in scope.
@@ -173,8 +193,12 @@ func buildSyncPlan(entries []LDAPUser, accounts []syncAccount, syncDepartment bo
 				plan.Items = append(plan.Items, syncItem{Category: SyncDisabledInfo, Account: owner, Entry: &e})
 				continue
 			}
-			if changes := profileChanges(*owner, e, syncDepartment); len(changes) > 0 {
-				plan.Items = append(plan.Items, syncItem{Category: SyncUpdate, Account: owner, Entry: &e, Changes: changes})
+			if changes := profileChanges(*owner, e, mapping); len(changes) > 0 {
+				item := syncItem{Category: SyncUpdate, Account: owner, Entry: &e, Changes: changes}
+				if personTypeOrDefault(owner.PersonType) != PersonExternal && mapping.personType(e) == PersonExternal {
+					item.RestrictedRoles, item.OwnedProjects = owner.RestrictedRoles, owner.OwnedProjects
+				}
+				plan.Items = append(plan.Items, item)
 			}
 			continue
 		}
@@ -232,7 +256,7 @@ func (i syncItem) sortKey() string {
 }
 
 // profileChanges lists the LDAP-owned fields that differ.
-func profileChanges(a syncAccount, e LDAPUser, syncDepartment bool) []syncFieldChange {
+func profileChanges(a syncAccount, e LDAPUser, mapping planMapping) []syncFieldChange {
 	var changes []syncFieldChange
 	add := func(field, before, after string) {
 		if before != after {
@@ -242,9 +266,10 @@ func profileChanges(a syncAccount, e LDAPUser, syncDepartment bool) []syncFieldC
 	add("username", a.Username, e.Username)
 	add("displayName", a.DisplayName, e.DisplayName)
 	add("email", a.Email, e.Email)
-	if syncDepartment {
+	if mapping.syncDepartment {
 		add("department", a.Department, e.Department)
 	}
+	add("personType", personTypeOrDefault(a.PersonType), mapping.personType(e))
 	return changes
 }
 

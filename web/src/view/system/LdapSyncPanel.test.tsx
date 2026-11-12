@@ -18,6 +18,7 @@ const preview = {
     { category: 'pendingBinding', account: account(7, 'later'), entry: entry('later', 'id-later'), suspicious: true },
     { category: 'conflict', reason: 'username_reused', account: account(8, 'gina'), entry: entry('gina', 'id-new-gina') },
     { category: 'outOfScope', account: account(4, 'dan') },
+    { category: 'update', account: account(9, 'ivan'), entry: entry('ivan', 'id-ivan'), changes: [{ field: 'personType', before: 'employee', after: 'external' }], restrictedRoles: ['admin'], ownedProjects: ['ops'] },
     { category: 'conflict', reason: 'local_account', account: { ...account(1, 'admin'), roles: ['admin'] }, entry: entry('admin', 'id-admin') },
   ],
 };
@@ -27,7 +28,7 @@ let fetcher: ReturnType<typeof vi.fn>;
 
 function respond(url: string) {
   if (url.endsWith('/system/ldap/sync/preview')) return ok(preview);
-  if (url.endsWith('/system/ldap/sync/execute')) return ok({ status: 'completed', outcomes: [{ action: 'create', username: 'hank', outcome: 'done' }] });
+  if (url.endsWith('/system/ldap/sync/execute')) return ok({ status: 'completed', outcomes: [{ action: 'create', username: 'hank', outcome: 'done' }, { action: 'update', accountId: 9, username: 'ivan', outcome: 'done', turnedExternal: true, restrictedRoles: ['admin'], ownedProjects: ['late'] }] });
   return ok({});
 }
 const button = (text: string) => [...container.querySelectorAll('button')].find((b) => b.textContent === text)!;
@@ -54,6 +55,8 @@ describe('LDAP sync panel', () => {
     expect(row('erin').querySelector('select')!.value).toBe('bind');
     expect(row('later').querySelector('select')!.value).toBe('leave');
     expect(row('admin').querySelector('input')).toBeNull();
+    expect(row('ivan').textContent).toContain('roles admin stop applying');
+    expect(row('ivan').textContent).toContain('owns projects ops');
     expect(row('admin').textContent).toContain('rename the directory entry');
 
     await click(row('gina').querySelector('input')!);
@@ -64,6 +67,9 @@ describe('LDAP sync panel', () => {
     expect(JSON.parse(init.body)).toEqual({ previewId: 'p-1', disable: [4], bind: [6], separate: [8] });
     expect(container.textContent).toContain('Sync completed');
     expect(onDone).toHaveBeenCalled();
+    const result = container.querySelector('[role="status"]')!.textContent;
+    expect(result).toContain('owns projects late');
+    expect(result).toContain('roles admin stop applying');
   });
 
   it('disables the disable choices when disables are blocked', async () => {

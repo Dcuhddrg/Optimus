@@ -8,6 +8,7 @@ import (
 	projectResponse "optimus/server/model/project/response"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 func (s *ProjectService) AddMember(ctx context.Context, actorID uint, code string, userID uint, role string) error {
@@ -21,25 +22,28 @@ func (s *ProjectService) AddMember(ctx context.Context, actorID uint, code strin
 	if !IsValidProjectRole(role) {
 		return ErrInvalidProjectRole
 	}
-	var users int64
-	if err := global.OPTIMUS_DB.WithContext(ctx).
-		Table("sys_users").
-		Where("id = ?", userID).
-		Count(&users).Error; err != nil {
-		return err
-	}
-	if users == 0 {
-		return ErrUserNotFound
-	}
-	m := projectModel.UserProject{
-		UserID:      userID,
-		ProjectID:   p.ID,
-		ProjectRole: role,
-	}
-	return global.OPTIMUS_DB.WithContext(ctx).
-		Where("user_id = ? AND project_id = ?", m.UserID, m.ProjectID).
-		Assign(map[string]any{"project_role": m.ProjectRole}).
-		FirstOrCreate(&m).Error
+	return global.OPTIMUS_DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if role == RoleOwner {
+			if err := refuseExternalOwner(tx, userID); err != nil {
+				return err
+			}
+		}
+		var users int64
+		if err := tx.Table("sys_users").Where("id = ?", userID).Count(&users).Error; err != nil {
+			return err
+		}
+		if users == 0 {
+			return ErrUserNotFound
+		}
+		m := projectModel.UserProject{
+			UserID:      userID,
+			ProjectID:   p.ID,
+			ProjectRole: role,
+		}
+		return tx.Where("user_id = ? AND project_id = ?", m.UserID, m.ProjectID).
+			Assign(map[string]any{"project_role": m.ProjectRole}).
+			FirstOrCreate(&m).Error
+	})
 }
 
 func (s *ProjectService) UpdateMemberRole(ctx context.Context, actorID uint, code string, userID uint, role string) error {
@@ -69,10 +73,16 @@ func (s *ProjectService) UpdateMemberRole(ctx context.Context, actorID uint, cod
 	if _, err := s.findMember(ctx, userID, p.ID); err != nil {
 		return err
 	}
-	return global.OPTIMUS_DB.WithContext(ctx).
-		Model(&projectModel.UserProject{}).
-		Where("user_id = ? AND project_id = ?", userID, p.ID).
-		Update("project_role", role).Error
+	return global.OPTIMUS_DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if role == RoleOwner {
+			if err := refuseExternalOwner(tx, userID); err != nil {
+				return err
+			}
+		}
+		return tx.Model(&projectModel.UserProject{}).
+			Where("user_id = ? AND project_id = ?", userID, p.ID).
+			Update("project_role", role).Error
+	})
 }
 
 func (s *ProjectService) RemoveMember(ctx context.Context, actorID uint, code string, userID uint) error {
@@ -154,6 +164,31 @@ func (s *ProjectService) requireOwner(ctx context.Context, actorID, projectID ui
 	}
 	if m.ProjectRole != RoleOwner {
 		return ErrForbidden
+	}
+	return nil
+}
+
+// ownerLockedHook lets tests pause after the user row is locked.
+var ownerLockedHook func(userID uint)
+
+// refuseExternalOwner rejects making an external account a project owner
+// (user management design 3.6). It locks the user row (SELECT ... FOR
+// UPDATE) in tx, which must also write the ownership: a person type change
+// by LDAP login or sync updates that row, so it either commits first and the
+// owner write is refused, or waits until the ownership is committed, and the
+// sync then lists the project for hand-over. An owner who later becomes
+// external keeps ownership until it is handed over.
+func refuseExternalOwner(tx *gorm.DB, userID uint) error {
+	var rows []struct{ PersonType string }
+	err := tx.Table("sys_users").Select("person_type").Where("id = ?", userID).Clauses(clause.Locking{Strength: "UPDATE"}).Scan(&rows).Error
+	if err != nil {
+		return err
+	}
+	if hook := ownerLockedHook; hook != nil {
+		hook(userID)
+	}
+	if len(rows) > 0 && rows[0].PersonType == "external" {
+		return ErrExternalCannotOwn
 	}
 	return nil
 }

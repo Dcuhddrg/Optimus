@@ -13,6 +13,9 @@ var (
 	ErrMemberNotFound        = errors.New("member not found")
 	ErrCannotRemoveLastOwner = errors.New("cannot remove the last project owner")
 	ErrUserNotFound          = errors.New("target user does not exist")
+	// ErrExternalCannotOwn: external accounts cannot be project owners
+	// (user management design 3.6).
+	ErrExternalCannotOwn = errors.New("external accounts cannot be project owners")
 )
 
 const (

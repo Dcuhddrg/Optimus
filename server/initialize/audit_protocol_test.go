@@ -48,7 +48,7 @@ func TestAuditProtocolThroughRealRouter(t *testing.T) {
 			token, err := utils.NewJWT().CreateToken(utils.NewJWT().CreateClaims(utils.BaseClaims{ID: 1, Username: "admin", RoleIDs: []uint{1}, RoleCodes: []string{"admin"}}))
 			require.NoError(t, err)
 			base := strings.TrimRight(prefix, "/")
-			require.Len(t, Routers().Routes(), 41) // includes /swagger/*any (#73) and the two LDAP sync routes (#80)
+			require.Len(t, Routers().Routes(), 42) // includes /swagger/*any (#73), the two LDAP sync routes and the external user route (#80)
 			request := func(path, credential string) *httptest.ResponseRecorder {
 				global.OPTIMUS_DB = db
 				if missing {

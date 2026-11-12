@@ -1,6 +1,7 @@
 package system
 
 import (
+	projectModel "optimus/server/model/project"
 	"os"
 	"testing"
 
@@ -40,6 +41,9 @@ func openTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
 	db := resetTestDB(t)
 	require.NoError(t, AutoMigrateSystem(db))
+	// The LDAP sync preview reads project ownership (design 3.6).
+	require.NoError(t, db.AutoMigrate(&projectModel.Project{}, &projectModel.UserProject{}))
+	require.NoError(t, db.Exec("DELETE FROM user_projects").Error)
 	previous := global.OPTIMUS_DB
 	t.Cleanup(func() { global.OPTIMUS_DB = previous; utils.ResetCasbin() })
 	global.OPTIMUS_DB = db

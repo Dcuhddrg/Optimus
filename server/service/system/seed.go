@@ -88,6 +88,7 @@ func DefaultSystemPermissions() []systemModel.SystemPermission {
 		{Code: "system.users.update", Name: "Update users", Type: "api", Method: "PUT", Path: "/system/users/:id", Sort: 201},
 		{Code: "system.users.status.update", Name: "Update user status", Type: "api", Method: "PATCH", Path: "/system/users/:id/status", Sort: 202},
 		{Code: "system.users.roles.update", Name: "Update user roles", Type: "api", Method: "PUT", Path: "/system/users/:id/roles", Sort: 203},
+		{Code: "system.users.external.update", Name: "Update external user expiry and sponsor", Type: "api", Method: "PUT", Path: "/system/users/:id/external", Sort: 204},
 		{Code: "system.roles.view", Name: "View roles", Type: "api", Method: "GET", Path: "/system/roles", Sort: 300},
 		{Code: "system.roles.create", Name: "Create roles", Type: "api", Method: "POST", Path: "/system/roles", Sort: 301},
 		{Code: "system.roles.update", Name: "Update roles", Type: "api", Method: "PUT", Path: "/system/roles/:id", Sort: 302},

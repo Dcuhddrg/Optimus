@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"sync"
+	"time"
 
 	"optimus/server/global"
 	systemModel "optimus/server/model/system"
@@ -15,14 +16,24 @@ import (
 // loaded per request (through the cache) instead of trusting the token, so a
 // disabled user or a revoked role takes effect on the next request.
 type UserAuthState struct {
-	Exists  bool
-	Status  string
-	RoleIDs []uint
+	Exists bool
+	Status string
+	// RoleIDs are the effective roles: for an external account, none while
+	// its expiry or sponsor is missing, and never admin or approval roles.
+	RoleIDs    []uint
+	PersonType string
+	ExpiresAt  *time.Time
 }
 
 // Enabled reports whether the user may use the system at all.
 func (s UserAuthState) Enabled() bool {
 	return s.Exists && s.Status == DefaultUserStatus
+}
+
+// Expired compares the cached expiry with now on every request, so expiry
+// needs no timer and no cache invalidation (design 3.6).
+func (s UserAuthState) Expired(now time.Time) bool {
+	return accountExpired(s.PersonType, s.ExpiresAt, now)
 }
 
 // authStateCache keeps UserAuthState per user ID. Every invalidation bumps a
@@ -120,7 +131,7 @@ func loadUserAuthStateFromDB(ctx context.Context, userID uint) (UserAuthState, e
 		return UserAuthState{}, errors.New("database is not available")
 	}
 	var user systemModel.SystemUser
-	err := global.OPTIMUS_DB.WithContext(ctx).Select("id", "status").Where("id = ?", userID).First(&user).Error
+	err := global.OPTIMUS_DB.WithContext(ctx).Select("id", "status", "person_type", "expires_at", "sponsor_id").Where("id = ?", userID).First(&user).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return UserAuthState{Exists: false, RoleIDs: []uint{}}, nil
 	}
@@ -131,6 +142,6 @@ func loadUserAuthStateFromDB(ctx context.Context, userID uint) (UserAuthState, e
 	if err != nil {
 		return UserAuthState{}, err
 	}
-	roleIDs, _ := summarizeRoles(roles)
-	return UserAuthState{Exists: true, Status: user.Status, RoleIDs: roleIDs}, nil
+	roleIDs, _ := summarizeRoles(effectiveRoles(user, roles))
+	return UserAuthState{Exists: true, Status: user.Status, RoleIDs: roleIDs, PersonType: personTypeOrDefault(user.PersonType), ExpiresAt: user.ExpiresAt}, nil
 }

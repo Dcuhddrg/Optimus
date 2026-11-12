@@ -146,6 +146,8 @@ export function LdapSyncPanel({ onDone }: { onDone: () => void }) {
     const parts: string[] = [];
     if (item.reason) parts.push(t(`system.ldapSync.reason.${item.reason}` as MessageKey));
     if (item.changes?.length) parts.push(item.changes.map((c) => `${c.field}: ${c.before || '—'} → ${c.after || '—'}`).join('; '));
+    if (item.restrictedRoles?.length) parts.push(t('system.ldapSync.restrictedRoles').replace('{roles}', item.restrictedRoles.join(', ')));
+    if (item.ownedProjects?.length) parts.push(t('system.ldapSync.ownedProjects').replace('{projects}', item.ownedProjects.join(', ')));
     if (item.category === 'pendingBinding' || item.category === 'conflict') {
       const a = item.account;
       const e = item.entry;
@@ -225,6 +227,8 @@ export function LdapSyncPanel({ onDone }: { onDone: () => void }) {
                 <span>{t(`system.ldapSync.action.${o.action}` as MessageKey)}</span>
                 <span>{t(`system.ldapSync.outcome.${o.outcome}` as MessageKey)}</span>
                 {o.reason ? <span>{o.reason}</span> : null}
+                {o.restrictedRoles?.length ? <span>{t('system.ldapSync.restrictedRoles').replace('{roles}', o.restrictedRoles.join(', '))}</span> : null}
+                {o.ownedProjects?.length ? <span>{t('system.ldapSync.ownedProjects').replace('{projects}', o.ownedProjects.join(', '))}</span> : null}
               </li>
             ))}
           </ul>

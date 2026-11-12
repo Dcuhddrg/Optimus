@@ -36,6 +36,10 @@ func (s *ProjectService) Create(ctx context.Context, actorID uint, req projectRe
 		Status:      statusActive,
 	}
 	if err := global.OPTIMUS_DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// The creator becomes the owner.
+		if err := refuseExternalOwner(tx, actorID); err != nil {
+			return err
+		}
 		if err := tx.Create(p).Error; err != nil {
 			if isDuplicateKeyError(err) {
 				return ErrProjectCodeTaken

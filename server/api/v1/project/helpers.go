@@ -27,7 +27,8 @@ func writeProjectError(c *gin.Context, err error) {
 	case errors.Is(err, projectSvc.ErrInvalidProjectCode),
 		errors.Is(err, projectSvc.ErrInvalidProjectName),
 		errors.Is(err, projectSvc.ErrInvalidProjectRole),
-		errors.Is(err, projectSvc.ErrUserNotFound):
+		errors.Is(err, projectSvc.ErrUserNotFound),
+		errors.Is(err, projectSvc.ErrExternalCannotOwn):
 		response.FailWithMessage(err.Error(), c)
 	case errors.Is(err, projectSvc.ErrForbidden):
 		response.FailWithMessage(err.Error(), c)

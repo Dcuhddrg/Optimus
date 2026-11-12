@@ -19,6 +19,8 @@ const emptyConfig: LDAPConfig = {
   emailAttr: 'mail',
   idAttr: 'entryUUID',
   departmentAttr: 'departmentNumber',
+  employeeTypeAttr: 'employeeType',
+  externalTypeValues: ['contractor'],
 };
 
 // Directory-generated unique identifiers (design 3.3); AD's binary objectGUID
@@ -154,6 +156,18 @@ export function SystemLdapPage() {
               value={config.departmentAttr}
               onChange={(event) => update('departmentAttr', event.target.value)}
             />
+          </label>
+          <label className={styles.field}>
+            <span>{t('system.ldap.employeeTypeAttributeLabel')}</span>
+            <input value={config.employeeTypeAttr} onChange={(event) => update('employeeTypeAttr', event.target.value)} />
+          </label>
+          <label className={styles.field}>
+            <span>{t('system.ldap.externalTypeValuesLabel')}</span>
+            <input
+              value={(config.externalTypeValues ?? []).join(', ')}
+              onChange={(event) => update('externalTypeValues', event.target.value.split(',').map((v) => v.trim()).filter(Boolean))}
+            />
+            <small>{t('system.ldap.externalTypeValuesHint')}</small>
           </label>
           <label className={styles.field}>
             <span>{t('system.ldap.idAttributeLabel')}</span>
