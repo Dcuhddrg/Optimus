@@ -13,6 +13,11 @@ type LDAPConfigRequest struct {
 	IDAttr          string `json:"idAttr"`
 	// DepartmentAttr nil keeps the saved value; "" stops syncing departments.
 	DepartmentAttr *string `json:"departmentAttr"`
+	// EmployeeTypeAttr "" keeps the saved value (employeeType by default).
+	EmployeeTypeAttr string `json:"employeeTypeAttr"`
+	// ExternalTypeValues nil keeps the saved list; an empty list means
+	// nobody is external.
+	ExternalTypeValues *[]string `json:"externalTypeValues"`
 }
 
 type LDAPTestRequest struct {

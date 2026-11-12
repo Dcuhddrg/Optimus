@@ -22,6 +22,10 @@ var jwtService = service.ServiceGroupApp.SystemServiceGroup.JwtService
 // frontend shows it on the login page.
 const AccountDisabledMessage = "account is disabled"
 
+// AccountExpiredMessage is the 401 msg for an external account past its
+// expiry (design 3.6).
+const AccountExpiredMessage = "account has expired"
+
 // authStateLoader loads the user's current status and roles; tests replace it.
 var authStateLoader = func(ctx context.Context, userID uint) (systemService.UserAuthState, error) {
 	return service.ServiceGroupApp.SystemServiceGroup.AuthStateService.LoadUserAuthState(ctx, userID)
@@ -74,6 +78,12 @@ func JWTAuth() gin.HandlerFunc {
 		}
 		if !state.Enabled() {
 			response.NoAuth(AccountDisabledMessage, c)
+			utils.ClearToken(c)
+			c.Abort()
+			return
+		}
+		if state.Expired(time.Now()) {
+			response.NoAuth(AccountExpiredMessage, c)
 			utils.ClearToken(c)
 			c.Abort()
 			return

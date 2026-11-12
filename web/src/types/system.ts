@@ -12,6 +12,17 @@ export interface SystemUser {
   source: 'local' | 'ldap' | string;
   status: 'enabled' | 'disabled' | string;
   roles?: string[];
+  // Design 3.6: from the directory's employee type, read-only.
+  personType?: 'employee' | 'external' | string;
+  // External accounts only, set by an administrator. expiresOn is the last
+  // valid day (YYYY-MM-DD). Without both the account has no permissions.
+  expiresOn?: string | null;
+  sponsorId?: number | null;
+  // User list only: the sponsor's username, whether the sponsor is no longer
+  // an enabled employee, and whether the account is past its expiry.
+  sponsor?: string;
+  sponsorInvalid?: boolean;
+  expired?: boolean;
 }
 
 export interface CurrentUserResponse {
@@ -63,6 +74,10 @@ export interface LDAPConfig {
   idAttr: string;
   // Empty: departments are not synced.
   departmentAttr: string;
+  // Person type attribute; entries with a value in externalTypeValues are
+  // external (design 3.6). An empty list means nobody is external.
+  employeeTypeAttr: string;
+  externalTypeValues: string[];
   boundUsers?: number;
 }
 
@@ -148,6 +163,10 @@ export interface LDAPSyncItem {
   // Pending binding whose directory entry is newer than the account (or of
   // unknown age): likely a reused uid, confirm one by one.
   suspicious?: boolean;
+  // Set when an update turns an employee into an external person: these
+  // roles stop applying and these projects need another owner.
+  restrictedRoles?: string[];
+  ownedProjects?: string[];
 }
 
 export interface LDAPSyncPreview {

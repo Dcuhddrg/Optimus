@@ -18,6 +18,7 @@ const preview = {
     { category: 'pendingBinding', account: account(7, 'later'), entry: entry('later', 'id-later'), suspicious: true },
     { category: 'conflict', reason: 'username_reused', account: account(8, 'gina'), entry: entry('gina', 'id-new-gina') },
     { category: 'outOfScope', account: account(4, 'dan') },
+    { category: 'update', account: account(9, 'ivan'), entry: entry('ivan', 'id-ivan'), changes: [{ field: 'personType', before: 'employee', after: 'external' }], restrictedRoles: ['admin'], ownedProjects: ['ops'] },
     { category: 'conflict', reason: 'local_account', account: { ...account(1, 'admin'), roles: ['admin'] }, entry: entry('admin', 'id-admin') },
   ],
 };
@@ -54,6 +55,8 @@ describe('LDAP sync panel', () => {
     expect(row('erin').querySelector('select')!.value).toBe('bind');
     expect(row('later').querySelector('select')!.value).toBe('leave');
     expect(row('admin').querySelector('input')).toBeNull();
+    expect(row('ivan').textContent).toContain('roles admin stop applying');
+    expect(row('ivan').textContent).toContain('owns projects ops');
     expect(row('admin').textContent).toContain('rename the directory entry');
 
     await click(row('gina').querySelector('input')!);

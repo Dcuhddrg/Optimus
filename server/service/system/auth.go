@@ -18,6 +18,8 @@ import (
 var (
 	ErrInvalidCredentials = errors.New("invalid credentials")
 	ErrUserDisabled       = errors.New("user disabled")
+	// ErrAccountExpired: an external account past its expiry (design 3.6).
+	ErrAccountExpired = errors.New("account has expired")
 
 	// LDAP login refusals (design 3.3); the messages reach the login page.
 	ErrLDAPAccountConflict   = errors.New("account conflict, contact an administrator")
@@ -85,6 +87,10 @@ func (s *AuthService) loginLDAP(ctx context.Context, req systemRequest.LoginRequ
 		s.writeAudit(ctx, loginFailure(req.Username, meta, user.ID, "user_disabled"))
 		return systemResponse.LoginResult{}, ErrUserDisabled
 	}
+	if accountExpired(user.PersonType, user.ExpiresAt, time.Now()) {
+		s.writeAudit(ctx, loginFailure(req.Username, meta, user.ID, "account_expired"))
+		return systemResponse.LoginResult{}, ErrAccountExpired
+	}
 	result, err := s.issueLoginResult(ctx, user, meta)
 	if err != nil {
 		s.writeAudit(ctx, loginFailure(req.Username, meta, user.ID, "session_issue_failed"))
@@ -118,7 +124,7 @@ func (s *AuthService) issueLoginResult(ctx context.Context, user systemModel.Sys
 	if err != nil {
 		return systemResponse.LoginResult{}, err
 	}
-	roleIDs, roleCodes := summarizeRoles(roles)
+	roleIDs, roleCodes := summarizeRoles(effectiveRoles(user, roles))
 	menuPermissions, err := s.menuPermissionCodesForRoles(ctx, roleIDs)
 	if err != nil {
 		return systemResponse.LoginResult{}, err
@@ -157,7 +163,7 @@ func (s *AuthService) CurrentUser(ctx context.Context, userID uint) (systemRespo
 	if err != nil {
 		return systemResponse.CurrentUserResult{}, err
 	}
-	roleIDs, roleCodes := summarizeRoles(roles)
+	roleIDs, roleCodes := summarizeRoles(effectiveRoles(user, roles))
 	menuPermissions, err := s.menuPermissionCodesForRoles(ctx, roleIDs)
 	if err != nil {
 		return systemResponse.CurrentUserResult{}, err
@@ -197,6 +203,9 @@ func summarizeUser(user systemModel.SystemUser) systemResponse.SystemUserSummary
 		Bound:       user.ExternalID != nil,
 		Source:      user.Source,
 		Status:      user.Status,
+		PersonType:  personTypeOrDefault(user.PersonType),
+		ExpiresOn:   expiresOn(user.ExpiresAt),
+		SponsorID:   user.SponsorID,
 	}
 }
 
@@ -272,7 +281,7 @@ func (s *AuthService) syncLDAPUser(ctx context.Context, client ldapUtil.Client, 
 		username = loginName
 	}
 	current.Username = username
-	profile := ldapProfileColumns(current, conn.DepartmentAttr != "")
+	profile := ldapProfileColumns(current, cfg)
 
 	db := global.OPTIMUS_DB.WithContext(ctx)
 	var user systemModel.SystemUser
@@ -297,6 +306,10 @@ func (s *AuthService) syncLDAPUser(ctx context.Context, client ldapUtil.Client, 
 		if err := db.Model(&systemModel.SystemUser{}).Where("id = ?", user.ID).Updates(profile).Error; err != nil {
 			return systemModel.SystemUser{}, &ldapLoginFailure{reason: "user_sync_failed", err: err, userID: user.ID}
 		}
+		// The person type is part of the authorization state (design 3.1).
+		if personTypeOrDefault(user.PersonType) != profile["person_type"] {
+			InvalidateUserAuthState(user.ID)
+		}
 		// Re-read so login decides on the current status, not the earlier read.
 		var updated systemModel.SystemUser
 		if err := db.Where("id = ?", user.ID).First(&updated).Error; err != nil {
@@ -320,7 +333,7 @@ func (s *AuthService) syncLDAPUser(ctx context.Context, client ldapUtil.Client, 
 		return systemModel.SystemUser{}, &ldapLoginFailure{reason: "ldap_identity_conflict", err: ErrLDAPAccountConflict, userID: byName.ID}
 	}
 
-	created := newLDAPAccount(current, conn.DepartmentAttr != "")
+	created := newLDAPAccount(current, cfg)
 	if err := createLDAPAccount(db, &created); err != nil {
 		return systemModel.SystemUser{}, &ldapLoginFailure{reason: "user_sync_failed", err: err}
 	}
@@ -343,7 +356,7 @@ func queryUserRoles(ctx context.Context, userID uint) ([]systemModel.SystemRoleS
 	var roles []systemModel.SystemRoleSummary
 	err := global.OPTIMUS_DB.WithContext(ctx).
 		Table((&systemModel.SystemRole{}).TableName()+" AS roles").
-		Select("roles.id, roles.code, roles.name").
+		Select("roles.id, roles.code, roles.name, roles.approvable").
 		Joins("JOIN sys_user_roles user_roles ON user_roles.role_id = roles.id").
 		Where("user_roles.user_id = ?", userID).
 		Order("roles.id ASC").

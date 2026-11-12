@@ -3,6 +3,7 @@ package system
 import (
 	"context"
 	"errors"
+	"time"
 
 	"optimus/server/global"
 	systemModel "optimus/server/model/system"
@@ -20,6 +21,9 @@ var (
 	// ErrLDAPProfileReadOnly rejects profile edits of an LDAP account.
 	ErrLDAPProfileReadOnly   = errors.New("profile fields of an LDAP account come from the directory and cannot be edited")
 	ErrBuiltinAdminProtected = errors.New("built-in admin must stay enabled with the admin role")
+	// ErrExternalRoleRestricted: external accounts cannot hold the admin role
+	// or approval roles (design 3.6).
+	ErrExternalRoleRestricted = errors.New("external accounts cannot hold the admin role or approval roles")
 )
 
 type UserService struct{}
@@ -30,6 +34,11 @@ func (s *UserService) ListUsers(ctx context.Context) (systemResponse.UserListRes
 		return systemResponse.UserListResult{}, err
 	}
 
+	byID := make(map[uint]systemModel.SystemUser, len(users))
+	for _, user := range users {
+		byID[user.ID] = user
+	}
+	now := time.Now()
 	items := make([]systemResponse.UserListItem, 0, len(users))
 	for _, user := range users {
 		roles, err := queryUserRoles(ctx, user.ID)
@@ -37,10 +46,16 @@ func (s *UserService) ListUsers(ctx context.Context) (systemResponse.UserListRes
 			return systemResponse.UserListResult{}, err
 		}
 		_, roleCodes := summarizeRoles(roles)
-		items = append(items, systemResponse.UserListItem{
-			SystemUserSummary: summarizeUser(user),
-			Roles:             roleCodes,
-		})
+		item := systemResponse.UserListItem{SystemUserSummary: summarizeUser(user), Roles: roleCodes}
+		if personTypeOrDefault(user.PersonType) == PersonExternal {
+			item.Expired = accountExpired(user.PersonType, user.ExpiresAt, now)
+			if user.SponsorID != nil {
+				sponsor, ok := byID[*user.SponsorID]
+				item.Sponsor = sponsor.Username
+				item.SponsorInvalid = !ok || sponsor.Status != DefaultUserStatus || personTypeOrDefault(sponsor.PersonType) != PersonEmployee
+			}
+		}
+		items = append(items, item)
 	}
 
 	return systemResponse.UserListResult{Items: items, Total: len(items)}, nil
@@ -116,6 +131,17 @@ func (s *UserService) UpdateUserRoles(ctx context.Context, actorID uint, userID 
 			return ErrBuiltinAdminProtected
 		}
 	}
+	if personTypeOrDefault(user.PersonType) == PersonExternal {
+		restricted, err := includesRestrictedRole(ctx, roleIDs)
+		if err != nil {
+			event.Detail = auditDetails("update_failed", nil)
+			return err
+		}
+		if restricted {
+			event.Detail = auditDetails("external_role_restricted", nil)
+			return ErrExternalRoleRestricted
+		}
+	}
 	before, beforeErr := queryUserRoles(ctx, userID)
 	if err := s.replaceUserRoles(ctx, userID, roleIDs); err != nil {
 		if errors.Is(err, ErrRoleNotFound) {
@@ -145,6 +171,18 @@ func (s *UserService) UpdateUserRoles(ctx context.Context, actorID uint, userID 
 
 func isBuiltinAdmin(user systemModel.SystemUser) bool {
 	return user.Source == "local" && user.UUID == BuiltinAdminUUID
+}
+
+// includesRestrictedRole reports whether any of roleIDs is the admin role or
+// an approval role. Authorization ignores them for external accounts anyway,
+// so a concurrent person type or flag change cannot grant them.
+func includesRestrictedRole(ctx context.Context, roleIDs []uint) (bool, error) {
+	if len(roleIDs) == 0 {
+		return false, nil
+	}
+	var count int64
+	err := global.OPTIMUS_DB.WithContext(ctx).Model(&systemModel.SystemRole{}).Where("id IN ? AND (code = ? OR approvable = ?)", roleIDs, AdminRoleCode, true).Count(&count).Error
+	return count > 0, err
 }
 
 func includesAdminRole(ctx context.Context, roleIDs []uint) (bool, error) {
@@ -223,4 +261,78 @@ func (s *UserService) replaceUserRoles(ctx context.Context, userID uint, roleIDs
 		}
 		return nil
 	})
+}
+
+var (
+	// ErrNotExternal: expiry and sponsor apply to external accounts only.
+	ErrNotExternal = errors.New("expiry and sponsor apply to external accounts only")
+	// ErrInvalidExpiry: the expiry is not a YYYY-MM-DD date.
+	ErrInvalidExpiry = errors.New("expiry must be a date (YYYY-MM-DD)")
+	// ErrInvalidSponsor: the sponsor must be an enabled employee.
+	ErrInvalidSponsor = errors.New("sponsor must be an enabled employee")
+)
+
+// UpdateUserExternal sets an external account's expiry and sponsor (design
+// 3.6). Without both, the account has no roles; past the expiry it can no
+// longer sign in. The write is conditioned on the account still being
+// external, and the user's cached authorization is invalidated.
+func (s *UserService) UpdateUserExternal(ctx context.Context, actorID uint, userID uint, req systemRequest.UpdateUserExternalRequest, meta AuditMeta) (systemResponse.SystemUserSummary, error) {
+	event := failedAudit(actorID, meta, "user.external.update", "user", userID)
+	defer func() { recordAudit(ctx, event) }()
+	user, err := s.findUserByID(ctx, userID)
+	if err != nil {
+		event.Detail = auditDetails("target_lookup_failed", nil)
+		return systemResponse.SystemUserSummary{}, err
+	}
+	if personTypeOrDefault(user.PersonType) != PersonExternal {
+		event.Detail = auditDetails("not_external", nil)
+		return systemResponse.SystemUserSummary{}, ErrNotExternal
+	}
+	var expiresAt *time.Time
+	if req.ExpiresOn != nil {
+		end, err := endOfDay(*req.ExpiresOn)
+		if err != nil {
+			event.Detail = auditDetails("invalid_expiry", nil)
+			return systemResponse.SystemUserSummary{}, ErrInvalidExpiry
+		}
+		expiresAt = &end
+	}
+	if req.SponsorID != nil {
+		sponsor, err := s.findUserByID(ctx, *req.SponsorID)
+		if errors.Is(err, ErrUserNotFound) || (err == nil && (sponsor.Status != DefaultUserStatus || personTypeOrDefault(sponsor.PersonType) != PersonEmployee)) {
+			event.Detail = auditDetails("invalid_sponsor", nil)
+			return systemResponse.SystemUserSummary{}, ErrInvalidSponsor
+		}
+		if err != nil {
+			event.Detail = auditDetails("update_failed", nil)
+			return systemResponse.SystemUserSummary{}, err
+		}
+	}
+	res := global.OPTIMUS_DB.WithContext(ctx).Model(&systemModel.SystemUser{}).Where("id = ? AND person_type = ?", userID, PersonExternal).
+		Updates(map[string]any{"expires_at": expiresAt, "sponsor_id": req.SponsorID})
+	if res.Error != nil {
+		event.Detail = auditDetails("update_failed", nil)
+		return systemResponse.SystemUserSummary{}, res.Error
+	}
+	if res.RowsAffected == 0 {
+		// Became an employee meanwhile, or the values were unchanged.
+		updated, err := s.findUserByID(ctx, userID)
+		if err != nil || personTypeOrDefault(updated.PersonType) != PersonExternal {
+			event.Detail = auditDetails("not_external", nil)
+			return systemResponse.SystemUserSummary{}, ErrNotExternal
+		}
+	}
+	InvalidateUserAuthState(userID)
+	updated, err := s.findUserByID(ctx, userID)
+	if err != nil {
+		event.Result = "success"
+		event.Detail = auditDetails("snapshot_unavailable", nil)
+		return systemResponse.SystemUserSummary{}, err
+	}
+	event.Result = "success"
+	event.Detail = auditDetails("updated", map[string]auditChange{
+		"expiresOn": {Before: expiresOn(user.ExpiresAt), After: expiresOn(updated.ExpiresAt)},
+		"sponsorId": {Before: user.SponsorID, After: updated.SponsorID},
+	})
+	return summarizeUser(updated), nil
 }

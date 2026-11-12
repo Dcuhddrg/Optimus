@@ -168,7 +168,7 @@ func computeSyncPlan(ctx context.Context, client ldapUtil.Client, cfg systemMode
 		return syncPlan{}, err
 	}
 	exists := func(id string) (bool, error) { return client.ExistsInDirectory(ctx, conn, id) }
-	return buildSyncPlan(entries, accounts, cfg.DepartmentAttr != "", cfg.LastSyncKey != syncConfigKey(cfg), exists), nil
+	return buildSyncPlan(entries, accounts, mappingOf(cfg), cfg.LastSyncKey != syncConfigKey(cfg), exists), nil
 }
 
 func loadSyncAccounts(db *gorm.DB) ([]syncAccount, error) {
@@ -177,19 +177,35 @@ func loadSyncAccounts(db *gorm.DB) ([]syncAccount, error) {
 		return nil, err
 	}
 	var grants []struct {
+		UserID     uint
+		Code       string
+		Approvable bool
+	}
+	if err := db.Table("sys_user_roles AS ur").Select("ur.user_id, r.code, r.approvable").Joins("JOIN sys_roles AS r ON r.id = ur.role_id").Order("r.code").Scan(&grants).Error; err != nil {
+		return nil, err
+	}
+	roles, restricted := map[uint][]string{}, map[uint][]string{}
+	for _, g := range grants {
+		roles[g.UserID] = append(roles[g.UserID], g.Code)
+		if isRestrictedForExternal(g.Code, g.Approvable) {
+			restricted[g.UserID] = append(restricted[g.UserID], g.Code)
+		}
+	}
+	var owned []struct {
 		UserID uint
 		Code   string
 	}
-	if err := db.Table("sys_user_roles AS ur").Select("ur.user_id, r.code").Joins("JOIN sys_roles AS r ON r.id = ur.role_id").Order("r.code").Scan(&grants).Error; err != nil {
+	if err := db.Table("user_projects AS up").Select("up.user_id, p.code").Joins("JOIN projects AS p ON p.id = up.project_id").Where("up.project_role = ? AND p.deleted_at IS NULL", "owner").Order("p.code").Scan(&owned).Error; err != nil {
 		return nil, err
 	}
-	roles := map[uint][]string{}
-	for _, g := range grants {
-		roles[g.UserID] = append(roles[g.UserID], g.Code)
+	projects := map[uint][]string{}
+	for _, o := range owned {
+		projects[o.UserID] = append(projects[o.UserID], o.Code)
 	}
 	accounts := make([]syncAccount, 0, len(users))
 	for _, u := range users {
-		accounts = append(accounts, syncAccount{ID: u.ID, Username: u.Username, DisplayName: u.DisplayName, Email: u.Email, Department: u.Department, ExternalID: u.ExternalID, Source: u.Source, Status: u.Status, CreatedAt: u.CreatedAt, Roles: roles[u.ID]})
+		accounts = append(accounts, syncAccount{ID: u.ID, Username: u.Username, DisplayName: u.DisplayName, Email: u.Email, Department: u.Department, ExternalID: u.ExternalID, Source: u.Source, Status: u.Status, CreatedAt: u.CreatedAt, Roles: roles[u.ID],
+			PersonType: personTypeOrDefault(u.PersonType), RestrictedRoles: restricted[u.ID], OwnedProjects: projects[u.ID]})
 	}
 	return accounts, nil
 }
@@ -432,7 +448,7 @@ func (r *syncRun) apply(task syncTask) (string, error) {
 		if err != nil || taken {
 			return "already_taken", err
 		}
-		user := newLDAPAccount(entry, r.cfg.DepartmentAttr != "")
+		user := newLDAPAccount(entry, r.cfg)
 		if err := createLDAPAccount(r.db(), &user); err != nil {
 			return "", err
 		}
@@ -458,7 +474,7 @@ func (r *syncRun) apply(task syncTask) (string, error) {
 		if err != nil || taken {
 			return "username_taken", err
 		}
-		return "", r.db().Model(&systemModel.SystemUser{}).Where("id = ?", account.ID).Updates(ldapProfileColumns(entry, r.cfg.DepartmentAttr != "")).Error
+		return "", r.db().Model(&systemModel.SystemUser{}).Where("id = ?", account.ID).Updates(ldapProfileColumns(entry, r.cfg)).Error
 
 	case syncActionAutoDisable, syncActionDisable:
 		var account systemModel.SystemUser
@@ -561,12 +577,12 @@ func (r *syncRun) separate(item syncItem, entry LDAPUser) (string, error) {
 		err := tx.Where("external_id = ?", entry.ExternalID).First(&owner).Error
 		if err == nil {
 			newID = owner.ID
-			return tx.Model(&systemModel.SystemUser{}).Where("id = ?", owner.ID).Updates(ldapProfileColumns(entry, r.cfg.DepartmentAttr != "")).Error
+			return tx.Model(&systemModel.SystemUser{}).Where("id = ?", owner.ID).Updates(ldapProfileColumns(entry, r.cfg)).Error
 		}
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return err
 		}
-		user := newLDAPAccount(entry, r.cfg.DepartmentAttr != "")
+		user := newLDAPAccount(entry, r.cfg)
 		if err := createLDAPAccount(tx, &user); err != nil {
 			return err
 		}
@@ -636,7 +652,7 @@ func externalIDOf(u systemModel.SystemUser) string {
 
 // newLDAPAccount builds a new LDAP account: a random UUID, never derived
 // from the username or the identity (design 3.3).
-func newLDAPAccount(entry LDAPUser, syncDepartment bool) systemModel.SystemUser {
+func newLDAPAccount(entry LDAPUser, cfg systemModel.SystemLDAPConfig) systemModel.SystemUser {
 	externalID := entry.ExternalID
 	user := systemModel.SystemUser{
 		UUID:        uuid.NewString(),
@@ -646,34 +662,40 @@ func newLDAPAccount(entry LDAPUser, syncDepartment bool) systemModel.SystemUser 
 		ExternalID:  &externalID,
 		Source:      "ldap",
 		Status:      DefaultUserStatus,
+		PersonType:  personTypeOf(entry, cfg),
 	}
-	if syncDepartment {
+	if cfg.DepartmentAttr != "" {
 		user.Department = entry.Department
 	}
 	return user
 }
 
 // createLDAPAccount inserts the account and binds the default role once.
+// External accounts get no role: a new directory entry must not grant access
+// by itself (design 3.6).
 func createLDAPAccount(db *gorm.DB, user *systemModel.SystemUser) error {
 	return db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(user).Error; err != nil {
 			return err
+		}
+		if user.PersonType == PersonExternal {
+			return nil
 		}
 		return bindDefaultUserRole(tx, user.ID)
 	})
 }
 
 // ldapProfileColumns are the LDAP-owned columns written by login and sync.
-func ldapProfileColumns(entry LDAPUser, syncDepartment bool) map[string]any {
-	columns := map[string]any{"username": entry.Username, "display_name": entry.DisplayName, "email": entry.Email}
-	if syncDepartment {
+func ldapProfileColumns(entry LDAPUser, cfg systemModel.SystemLDAPConfig) map[string]any {
+	columns := map[string]any{"username": entry.Username, "display_name": entry.DisplayName, "email": entry.Email, "person_type": personTypeOf(entry, cfg)}
+	if cfg.DepartmentAttr != "" {
 		columns["department"] = entry.Department
 	}
 	return columns
 }
 
 func syncItemView(item syncItem) systemResponse.LDAPSyncItem {
-	view := systemResponse.LDAPSyncItem{Category: string(item.Category), Reason: item.Reason, Changes: item.Changes, Suspicious: item.Suspicious}
+	view := systemResponse.LDAPSyncItem{Category: string(item.Category), Reason: item.Reason, Changes: item.Changes, Suspicious: item.Suspicious, RestrictedRoles: item.RestrictedRoles, OwnedProjects: item.OwnedProjects}
 	if a := item.Account; a != nil {
 		view.Account = &systemResponse.LDAPSyncAccount{ID: a.ID, Username: a.Username, DisplayName: a.DisplayName, Email: a.Email, Department: a.Department, ExternalID: a.externalID(), Status: a.Status, CreatedAt: a.CreatedAt, Roles: a.Roles}
 	}

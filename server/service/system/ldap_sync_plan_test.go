@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	systemModel "optimus/server/model/system"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -13,7 +15,7 @@ func strp(s string) *string { return &s }
 var planTime = time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 
 func ldapAccount(id uint, username string, externalID *string) syncAccount {
-	return syncAccount{ID: id, Username: username, DisplayName: username, ExternalID: externalID, Source: "ldap", Status: DefaultUserStatus, CreatedAt: planTime}
+	return syncAccount{ID: id, Username: username, DisplayName: username, ExternalID: externalID, Source: "ldap", Status: DefaultUserStatus, CreatedAt: planTime, PersonType: PersonEmployee}
 }
 
 func planEntry(username, id string) LDAPUser {
@@ -22,6 +24,12 @@ func planEntry(username, id string) LDAPUser {
 }
 
 func noneElsewhere(string) (bool, error) { return false, nil }
+
+// testMapping classifies entries whose EmployeeTypes include "contractor"
+// as external.
+func testMapping(syncDepartment bool) planMapping {
+	return mappingOf(systemModel.SystemLDAPConfig{DepartmentAttr: map[bool]string{true: "departmentNumber"}[syncDepartment], ExternalTypeValues: "contractor"})
+}
 
 func categories(plan syncPlan) map[string]SyncCategory {
 	out := map[string]SyncCategory{}
@@ -71,7 +79,7 @@ func TestSyncPlanClassifiesEveryCategory(t *testing.T) {
 		planEntry("hank", "id-hank"),
 	}
 	entries[1].DisplayName = "bob"
-	plan := buildSyncPlan(entries, accounts, true, false, func(id string) (bool, error) { return id == "id-dan", nil })
+	plan := buildSyncPlan(entries, accounts, testMapping(true), false, func(id string) (bool, error) { return id == "id-dan", nil })
 
 	require.False(t, plan.DisablesBlocked)
 	got := categories(plan)
@@ -102,7 +110,7 @@ func TestSyncPlanUnidentifiableEntriesBlockDisables(t *testing.T) {
 		planEntry("u1", "id-same"), planEntry("u2", "id-same"),
 		planEntry("hank", "id-hank"),
 	}
-	plan := buildSyncPlan(entries, accounts, true, false, noneElsewhere)
+	plan := buildSyncPlan(entries, accounts, testMapping(true), false, noneElsewhere)
 	require.True(t, plan.DisablesBlocked)
 	reasons := map[string]int{}
 	for _, item := range plan.Items {
@@ -119,11 +127,11 @@ func TestSyncPlanAbsenceNeedsAdminWhenUncertain(t *testing.T) {
 	accounts := []syncAccount{ldapAccount(1, "carol", strp("id-carol"))}
 	entries := []LDAPUser{planEntry("hank", "id-hank")}
 
-	changed := buildSyncPlan(entries, accounts, true, true, noneElsewhere)
+	changed := buildSyncPlan(entries, accounts, testMapping(true), true, noneElsewhere)
 	require.Equal(t, SyncUnconfirmable, categories(changed)["carol"])
 	require.Equal(t, syncReasonConfigChanged, itemFor(t, changed, "carol").Reason)
 
-	failing := buildSyncPlan(entries, accounts, true, false, func(string) (bool, error) { return false, errors.New("no root access") })
+	failing := buildSyncPlan(entries, accounts, testMapping(true), false, func(string) (bool, error) { return false, errors.New("no root access") })
 	require.Equal(t, SyncUnconfirmable, categories(failing)["carol"])
 	require.Equal(t, syncReasonAbsenceCheckFailed, itemFor(t, failing, "carol").Reason)
 }
@@ -133,7 +141,7 @@ func TestSyncPlanAbsenceNeedsAdminWhenUncertain(t *testing.T) {
 // binding to a legacy account.
 func TestSyncPlanRenameOntoTakenUsernameIsConflict(t *testing.T) {
 	accounts := []syncAccount{ldapAccount(1, "bob", strp("id-bob")), ldapAccount(2, "robert", nil)}
-	plan := buildSyncPlan([]LDAPUser{planEntry("robert", "id-bob")}, accounts, true, false, noneElsewhere)
+	plan := buildSyncPlan([]LDAPUser{planEntry("robert", "id-bob")}, accounts, testMapping(true), false, noneElsewhere)
 	item := itemFor(t, plan, "robert")
 	require.Equal(t, SyncConflict, item.Category)
 	require.Equal(t, syncReasonRenameTaken, item.Reason)
@@ -147,7 +155,7 @@ func TestSyncPlanFlagsLikelyReusedUIDForBinding(t *testing.T) {
 	later.CreatedAt = &after
 	unknown := planEntry("unknown", "id-unknown")
 	unknown.CreatedAt = nil
-	plan := buildSyncPlan([]LDAPUser{planEntry("old", "id-old"), later, unknown}, accounts, true, false, noneElsewhere)
+	plan := buildSyncPlan([]LDAPUser{planEntry("old", "id-old"), later, unknown}, accounts, testMapping(true), false, noneElsewhere)
 	require.False(t, itemFor(t, plan, "old").Suspicious)
 	require.True(t, itemFor(t, plan, "later").Suspicious, "entry created after the account")
 	require.True(t, itemFor(t, plan, "unknown").Suspicious, "creation time unreadable")
@@ -158,8 +166,8 @@ func TestSyncPlanDepartmentOnlyWhenSynced(t *testing.T) {
 	account.Department = "old"
 	entry := planEntry("alice", "id-alice")
 	entry.Department = "new"
-	require.Empty(t, buildSyncPlan([]LDAPUser{entry}, []syncAccount{account}, false, false, noneElsewhere).Items)
-	require.Len(t, buildSyncPlan([]LDAPUser{entry}, []syncAccount{account}, true, false, noneElsewhere).Items, 1)
+	require.Empty(t, buildSyncPlan([]LDAPUser{entry}, []syncAccount{account}, testMapping(false), false, noneElsewhere).Items)
+	require.Len(t, buildSyncPlan([]LDAPUser{entry}, []syncAccount{account}, testMapping(true), false, noneElsewhere).Items, 1)
 }
 
 // A local account (the built-in admin) holding the username is a conflict
@@ -167,10 +175,10 @@ func TestSyncPlanDepartmentOnlyWhenSynced(t *testing.T) {
 func TestSyncPlanLocalAccountConflictIsNotResolvable(t *testing.T) {
 	admin := syncAccount{ID: 1, Username: "admin", Source: "local", Status: DefaultUserStatus}
 	bob := ldapAccount(2, "bob", strp("id-bob"))
-	plan := buildSyncPlan([]LDAPUser{planEntry("admin", "id-intruder")}, []syncAccount{admin}, true, false, noneElsewhere)
+	plan := buildSyncPlan([]LDAPUser{planEntry("admin", "id-intruder")}, []syncAccount{admin}, testMapping(true), false, noneElsewhere)
 	require.Equal(t, syncReasonLocalAccount, itemFor(t, plan, "admin").Reason)
 
-	plan = buildSyncPlan([]LDAPUser{planEntry("admin", "id-bob")}, []syncAccount{admin, bob}, true, false, noneElsewhere)
+	plan = buildSyncPlan([]LDAPUser{planEntry("admin", "id-bob")}, []syncAccount{admin, bob}, testMapping(true), false, noneElsewhere)
 	item := itemFor(t, plan, "admin")
 	require.Equal(t, SyncConflict, item.Category)
 	require.Equal(t, syncReasonLocalAccount, item.Reason)

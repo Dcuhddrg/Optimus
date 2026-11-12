@@ -121,7 +121,7 @@ func (h *UserApi) UpdateUserRoles(c *gin.Context) {
 		return
 	}
 	err := svc.UpdateUserRoles(c.Request.Context(), actorID(c), id, req.RoleIDs, auditMeta(c))
-	if errors.Is(err, systemService.ErrBuiltinAdminProtected) || errors.Is(err, systemService.ErrUserNotFound) || errors.Is(err, systemService.ErrRoleNotFound) {
+	if errors.Is(err, systemService.ErrBuiltinAdminProtected) || errors.Is(err, systemService.ErrUserNotFound) || errors.Is(err, systemService.ErrRoleNotFound) || errors.Is(err, systemService.ErrExternalRoleRestricted) {
 		response.FailWithMessage(err.Error(), c)
 		return
 	}
@@ -130,6 +130,45 @@ func (h *UserApi) UpdateUserRoles(c *gin.Context) {
 		return
 	}
 	response.Ok(c)
+}
+
+// @Tags User
+// @Summary 设置第三方账号的有效期和对接人
+// @Security ApiKeyAuth
+// @Accept application/json
+// @Produce application/json
+// @Param id path int true "用户 ID"
+// @Param data body systemRequest.UpdateUserExternalRequest true "请求体"
+// @Success 200 {object} response.Response{data=systemResponse.SystemUserSummary} "code 0 成功，code 7 业务失败"
+// @Failure 401 {object} response.Response "未认证"
+// @Router /system/users/{id}/external [put]
+func (h *UserApi) UpdateUserExternal(c *gin.Context) {
+	svc := userService
+	if global.OPTIMUS_DB == nil {
+		response.FailWithMessage("user service is not available", c)
+		return
+	}
+	id, ok := parseUintParam(c, "id")
+	if !ok {
+		return
+	}
+	var req systemRequest.UpdateUserExternalRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.FailWithMessage("invalid request", c)
+		return
+	}
+	user, err := svc.UpdateUserExternal(c.Request.Context(), actorID(c), id, req, auditMeta(c))
+	for _, known := range []error{systemService.ErrUserNotFound, systemService.ErrNotExternal, systemService.ErrInvalidExpiry, systemService.ErrInvalidSponsor} {
+		if errors.Is(err, known) {
+			response.FailWithMessage(err.Error(), c)
+			return
+		}
+	}
+	if err != nil {
+		response.FailWithMessage("failed to update expiry and sponsor", c)
+		return
+	}
+	response.OkWithData(user, c)
 }
 
 func parseUintParam(c *gin.Context, name string) (uint, bool) {

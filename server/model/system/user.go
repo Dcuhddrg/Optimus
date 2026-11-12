@@ -22,6 +22,14 @@ type SystemUser struct {
 	Status       string     `gorm:"size:32;not null;index" json:"status"`
 	PasswordHash string     `gorm:"size:255" json:"-"`
 	LastLoginAt  *time.Time `json:"lastLoginAt"`
+	// PersonType is employee or external, from the directory's
+	// employee_type_attr; read-only in Optimus (design 3.6).
+	PersonType string `gorm:"size:16;not null;default:employee" json:"personType"`
+	// ExpiresAt and SponsorID are set by an administrator for external
+	// accounts only. An external account missing either has no roles; past
+	// ExpiresAt it can no longer sign in or use a session (design 3.6).
+	ExpiresAt *time.Time `json:"expiresAt"`
+	SponsorID *uint      `gorm:"index" json:"sponsorId"`
 }
 
 func (SystemUser) TableName() string {
@@ -94,10 +102,16 @@ type SystemLDAPConfig struct {
 	IDAttr string `gorm:"size:64;not null;default:entryUUID" json:"idAttr"`
 	// DepartmentAttr is the department attribute; empty means not synced.
 	DepartmentAttr string `gorm:"size:64;default:departmentNumber" json:"departmentAttr"`
+	// EmployeeTypeAttr holds the person type (employeeType); an entry with a
+	// value listed in ExternalTypeValues (comma separated, case-insensitive)
+	// is external, any other entry an employee. Empty ExternalTypeValues
+	// means nobody is external (design 3.6).
+	EmployeeTypeAttr   string `gorm:"size:64;not null;default:employeeType" json:"employeeTypeAttr"`
+	ExternalTypeValues string `gorm:"size:255;default:contractor" json:"externalTypeValues"`
 	// Version increases on every save. A login records it before the
 	// password check and refuses to write back if it changed meanwhile.
 	Version uint64 `gorm:"not null;default:0" json:"-"`
-	// LastSyncKey digests base DN, filter and id_attr at the last fully
+	// LastSyncKey digests URL, bind DN, base DN, filter and id_attr at the last fully
 	// completed sync; while it differs from the current config, sync does not
 	// disable anyone automatically.
 	LastSyncKey string `gorm:"size:64" json:"-"`

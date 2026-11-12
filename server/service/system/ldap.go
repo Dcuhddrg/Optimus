@@ -29,8 +29,10 @@ func (e IdentityAttrLockedError) Error() string {
 }
 
 const (
-	defaultIDAttr         = "entryUUID"
-	defaultDepartmentAttr = "departmentNumber"
+	defaultIDAttr             = "entryUUID"
+	defaultDepartmentAttr     = "departmentNumber"
+	defaultEmployeeTypeAttr   = "employeeType"
+	defaultExternalTypeValues = "contractor"
 )
 
 type LDAPService struct{}
@@ -57,6 +59,8 @@ func (s *LDAPService) GetConfig(ctx context.Context) (systemResponse.LDAPConfigR
 		// does not turn an absent value into an explicit "not synced".
 		cfg.IDAttr = defaultIDAttr
 		cfg.DepartmentAttr = defaultDepartmentAttr
+		cfg.EmployeeTypeAttr = defaultEmployeeTypeAttr
+		cfg.ExternalTypeValues = defaultExternalTypeValues
 	}
 	result := ldapConfigResult(cfg)
 	result.BoundUsers = bound
@@ -80,20 +84,22 @@ func (s *LDAPService) SaveConfig(ctx context.Context, actorID uint, req systemRe
 		return systemResponse.LDAPConfigResult{}, err
 	}
 	cfg := systemModel.SystemLDAPConfig{
-		OPTIMUS_MODEL:   global.OPTIMUS_MODEL{ID: current.ID},
-		Enabled:         req.Enabled,
-		URL:             req.URL,
-		BaseDN:          req.BaseDN,
-		BindDN:          req.BindDN,
-		BindPassword:    req.BindPassword,
-		UserFilter:      req.UserFilter,
-		UsernameAttr:    req.UsernameAttr,
-		DisplayNameAttr: req.DisplayNameAttr,
-		EmailAttr:       req.EmailAttr,
-		IDAttr:          req.IDAttr,
-		DepartmentAttr:  current.DepartmentAttr,
-		Version:         current.Version + 1,
-		LastSyncKey:     current.LastSyncKey,
+		OPTIMUS_MODEL:      global.OPTIMUS_MODEL{ID: current.ID},
+		Enabled:            req.Enabled,
+		URL:                req.URL,
+		BaseDN:             req.BaseDN,
+		BindDN:             req.BindDN,
+		BindPassword:       req.BindPassword,
+		UserFilter:         req.UserFilter,
+		UsernameAttr:       req.UsernameAttr,
+		DisplayNameAttr:    req.DisplayNameAttr,
+		EmailAttr:          req.EmailAttr,
+		IDAttr:             req.IDAttr,
+		DepartmentAttr:     current.DepartmentAttr,
+		EmployeeTypeAttr:   req.EmployeeTypeAttr,
+		ExternalTypeValues: current.ExternalTypeValues,
+		Version:            current.Version + 1,
+		LastSyncKey:        current.LastSyncKey,
 	}
 	if cfg.BindPassword == "" {
 		cfg.BindPassword = current.BindPassword
@@ -108,6 +114,17 @@ func (s *LDAPService) SaveConfig(ctx context.Context, actorID uint, req systemRe
 		cfg.DepartmentAttr = *req.DepartmentAttr
 	} else if current.ID == 0 {
 		cfg.DepartmentAttr = defaultDepartmentAttr
+	}
+	if cfg.EmployeeTypeAttr == "" {
+		cfg.EmployeeTypeAttr = current.EmployeeTypeAttr
+	}
+	if cfg.EmployeeTypeAttr == "" {
+		cfg.EmployeeTypeAttr = defaultEmployeeTypeAttr
+	}
+	if req.ExternalTypeValues != nil {
+		cfg.ExternalTypeValues = joinTypeValues(*req.ExternalTypeValues)
+	} else if current.ID == 0 {
+		cfg.ExternalTypeValues = defaultExternalTypeValues
 	}
 	if err := validateLDAPConfig(cfg); err != nil {
 		event.Detail = auditDetails("invalid_config", nil)
@@ -132,7 +149,7 @@ func (s *LDAPService) SaveConfig(ctx context.Context, actorID uint, req systemRe
 	event.Detail = auditDetails("updated", map[string]auditChange{
 		"enabled":             {Before: current.Enabled, After: saved.Enabled},
 		"connectionChanged":   {Before: false, After: current.URL != saved.URL || current.BaseDN != saved.BaseDN || current.BindDN != saved.BindDN},
-		"mappingChanged":      {Before: false, After: current.UserFilter != saved.UserFilter || current.UsernameAttr != saved.UsernameAttr || current.DisplayNameAttr != saved.DisplayNameAttr || current.EmailAttr != saved.EmailAttr || current.DepartmentAttr != saved.DepartmentAttr},
+		"mappingChanged":      {Before: false, After: current.UserFilter != saved.UserFilter || current.UsernameAttr != saved.UsernameAttr || current.DisplayNameAttr != saved.DisplayNameAttr || current.EmailAttr != saved.EmailAttr || current.DepartmentAttr != saved.DepartmentAttr || current.EmployeeTypeAttr != saved.EmployeeTypeAttr || current.ExternalTypeValues != saved.ExternalTypeValues},
 		"idAttr":              {Before: current.IDAttr, After: saved.IDAttr},
 		"bindPasswordChanged": {Before: false, After: current.BindPassword != saved.BindPassword},
 	})
@@ -223,32 +240,35 @@ func (s *LDAPService) connectionConfig(ctx context.Context, req systemRequest.LD
 
 func ldapConfigResult(cfg systemModel.SystemLDAPConfig) systemResponse.LDAPConfigResult {
 	return systemResponse.LDAPConfigResult{
-		Enabled:         cfg.Enabled,
-		URL:             cfg.URL,
-		BaseDN:          cfg.BaseDN,
-		BindDN:          cfg.BindDN,
-		HasBindPassword: cfg.BindPassword != "",
-		UserFilter:      cfg.UserFilter,
-		UsernameAttr:    cfg.UsernameAttr,
-		DisplayNameAttr: cfg.DisplayNameAttr,
-		EmailAttr:       cfg.EmailAttr,
-		IDAttr:          cfg.IDAttr,
-		DepartmentAttr:  cfg.DepartmentAttr,
+		Enabled:            cfg.Enabled,
+		URL:                cfg.URL,
+		BaseDN:             cfg.BaseDN,
+		BindDN:             cfg.BindDN,
+		HasBindPassword:    cfg.BindPassword != "",
+		UserFilter:         cfg.UserFilter,
+		UsernameAttr:       cfg.UsernameAttr,
+		DisplayNameAttr:    cfg.DisplayNameAttr,
+		EmailAttr:          cfg.EmailAttr,
+		IDAttr:             cfg.IDAttr,
+		DepartmentAttr:     cfg.DepartmentAttr,
+		EmployeeTypeAttr:   cfg.EmployeeTypeAttr,
+		ExternalTypeValues: splitTypeValues(cfg.ExternalTypeValues),
 	}
 }
 
 func ldapConnectionConfig(cfg systemModel.SystemLDAPConfig) LDAPConnectionConfig {
 	return LDAPConnectionConfig{
-		URL:             cfg.URL,
-		BaseDN:          cfg.BaseDN,
-		BindDN:          cfg.BindDN,
-		BindPassword:    cfg.BindPassword,
-		UserFilter:      cfg.UserFilter,
-		UsernameAttr:    cfg.UsernameAttr,
-		DisplayNameAttr: cfg.DisplayNameAttr,
-		EmailAttr:       cfg.EmailAttr,
-		DepartmentAttr:  cfg.DepartmentAttr,
-		IDAttr:          cfg.IDAttr,
+		URL:              cfg.URL,
+		BaseDN:           cfg.BaseDN,
+		BindDN:           cfg.BindDN,
+		BindPassword:     cfg.BindPassword,
+		UserFilter:       cfg.UserFilter,
+		UsernameAttr:     cfg.UsernameAttr,
+		DisplayNameAttr:  cfg.DisplayNameAttr,
+		EmailAttr:        cfg.EmailAttr,
+		DepartmentAttr:   cfg.DepartmentAttr,
+		EmployeeTypeAttr: cfg.EmployeeTypeAttr,
+		IDAttr:           cfg.IDAttr,
 	}
 }
 
@@ -263,15 +283,24 @@ func (s *LDAPService) getLDAPConfig(ctx context.Context) (systemModel.SystemLDAP
 
 func (s *LDAPService) saveLDAPConfig(ctx context.Context, cfg systemModel.SystemLDAPConfig) (systemModel.SystemLDAPConfig, error) {
 	if cfg.ID == 0 {
-		department := cfg.DepartmentAttr
+		department, externalValues := cfg.DepartmentAttr, cfg.ExternalTypeValues
 		if err := global.OPTIMUS_DB.WithContext(ctx).Create(&cfg).Error; err != nil {
 			return cfg, err
 		}
 		// Create skips a zero value for a column with a default; keep an
-		// explicit empty department_attr ("not synced").
+		// explicit empty department_attr ("not synced") and an empty
+		// external type list ("nobody is external").
+		empty := map[string]any{}
 		if department == "" {
 			cfg.DepartmentAttr = ""
-			err := global.OPTIMUS_DB.WithContext(ctx).Model(&cfg).Update("department_attr", "").Error
+			empty["department_attr"] = ""
+		}
+		if externalValues == "" {
+			cfg.ExternalTypeValues = ""
+			empty["external_type_values"] = ""
+		}
+		if len(empty) > 0 {
+			err := global.OPTIMUS_DB.WithContext(ctx).Model(&cfg).Updates(empty).Error
 			return cfg, err
 		}
 		return cfg, nil

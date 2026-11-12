@@ -1101,6 +1101,21 @@
         "type": "string",
         "unique": false
       },
+      "employee_type_attr": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "employeeType",
+        "hasDefault": true,
+        "notNull": true,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 64,
+        "type": "string",
+        "unique": false
+      },
       "enabled": {
         "autoCreate": 0,
         "autoIncrement": false,
@@ -1114,6 +1129,21 @@
         "scale": 0,
         "size": 0,
         "type": "bool",
+        "unique": false
+      },
+      "external_type_values": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "contractor",
+        "hasDefault": true,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 255,
+        "type": "string",
         "unique": false
       },
       "id": {
@@ -1245,7 +1275,9 @@
       "departmentAttr": "",
       "displayNameAttr": "",
       "emailAttr": "",
+      "employeeTypeAttr": "",
       "enabled": false,
+      "externalTypeValues": "",
       "id": 0,
       "idAttr": "",
       "updatedAt": "0001-01-01T00:00:00Z",
@@ -1842,6 +1874,21 @@
         "type": "string",
         "unique": false
       },
+      "expires_at": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "time",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 0,
+        "type": "*time.Time",
+        "unique": false
+      },
       "external_id": {
         "autoCreate": 0,
         "autoIncrement": false,
@@ -1902,6 +1949,21 @@
         "type": "string",
         "unique": false
       },
+      "person_type": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "string",
+        "default": "employee",
+        "hasDefault": true,
+        "notNull": true,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 16,
+        "type": "string",
+        "unique": false
+      },
       "source": {
         "autoCreate": 0,
         "autoIncrement": false,
@@ -1915,6 +1977,21 @@
         "scale": 0,
         "size": 32,
         "type": "string",
+        "unique": false
+      },
+      "sponsor_id": {
+        "autoCreate": 0,
+        "autoIncrement": false,
+        "autoUpdate": 0,
+        "dataType": "uint",
+        "default": "",
+        "hasDefault": false,
+        "notNull": false,
+        "pk": false,
+        "precision": 0,
+        "scale": 0,
+        "size": 64,
+        "type": "*uint",
         "unique": false
       },
       "status": {
@@ -1997,6 +2074,15 @@
         "type": "",
         "where": ""
       },
+      "idx_sys_users_sponsor_id": {
+        "class": "",
+        "fields": [
+          "sponsor_id"
+        ],
+        "option": "",
+        "type": "",
+        "where": ""
+      },
       "idx_sys_users_status": {
         "class": "",
         "fields": [
@@ -2030,10 +2116,13 @@
       "department": "",
       "displayName": "",
       "email": "",
+      "expiresAt": null,
       "externalId": null,
       "id": 0,
       "lastLoginAt": null,
+      "personType": "",
       "source": "",
+      "sponsorId": null,
       "status": "",
       "updatedAt": "0001-01-01T00:00:00Z",
       "username": "",

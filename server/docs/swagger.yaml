@@ -55,8 +55,18 @@ definitions:
         type: string
       emailAttr:
         type: string
+      employeeTypeAttr:
+        description: EmployeeTypeAttr "" keeps the saved value (employeeType by default).
+        type: string
       enabled:
         type: boolean
+      externalTypeValues:
+        description: |-
+          ExternalTypeValues nil keeps the saved list; an empty list means
+          nobody is external.
+        items:
+          type: string
+        type: array
       idAttr:
         type: string
       url:
@@ -165,6 +175,13 @@ definitions:
         items:
           type: string
         type: array
+    type: object
+  request.UpdateUserExternalRequest:
+    properties:
+      expiresOn:
+        type: string
+      sponsorId:
+        type: integer
     type: object
   request.UpdateUserRequest:
     properties:
@@ -289,8 +306,14 @@ definitions:
         type: string
       emailAttr:
         type: string
+      employeeTypeAttr:
+        type: string
       enabled:
         type: boolean
+      externalTypeValues:
+        items:
+          type: string
+        type: array
       hasBindPassword:
         type: boolean
       idAttr:
@@ -363,8 +386,20 @@ definitions:
         type: array
       entry:
         $ref: '#/definitions/response.LDAPSyncEntry'
+      ownedProjects:
+        items:
+          type: string
+        type: array
       reason:
         type: string
+      restrictedRoles:
+        description: |-
+          RestrictedRoles and OwnedProjects are set when an update turns an
+          employee into an external person: those roles stop applying at once;
+          the admin should remove them and hand the projects to an employee.
+        items:
+          type: string
+        type: array
       suspicious:
         type: boolean
     type: object
@@ -530,10 +565,19 @@ definitions:
         type: string
       email:
         type: string
+      expiresOn:
+        type: string
       id:
         type: integer
+      personType:
+        description: |-
+          PersonType is employee or external. ExpiresOn (YYYY-MM-DD, the last
+          valid day) and SponsorID apply to external accounts only.
+        type: string
       source:
         type: string
+      sponsorId:
+        type: integer
       status:
         type: string
       username:
@@ -551,14 +595,33 @@ definitions:
         type: string
       email:
         type: string
+      expired:
+        type: boolean
+      expiresOn:
+        type: string
       id:
         type: integer
+      personType:
+        description: |-
+          PersonType is employee or external. ExpiresOn (YYYY-MM-DD, the last
+          valid day) and SponsorID apply to external accounts only.
+        type: string
       roles:
         items:
           type: string
         type: array
       source:
         type: string
+      sponsor:
+        description: |-
+          Sponsor is the sponsor's username; SponsorInvalid is set when the
+          sponsor no longer exists, is disabled or is not an employee. Expired
+          is set when an external account is past its expiry.
+        type: string
+      sponsorId:
+        type: integer
+      sponsorInvalid:
+        type: boolean
       status:
         type: string
       username:
@@ -1842,6 +1905,43 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: 更新用户资料
+      tags:
+      - User
+  /system/users/{id}/external:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: 用户 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 请求体
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/request.UpdateUserExternalRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: code 0 成功，code 7 业务失败
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/response.SystemUserSummary'
+              type: object
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 设置第三方账号的有效期和对接人
       tags:
       - User
   /system/users/{id}/roles:

@@ -21,6 +21,11 @@ func (s *ProjectService) AddMember(ctx context.Context, actorID uint, code strin
 	if !IsValidProjectRole(role) {
 		return ErrInvalidProjectRole
 	}
+	if role == RoleOwner {
+		if err := refuseExternalOwner(ctx, userID); err != nil {
+			return err
+		}
+	}
 	var users int64
 	if err := global.OPTIMUS_DB.WithContext(ctx).
 		Table("sys_users").
@@ -52,6 +57,11 @@ func (s *ProjectService) UpdateMemberRole(ctx context.Context, actorID uint, cod
 	}
 	if !IsValidProjectRole(role) {
 		return ErrInvalidProjectRole
+	}
+	if role == RoleOwner {
+		if err := refuseExternalOwner(ctx, userID); err != nil {
+			return err
+		}
 	}
 	existing, err := s.findMember(ctx, userID, p.ID)
 	if err != nil {
@@ -154,6 +164,21 @@ func (s *ProjectService) requireOwner(ctx context.Context, actorID, projectID ui
 	}
 	if m.ProjectRole != RoleOwner {
 		return ErrForbidden
+	}
+	return nil
+}
+
+// refuseExternalOwner rejects making an external account a project owner
+// (user management design 3.6). An owner who later becomes external keeps
+// ownership until it is handed over; the sync preview points it out.
+func refuseExternalOwner(ctx context.Context, userID uint) error {
+	var personType string
+	err := global.OPTIMUS_DB.WithContext(ctx).Table("sys_users").Select("person_type").Where("id = ?", userID).Scan(&personType).Error
+	if err != nil {
+		return err
+	}
+	if personType == "external" {
+		return ErrExternalCannotOwn
 	}
 	return nil
 }

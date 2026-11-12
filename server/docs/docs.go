@@ -2040,6 +2040,69 @@ const docTemplate = `{
                 }
             }
         },
+        "/system/users/{id}/external": {
+            "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "设置第三方账号的有效期和对接人",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "用户 ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "请求体",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.UpdateUserExternalRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "code 0 成功，code 7 业务失败",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/response.SystemUserSummary"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "未认证",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/system/users/{id}/roles": {
             "put": {
                 "security": [
@@ -2239,8 +2302,19 @@ const docTemplate = `{
                 "emailAttr": {
                     "type": "string"
                 },
+                "employeeTypeAttr": {
+                    "description": "EmployeeTypeAttr \"\" keeps the saved value (employeeType by default).",
+                    "type": "string"
+                },
                 "enabled": {
                     "type": "boolean"
+                },
+                "externalTypeValues": {
+                    "description": "ExternalTypeValues nil keeps the saved list; an empty list means\nnobody is external.",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "idAttr": {
                     "type": "string"
@@ -2407,6 +2481,17 @@ const docTemplate = `{
                     "items": {
                         "type": "string"
                     }
+                }
+            }
+        },
+        "request.UpdateUserExternalRequest": {
+            "type": "object",
+            "properties": {
+                "expiresOn": {
+                    "type": "string"
+                },
+                "sponsorId": {
+                    "type": "integer"
                 }
             }
         },
@@ -2595,8 +2680,17 @@ const docTemplate = `{
                 "emailAttr": {
                     "type": "string"
                 },
+                "employeeTypeAttr": {
+                    "type": "string"
+                },
                 "enabled": {
                     "type": "boolean"
+                },
+                "externalTypeValues": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "hasBindPassword": {
                     "type": "boolean"
@@ -2708,8 +2802,21 @@ const docTemplate = `{
                 "entry": {
                     "$ref": "#/definitions/response.LDAPSyncEntry"
                 },
+                "ownedProjects": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "reason": {
                     "type": "string"
+                },
+                "restrictedRoles": {
+                    "description": "RestrictedRoles and OwnedProjects are set when an update turns an\nemployee into an external person: those roles stop applying at once;\nthe admin should remove them and hand the projects to an employee.",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "suspicious": {
                     "type": "boolean"
@@ -2954,11 +3061,21 @@ const docTemplate = `{
                 "email": {
                     "type": "string"
                 },
+                "expiresOn": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "integer"
                 },
+                "personType": {
+                    "description": "PersonType is employee or external. ExpiresOn (YYYY-MM-DD, the last\nvalid day) and SponsorID apply to external accounts only.",
+                    "type": "string"
+                },
                 "source": {
                     "type": "string"
+                },
+                "sponsorId": {
+                    "type": "integer"
                 },
                 "status": {
                     "type": "string"
@@ -2986,8 +3103,18 @@ const docTemplate = `{
                 "email": {
                     "type": "string"
                 },
+                "expired": {
+                    "type": "boolean"
+                },
+                "expiresOn": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "integer"
+                },
+                "personType": {
+                    "description": "PersonType is employee or external. ExpiresOn (YYYY-MM-DD, the last\nvalid day) and SponsorID apply to external accounts only.",
+                    "type": "string"
                 },
                 "roles": {
                     "type": "array",
@@ -2997,6 +3124,16 @@ const docTemplate = `{
                 },
                 "source": {
                     "type": "string"
+                },
+                "sponsor": {
+                    "description": "Sponsor is the sponsor's username; SponsorInvalid is set when the\nsponsor no longer exists, is disabled or is not an employee. Expired\nis set when an external account is past its expiry.",
+                    "type": "string"
+                },
+                "sponsorId": {
+                    "type": "integer"
+                },
+                "sponsorInvalid": {
+                    "type": "boolean"
                 },
                 "status": {
                     "type": "string"

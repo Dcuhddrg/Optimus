@@ -10,4 +10,5 @@ func (r *UserRouter) InitUserRouter(privateGroup *gin.RouterGroup) {
 	userRouter.PUT(":id", userApi.UpdateUser)
 	userRouter.PATCH(":id/status", userApi.UpdateUserStatus)
 	userRouter.PUT(":id/roles", userApi.UpdateUserRoles)
+	userRouter.PUT(":id/external", userApi.UpdateUserExternal)
 }

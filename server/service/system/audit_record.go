@@ -64,7 +64,7 @@ func auditDetails(reason string, changes map[string]auditChange) string {
 	safe := make(map[string]auditChange)
 	for key, change := range changes {
 		switch key {
-		case "status", "roleIds", "permissionCodes", "enabled", "connectionChanged", "mappingChanged", "bindPasswordChanged", "idAttr":
+		case "status", "roleIds", "permissionCodes", "enabled", "connectionChanged", "mappingChanged", "bindPasswordChanged", "idAttr", "expiresOn", "sponsorId":
 			if !reflect.DeepEqual(change.Before, change.After) {
 				safe[key] = change
 			}

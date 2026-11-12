@@ -28,6 +28,13 @@ export function updateUserStatus(id: number, status: string) {
   });
 }
 
+export function updateUserExternal(id: number, input: { expiresOn: string | null; sponsorId: number | null }) {
+  return apiRequest<SystemUser>(`/system/users/${id}/external`, {
+    method: 'PUT',
+    body: JSON.stringify(input),
+  });
+}
+
 export function listRoles() {
   return apiRequest<{ list: SystemRoleWithPermissions[]; total: number }>('/system/roles');
 }

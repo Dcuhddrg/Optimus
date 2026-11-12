@@ -56,3 +56,37 @@
   outline: 2px solid var(--shell-control-focus);
   outline-offset: 2px;
 }
+
+.warning {
+  color: var(--status-danger-text);
+}
+
+.row .link {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-decoration: underline;
+  font-weight: 500;
+}
+
+.editor {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: end;
+  margin-top: 10px;
+}
+
+.editor label {
+  display: grid;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.editor p {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--status-danger-text);
+}

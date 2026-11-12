@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"optimus/server/config"
 	"optimus/server/global"
@@ -160,6 +161,30 @@ func TestJWTAuthRejectsDisabledUserWith401(t *testing.T) {
 	require.Equal(t, http.StatusUnauthorized, w.Code)
 	require.JSONEq(t, `{"code":7,"data":null,"msg":"account is disabled"}`, w.Body.String())
 	require.Contains(t, w.Header().Get("Set-Cookie"), "x-token=;")
+}
+
+// An external account past its expiry gets 401 on its next request; the
+// status stays enabled (user management design 3.6).
+func TestJWTAuthRejectsExpiredExternalUserWith401(t *testing.T) {
+	engine := jwtTestEngine(t)
+	past := time.Now().Add(-time.Minute)
+	stubAuthState(t, systemService.UserAuthState{Exists: true, Status: "enabled", PersonType: systemService.PersonExternal, ExpiresAt: &past}, nil)
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/private", nil)
+	req.Header.Set("x-token", testToken(t))
+	engine.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusUnauthorized, w.Code)
+	require.JSONEq(t, `{"code":7,"data":null,"msg":"account has expired"}`, w.Body.String())
+
+	future := time.Now().Add(time.Hour)
+	stubAuthState(t, systemService.UserAuthState{Exists: true, Status: "enabled", PersonType: systemService.PersonExternal, ExpiresAt: &future}, nil)
+	w = httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodGet, "/private", nil)
+	req.Header.Set("x-token", testToken(t))
+	engine.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code, "extending the expiry restores access")
 }
 
 func TestJWTAuthRejectsDeletedUserWith401(t *testing.T) {
