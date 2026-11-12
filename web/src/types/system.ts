@@ -189,6 +189,11 @@ export interface LDAPSyncOutcome {
   username: string;
   outcome: 'done' | 'skipped' | 'error' | 'unprocessed';
   reason?: string;
+  // An update that made an employee external: roles that stopped applying
+  // and projects that need another owner, read right after the write.
+  turnedExternal?: boolean;
+  restrictedRoles?: string[];
+  ownedProjects?: string[];
 }
 
 export interface LDAPSyncResult {

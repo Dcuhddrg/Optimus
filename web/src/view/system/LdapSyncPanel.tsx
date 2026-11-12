@@ -227,6 +227,8 @@ export function LdapSyncPanel({ onDone }: { onDone: () => void }) {
                 <span>{t(`system.ldapSync.action.${o.action}` as MessageKey)}</span>
                 <span>{t(`system.ldapSync.outcome.${o.outcome}` as MessageKey)}</span>
                 {o.reason ? <span>{o.reason}</span> : null}
+                {o.restrictedRoles?.length ? <span>{t('system.ldapSync.restrictedRoles').replace('{roles}', o.restrictedRoles.join(', '))}</span> : null}
+                {o.ownedProjects?.length ? <span>{t('system.ldapSync.ownedProjects').replace('{projects}', o.ownedProjects.join(', '))}</span> : null}
               </li>
             ))}
           </ul>

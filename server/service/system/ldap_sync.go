@@ -364,6 +364,34 @@ func categoryIn(c SyncCategory, allowed []SyncCategory) bool {
 	return false
 }
 
+type turnedExternal struct {
+	roles    []string
+	projects []string
+}
+
+// noteTurnedExternal reads, after the person type was committed, which held
+// roles stop applying and which projects the account still owns. A project
+// owner assignment locks the user row, so it either committed before the
+// type change (and is listed here) or sees the account as external and is
+// refused.
+func (r *syncRun) noteTurnedExternal(accountID uint) error {
+	var roles []string
+	if err := r.db().Table("sys_user_roles AS ur").Joins("JOIN sys_roles AS r ON r.id = ur.role_id").
+		Where("ur.user_id = ? AND (r.code = ? OR r.approvable = ?)", accountID, AdminRoleCode, true).Order("r.code").Pluck("r.code", &roles).Error; err != nil {
+		return err
+	}
+	var projects []string
+	if err := r.db().Table("user_projects AS up").Joins("JOIN projects AS p ON p.id = up.project_id").
+		Where("up.user_id = ? AND up.project_role = ? AND p.deleted_at IS NULL", accountID, "owner").Order("p.code").Pluck("p.code", &projects).Error; err != nil {
+		return err
+	}
+	if r.turnedExternal == nil {
+		r.turnedExternal = map[uint]turnedExternal{}
+	}
+	r.turnedExternal[accountID] = turnedExternal{roles: roles, projects: projects}
+	return nil
+}
+
 func taskOutcome(task syncTask, outcome, reason string) systemResponse.LDAPSyncOutcome {
 	o := systemResponse.LDAPSyncOutcome{Action: task.action, Outcome: outcome, Reason: reason}
 	if task.item.Account != nil {
@@ -377,11 +405,15 @@ func taskOutcome(task syncTask, outcome, reason string) systemResponse.LDAPSyncO
 
 // syncRun processes tasks for one execution.
 type syncRun struct {
-	ctx     context.Context
-	client  ldapUtil.Client
-	cfg     systemModel.SystemLDAPConfig
-	actorID uint
-	meta    AuditMeta
+	// turnedExternal records, per account turned external by this run, the
+	// roles that stopped applying and the projects it still owns, read
+	// right after the write (design 3.6).
+	turnedExternal map[uint]turnedExternal
+	ctx            context.Context
+	client         ldapUtil.Client
+	cfg            systemModel.SystemLDAPConfig
+	actorID        uint
+	meta           AuditMeta
 }
 
 // errSyncStop marks an error that stops the run (a re-read failed or the
@@ -412,7 +444,12 @@ func (r *syncRun) process(task syncTask) (systemResponse.LDAPSyncOutcome, error)
 	if reason != "" {
 		return taskOutcome(task, syncOutcomeSkipped, reason), nil
 	}
-	return taskOutcome(task, syncOutcomeDone, ""), nil
+	outcome := taskOutcome(task, syncOutcomeDone, "")
+	if note, ok := r.turnedExternal[outcome.AccountID]; ok && task.action == syncActionUpdate {
+		outcome.TurnedExternal = true
+		outcome.RestrictedRoles, outcome.OwnedProjects = note.roles, note.projects
+	}
+	return outcome, nil
 }
 
 // reread looks the identity up in the sync scope. Not found and duplicate
@@ -474,7 +511,18 @@ func (r *syncRun) apply(task syncTask) (string, error) {
 		if err != nil || taken {
 			return "username_taken", err
 		}
-		return "", r.db().Model(&systemModel.SystemUser{}).Where("id = ?", account.ID).Updates(ldapProfileColumns(entry, r.cfg)).Error
+		profile := ldapProfileColumns(entry, r.cfg)
+		if err := r.db().Model(&systemModel.SystemUser{}).Where("id = ?", account.ID).Updates(profile).Error; err != nil {
+			return "", err
+		}
+		// Invalidate before the lock is released, not only when the whole run
+		// ends: a person now external must lose admin and approval roles on
+		// the next request even if the run has many people left.
+		InvalidateUserAuthState(account.ID)
+		if personTypeOrDefault(account.PersonType) != PersonExternal && profile["person_type"] == PersonExternal {
+			return "", r.noteTurnedExternal(account.ID)
+		}
+		return "", nil
 
 	case syncActionAutoDisable, syncActionDisable:
 		var account systemModel.SystemUser

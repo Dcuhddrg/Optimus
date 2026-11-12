@@ -28,10 +28,6 @@ func (s *ProjectService) Create(ctx context.Context, actorID uint, req projectRe
 	if !projectCodeRegex.MatchString(req.Code) {
 		return projectResponse.ProjectView{}, ErrInvalidProjectCode
 	}
-	// The creator becomes the owner.
-	if err := refuseExternalOwner(ctx, actorID); err != nil {
-		return projectResponse.ProjectView{}, err
-	}
 	p := &projectModel.Project{
 		Name:        name,
 		Code:        req.Code,
@@ -40,6 +36,10 @@ func (s *ProjectService) Create(ctx context.Context, actorID uint, req projectRe
 		Status:      statusActive,
 	}
 	if err := global.OPTIMUS_DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// The creator becomes the owner.
+		if err := refuseExternalOwner(tx, actorID); err != nil {
+			return err
+		}
 		if err := tx.Create(p).Error; err != nil {
 			if isDuplicateKeyError(err) {
 				return ErrProjectCodeTaken

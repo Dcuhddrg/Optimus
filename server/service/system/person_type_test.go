@@ -253,3 +253,42 @@ func TestLDAPConfigPersonTypeSettings(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []string{"contractor", "vendor"}, saved.ExternalTypeValues)
 }
+
+// A person turned external by a full sync loses admin and approval roles on
+// the next request, while the run is still processing other people; the
+// execution result lists the roles and the projects still owned, read after
+// the write.
+func TestLDAPSyncInvalidatesEachTurnedExternalAtOnce(t *testing.T) {
+	f := newSyncFixture(t, externalEntry("dan", "id-dan"), dirEntry("zed", "id-zed"))
+	dan := f.account(t, "dan", strp("id-dan"))
+	zed := f.account(t, "zed", strp("id-zed"))
+	require.NoError(t, f.db.Model(&dan).Updates(map[string]any{"display_name": "DAN", "email": "dan@optimus.test", "department": "ops"}).Error)
+	require.NoError(t, f.db.Model(&zed).Update("display_name", "old name").Error)
+	admin := systemModel.SystemRole{Code: AdminRoleCode, Name: "admin"}
+	require.NoError(t, f.db.Create(&admin).Error)
+	require.NoError(t, f.db.Create(&systemModel.SystemUserRole{UserID: dan.ID, RoleID: admin.ID}).Error)
+	preview := f.preview(t)
+
+	// Assigned after the preview: not in it, but in the execution result.
+	project := projectModel.Project{Name: "Late", Code: "late-" + strconv.FormatInt(time.Now().UnixNano(), 36), OwnerID: dan.ID, Status: "active"}
+	require.NoError(t, f.db.Create(&project).Error)
+	t.Cleanup(func() { f.db.Unscoped().Delete(&project) })
+	require.NoError(t, f.db.Create(&projectModel.UserProject{UserID: dan.ID, ProjectID: project.ID, ProjectRole: "owner"}).Error)
+
+	require.Equal(t, []uint{admin.ID}, loadState(t, dan.ID).RoleIDs, "cached as an employee admin")
+	var duringRun []uint
+	f.dir.onLookupID = func(id string) {
+		if id == "id-zed" {
+			duringRun = loadState(t, dan.ID).RoleIDs
+		}
+	}
+	result := f.execute(t, systemRequest.LDAPSyncExecuteRequest{PreviewID: preview.PreviewID})
+	require.NotNil(t, duringRun, "the run reached zed")
+	require.Empty(t, duringRun, "dan's admin role stopped applying before the run ended")
+
+	outcome := outcomeOf(result, "dan")
+	require.True(t, outcome.TurnedExternal)
+	require.Equal(t, []string{AdminRoleCode}, outcome.RestrictedRoles)
+	require.Equal(t, []string{project.Code}, outcome.OwnedProjects)
+	require.False(t, outcomeOf(result, "zed").TurnedExternal)
+}

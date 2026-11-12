@@ -71,6 +71,12 @@ type LDAPSyncOutcome struct {
 	Username  string `json:"username"`
 	Outcome   string `json:"outcome"`
 	Reason    string `json:"reason,omitempty"`
+	// TurnedExternal marks an update that made an employee external;
+	// RestrictedRoles stopped applying and OwnedProjects need another owner,
+	// both read right after the write.
+	TurnedExternal  bool     `json:"turnedExternal,omitempty"`
+	RestrictedRoles []string `json:"restrictedRoles,omitempty"`
+	OwnedProjects   []string `json:"ownedProjects,omitempty"`
 }
 
 // LDAPSyncResult reports an execution. Status is completed or partial

@@ -28,7 +28,7 @@ let fetcher: ReturnType<typeof vi.fn>;
 
 function respond(url: string) {
   if (url.endsWith('/system/ldap/sync/preview')) return ok(preview);
-  if (url.endsWith('/system/ldap/sync/execute')) return ok({ status: 'completed', outcomes: [{ action: 'create', username: 'hank', outcome: 'done' }] });
+  if (url.endsWith('/system/ldap/sync/execute')) return ok({ status: 'completed', outcomes: [{ action: 'create', username: 'hank', outcome: 'done' }, { action: 'update', accountId: 9, username: 'ivan', outcome: 'done', turnedExternal: true, restrictedRoles: ['admin'], ownedProjects: ['late'] }] });
   return ok({});
 }
 const button = (text: string) => [...container.querySelectorAll('button')].find((b) => b.textContent === text)!;
@@ -67,6 +67,9 @@ describe('LDAP sync panel', () => {
     expect(JSON.parse(init.body)).toEqual({ previewId: 'p-1', disable: [4], bind: [6], separate: [8] });
     expect(container.textContent).toContain('Sync completed');
     expect(onDone).toHaveBeenCalled();
+    const result = container.querySelector('[role="status"]')!.textContent;
+    expect(result).toContain('owns projects late');
+    expect(result).toContain('roles admin stop applying');
   });
 
   it('disables the disable choices when disables are blocked', async () => {
